@@ -4,16 +4,21 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
 
 /*
  * Alpha-Intake Testing
  * An iterative OpMode that runs ONE intake motor (goBILDA 5200 series)
- * using the left analog stick on gamepad1.
+ * using buttons on gamepad1. HOLD a button to run the intake.
  *
- *   Push left stick UP   -> intake pulls game pieces IN
- *   Pull left stick DOWN -> intake pushes game pieces OUT
- *   Let go of the stick  -> intake stops
+ *   Left Bumper  -> REVERSE at 50% power (push a stuck game piece back out)
+ *   Right Bumper -> 100% power
+ *   Y            ->  75% power
+ *   X            ->  50% power
+ *   A            ->  25% power
+ *   No button    -> intake stops
+ *
+ * Left Bumper beats every other button.
+ * If more than one intake button is held, the HIGHEST power wins.
  *
  * Robot configuration (on the Driver Station):
  *   Motor name: intake_motor
@@ -22,13 +27,14 @@ import com.qualcomm.robotcore.util.Range;
 @TeleOp(name = "Alpha-Intake Testing", group = "Testing")
 public class AlphaIntakeTesting extends OpMode {
 
-    // Stick values smaller than this are treated as zero.
-    // This stops the motor from creeping when the stick is not perfectly centered.
-    private static final double STICK_DEADBAND = 0.05;
+    // Power for each button (0.0 to 1.0). Change these to test different speeds.
+    private static final double POWER_RIGHT_BUMPER = 1.00;
+    private static final double POWER_Y            = 0.75;
+    private static final double POWER_X            = 0.50;
+    private static final double POWER_A            = 0.25;
 
-    // Maximum power the intake is allowed to use (0.0 to 1.0).
-    // Lower this while testing if the intake is too aggressive.
-    private static final double INTAKE_MAX_POWER = 1.0;
+    // Reverse power is NEGATIVE so the motor spins the other way.
+    private static final double POWER_LEFT_BUMPER  = -0.50;
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
@@ -42,8 +48,8 @@ public class AlphaIntakeTesting extends OpMode {
         // The name "intake_motor" MUST match the robot configuration exactly.
         intakeMotor = hardwareMap.get(DcMotor.class, "intake_motor");
 
-        // If pushing the stick UP spins the intake the wrong way, change FORWARD to REVERSE.
-        intakeMotor.setDirection(DcMotor.Direction.FORWARD);
+        // If the intake spins the wrong way, change FORWARD to REVERSE.
+        intakeMotor.setDirection(DcMotor.Direction.REVERSE);
 
         // We are controlling power directly, not using the encoder for speed control.
         intakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -74,24 +80,40 @@ public class AlphaIntakeTesting extends OpMode {
      */
     @Override
     public void loop() {
-        // The joystick Y axis is NEGATIVE when pushed up, so we flip the sign.
-        double stickInput = -gamepad1.left_stick_y;
+        double intakePower;
+        String activeButton;
 
-        // Apply the deadband: tiny stick movements count as zero.
-        if (Math.abs(stickInput) < STICK_DEADBAND) {
-            stickInput = 0.0;
+        // Check REVERSE first, so clearing a jam always works.
+        // Then check the intake buttons from HIGHEST power to LOWEST.
+        // The first one that is pressed wins, and the rest are skipped.
+        if (gamepad1.left_bumper) {
+            intakePower = POWER_LEFT_BUMPER;
+            activeButton = "Left Bumper (REVERSE)";
+        } else if (gamepad1.right_bumper) {
+            intakePower = POWER_RIGHT_BUMPER;
+            activeButton = "Right Bumper";
+        } else if (gamepad1.y) {
+            intakePower = POWER_Y;
+            activeButton = "Y";
+        } else if (gamepad1.x) {
+            intakePower = POWER_X;
+            activeButton = "X";
+        } else if (gamepad1.a) {
+            intakePower = POWER_A;
+            activeButton = "A";
+        } else {
+            // No button held, so stop the intake.
+            intakePower = 0.0;
+            activeButton = "None";
         }
-
-        // Scale by the max power and keep the result between -1.0 and 1.0.
-        double intakePower = Range.clip(stickInput * INTAKE_MAX_POWER, -1.0, 1.0);
 
         // Send the power to the motor.
         intakeMotor.setPower(intakePower);
 
         // Show what is happening on the Driver Station.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Stick", "%.2f", stickInput);
-        telemetry.addData("Intake Power", "%.2f", intakePower);
+        telemetry.addData("Button", activeButton);
+        telemetry.addData("Intake Power", "%.0f%%", intakePower * 100);
     }
 
     /*
