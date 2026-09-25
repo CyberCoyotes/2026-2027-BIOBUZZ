@@ -5,86 +5,98 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
 
 /*
  * Alpha-Shooter Testing
- * An iterative OpMode that runs TWO shooter motors (goBILDA 5200 series):
- *   - a FLYWHEEL that launches the ball
- *   - a BACKSPIN motor that puts spin on the ball as it leaves
+ * An iterative OpMode that runs the shooter FLYWHEEL motor (goBILDA 5200 series)
+ * using buttons on gamepad1. HOLD a button to run the flywheel.
  *
- * Controls (gamepad1):
- *   Right trigger -> flywheel power (squeeze harder = faster)
+ *   Left Bumper  -> REVERSE at 60% power (push a stuck game piece back out)
+ *   Right Bumper -> 100% power
+ *   Y            ->  85% power
+ *   X            ->  75% power
+ *   A            ->  65% power
+ *   No button    -> flywheel coasts to a stop
  *
- *   Backspin presets (the button stays selected until you pick another):
- *     A (bottom)  -> LOW
- *     X (left)    -> MEDIUM-LOW
- *     B (right)   -> MEDIUM-HIGH
- *     Y (top)     -> HIGH
- *     Left bumper -> backspin OFF
+ * Left Bumper beats every other button.
+ * If more than one flywheel button is held, the HIGHEST power wins.
  *
- *   On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
+ * On a PS5 controller: A = Cross, X = Square, Y = Triangle.
+ *
+ * BACKSPIN motor is commented out for now. Remove the // marks to turn it back on.
  *
  * Robot configuration (on the Driver Station):
- *   Motor names: flywheel_motor, backspin_motor
- *   Motor type:  goBILDA 5202/3/4 series
+ *   Motor name: flywheel_motor   (backspin_motor not needed yet)
+ *   Motor type: goBILDA 5202/3/4 series
+ *     // Encoder ticks per ONE turn of the motor's output shaft.
+    // goBILDA 5202/3/4 motors: 28 ticks per turn of the motor itself.
+    // If your motor has a gearbox, multiply by the gear ratio
+    // (example: a 3.7:1 gearbox -> 28 * 3.7 = 103.6).
+    // ENCODER NOT CONNECTED on the prototype. Remove the // when it is plugged in.
+    // private static final double FLYWHEEL_TICKS_PER_REV = 28.0;
+    // private static final double BACKSPIN_TICKS_PER_REV = 28.0;
  */
 @TeleOp(name = "Alpha-Shooter Testing", group = "Testing")
 public class AlphaShooterTesting extends OpMode {
 
-    // Trigger values smaller than this are treated as zero.
-    private static final double TRIGGER_DEADBAND = 0.05;
+    // Power for each button (0.0 to 1.0). Change these to test different speeds.
+    private static final double POWER_RIGHT_BUMPER = 1.00;
+    private static final double POWER_Y            = 0.85;
+    private static final double POWER_X            = 0.75;
+    private static final double POWER_A            = 0.65;
 
-    // Maximum power the flywheel is allowed to use (0.0 to 1.0).
-    private static final double FLYWHEEL_MAX_POWER = 1.0;
+    // Reverse power is NEGATIVE so the motor spins the other way.
+    private static final double POWER_LEFT_BUMPER  = -0.60;
 
-    // Backspin preset powers. Change these numbers while tuning your shot!
-    private static final double BACKSPIN_LOW         = 0.25;
-    private static final double BACKSPIN_MEDIUM_LOW  = 0.50;
-    private static final double BACKSPIN_MEDIUM_HIGH = 0.75;
-    private static final double BACKSPIN_HIGH        = 1.00;
+    // Backspin preset powers (not used yet).
+    // private static final double BACKSPIN_LOW         = 0.25;
+    // private static final double BACKSPIN_MEDIUM_LOW  = 0.50;
+    // private static final double BACKSPIN_MEDIUM_HIGH = 0.75;
+    // private static final double BACKSPIN_HIGH        = 1.00;
 
+    // ENCODER NOT CONNECTED on the prototype. Remove the // when it is plugged in.
     // Encoder ticks per ONE turn of the motor's output shaft.
     // goBILDA 5202/3/4 motors: 28 ticks per turn of the motor itself.
     // If your motor has a gearbox, multiply by the gear ratio
     // (example: a 3.7:1 gearbox -> 28 * 3.7 = 103.6).
-    private static final double FLYWHEEL_TICKS_PER_REV = 28.0;
-    private static final double BACKSPIN_TICKS_PER_REV = 28.0;
+    // private static final double FLYWHEEL_TICKS_PER_REV = 28.0;
+    // private static final double BACKSPIN_TICKS_PER_REV = 28.0;
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
 
     // DcMotorEx is a DcMotor with extra features, like reading speed (velocity).
     private DcMotorEx flywheelMotor = null;
-    private DcMotorEx backspinMotor = null;
-
-    // The backspin power the driver has selected. It stays until a new button is pressed.
-    private double backspinPower = 0.0;
-    private String backspinPresetName = "OFF";
+    // private DcMotorEx backspinMotor = null;
 
     /*
      * Code to run ONCE when the driver hits INIT
      */
     @Override
     public void init() {
-        // These names MUST match the robot configuration exactly.
+        // The name "flywheel_motor" MUST match the robot configuration exactly.
         flywheelMotor = hardwareMap.get(DcMotorEx.class, "flywheel_motor");
-        backspinMotor = hardwareMap.get(DcMotorEx.class, "backspin_motor");
+        // backspinMotor = hardwareMap.get(DcMotorEx.class, "backspin_motor");
 
-        // If a motor spins the wrong way, change FORWARD to REVERSE.
+        // If the flywheel spins the wrong way, flip this between FORWARD and REVERSE.
         flywheelMotor.setDirection(DcMotor.Direction.FORWARD);
-        backspinMotor.setDirection(DcMotor.Direction.FORWARD);
+        // backspinMotor.setDirection(DcMotor.Direction.FORWARD);
 
         // We are controlling power directly. The encoder still reports speed for telemetry.
         flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backspinMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        // backspinMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        // FLOAT lets the wheels coast down. Do NOT use BRAKE on a heavy flywheel:
+        // FLOAT lets the flywheel coast down. Do NOT use BRAKE on a heavy flywheel:
         // stopping it suddenly puts a lot of stress on the motor and gears.
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        backspinMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        // backspinMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
+        // Display initialization status on Driver Station
         telemetry.addData("Status", "Initialized");
+        telemetry.addData("Flywheel Motor", "Connected");
+        telemetry.addData("Encoder Status", "NOT CONNECTED - Power control only");
+        telemetry.addData("Control", "Hold buttons to run flywheel");
+        telemetry.addLine("Ready to start!");
     }
 
     /*
@@ -107,52 +119,48 @@ public class AlphaShooterTesting extends OpMode {
      */
     @Override
     public void loop() {
-        // ---------- FLYWHEEL: analog trigger ----------
-        // Triggers go from 0.0 (released) to 1.0 (fully squeezed).
-        double triggerInput = gamepad1.right_trigger;
+        double flywheelPower;
+        String activeButton;
 
-        if (triggerInput < TRIGGER_DEADBAND) {
-            triggerInput = 0.0;
+        // Check REVERSE first, so clearing a jam always works.
+        // Then check the flywheel buttons from HIGHEST power to LOWEST.
+        // The first one that is pressed wins, and the rest are skipped.
+        if (gamepad1.left_bumper) {
+            flywheelPower = POWER_LEFT_BUMPER;
+            activeButton = "Left Bumper (REVERSE)";
+        } else if (gamepad1.right_bumper) {
+            flywheelPower = POWER_RIGHT_BUMPER;
+            activeButton = "Right Bumper";
+        } else if (gamepad1.y) {
+            flywheelPower = POWER_Y;
+            activeButton = "Y";
+        } else if (gamepad1.x) {
+            flywheelPower = POWER_X;
+            activeButton = "X";
+        } else if (gamepad1.a) {
+            flywheelPower = POWER_A;
+            activeButton = "A";
+        } else {
+            // No button held, so stop the flywheel.
+            flywheelPower = 0.0;
+            activeButton = "None";
         }
 
-        double flywheelPower = Range.clip(triggerInput * FLYWHEEL_MAX_POWER, 0.0, 1.0);
+        // Send the power to the motor.
         flywheelMotor.setPower(flywheelPower);
 
-        // ---------- BACKSPIN: button presets ----------
-        // Only ONE preset can be chosen per loop. If two buttons are held,
-        // the one checked first wins (this is how an if / else if chain works).
-        if (gamepad1.left_bumper) {
-            backspinPower = 0.0;
-            backspinPresetName = "OFF";
-        } else if (gamepad1.a) {
-            backspinPower = BACKSPIN_LOW;
-            backspinPresetName = "LOW (A)";
-        } else if (gamepad1.x) {
-            backspinPower = BACKSPIN_MEDIUM_LOW;
-            backspinPresetName = "MEDIUM-LOW (X)";
-        } else if (gamepad1.b) {
-            backspinPower = BACKSPIN_MEDIUM_HIGH;
-            backspinPresetName = "MEDIUM-HIGH (B)";
-        } else if (gamepad1.y) {
-            backspinPower = BACKSPIN_HIGH;
-            backspinPresetName = "HIGH (Y)";
-        }
-        // If no button is pressed, backspinPower keeps its last value.
-
-        backspinMotor.setPower(backspinPower);
-
-        // ---------- TELEMETRY ----------
+        // ENCODER NOT CONNECTED on the prototype. Remove the // when it is plugged in.
         // getVelocity() returns encoder ticks per second.
         // Convert to RPM: (ticks per second / ticks per rev) * 60 seconds.
-        double flywheelRpm = flywheelMotor.getVelocity() / FLYWHEEL_TICKS_PER_REV * 60.0;
-        double backspinRpm = backspinMotor.getVelocity() / BACKSPIN_TICKS_PER_REV * 60.0;
+        // double flywheelRpm = flywheelMotor.getVelocity() / FLYWHEEL_TICKS_PER_REV * 60.0;
+        // double backspinRpm = backspinMotor.getVelocity() / BACKSPIN_TICKS_PER_REV * 60.0;
 
+        // Show what is happening on the Driver Station.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Flywheel Power", "%.2f", flywheelPower);
-        telemetry.addData("Flywheel RPM", "%.0f", flywheelRpm);
-        telemetry.addData("Backspin Preset", backspinPresetName);
-        telemetry.addData("Backspin Power", "%.2f", backspinPower);
-        telemetry.addData("Backspin RPM", "%.0f", backspinRpm);
+        telemetry.addData("Button", activeButton);
+        telemetry.addData("Flywheel Power", "%.0f%%", flywheelPower * 100);
+        // telemetry.addData("Flywheel RPM", "%.0f", flywheelRpm);
+        // telemetry.addData("Backspin RPM", "%.0f", backspinRpm);
     }
 
     /*
@@ -162,6 +170,6 @@ public class AlphaShooterTesting extends OpMode {
     public void stop() {
         // Always leave the motors stopped.
         flywheelMotor.setPower(0.0);
-        backspinMotor.setPower(0.0);
+        // backspinMotor.setPower(0.0);
     }
 }
