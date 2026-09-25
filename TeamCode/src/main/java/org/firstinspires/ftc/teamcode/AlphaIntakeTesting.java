@@ -29,12 +29,12 @@ public class AlphaIntakeTesting extends OpMode {
 
     // Power for each button (0.0 to 1.0). Change these to test different speeds.
     private static final double POWER_RIGHT_BUMPER = 1.00;
-    private static final double POWER_Y            = 0.75;
-    private static final double POWER_X            = 0.50;
-    private static final double POWER_A            = 0.25;
+    private static final double POWER_Y            = 0.85;
+    private static final double POWER_X            = 0.75;
+    private static final double POWER_A            = 0.65;
 
     // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double POWER_LEFT_BUMPER  = -0.50;
+    private static final double POWER_LEFT_BUMPER  = -0.60;
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
