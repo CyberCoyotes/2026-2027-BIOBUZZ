@@ -1,13 +1,13 @@
 # CLAUDE.md — Cyber Coyotes FTC (2026-2027 BIOBUZZ)
 
-Claude Code loads this file automatically at the start of every session. It holds the rules for working in this repo. Game and robot details are in `/docs`.
+Claude Code loads this file automatically at the start of every session. It holds the rules for working in this repo. Structure and conventions are in `ARCHITECTURE.md`; game and robot details are in `TeamCode/docs/`.
 
 ## Who this code is for
 
 - Reed City Cyber Coyotes, a middle school FTC program with two teams, **ACME Fabrications (11940)** and **ACME Innovations (22091)**, plus a practice bot.
 - The programmers are **8th graders**. Write code a 13-year-old can read, trace, and change:
-  - Prefer clear, verbose code to clever code. Use full command classes, not factories or lambdas-in-lambdas.
-  - Explain *why* in Javadoc and comments, not just *what*.
+  - Prefer clear, verbose code to clever code. Don't use lambdas, streams, or deep inheritance.
+  - Explain *why* in comments, not just *what*. The existing `Alpha*Testing.java` OpModes show the comment style we want.
   - Use one idea per method. Name things for what they do in the game.
 - The coach reviews all work. Pushback is welcome: flag problems, risky assumptions, or a better approach instead of quietly going along.
 
@@ -15,31 +15,30 @@ Claude Code loads this file automatically at the start of every session. It hold
 
 1. **Read `ARCHITECTURE.md` first.** It is the source of truth for structure and conventions.
 2. **Propose before coding.** Show the design (classes, states, methods, how it wires into TeleOp/Auto) and **wait for approval** before writing code unless prior authorization is already written.
-3. **One subsystem or one command per session.**
-4. **`[CONFIRM]` markers** in `ARCHITECTURE.md` or `/docs` mark unresolved decisions. **Stop and ask** before doing any work that depends on one.
-5. When a game fact matters, check `/docs` first. If `/docs` and the Competition Manual disagree, the manual wins. Say so.
+3. **One mechanism class or one OpMode per session.**
+4. **`[CONFIRM]` markers** in `ARCHITECTURE.md` or `TeamCode/docs/` mark unresolved decisions. **Stop and ask** before doing any work that depends on one.
+5. When a game fact matters, check `TeamCode/docs/` first. If the docs and the Competition Manual disagree, the manual wins. Say so.
+
+## The approach this season: standard FTC SDK style
+
+- **No FTCLib and no command-based code** (no subsystems, commands, or schedulers). We follow the patterns in the FTC SDK samples.
+- **Reference code:** `FtcRobotController/src/main/java/org/firstinspires/ftc/robotcontroller/external/samples/`. Start from the closest sample and keep its structure and comment style. **Don't modify anything under `FtcRobotController/`.**
+- **Our code:** everything under `TeamCode/src/`.
+- **Iterative OpModes** (`extends OpMode`: `init`, `init_loop`, `start`, `loop`, `stop`), like `BasicOpMode_Iterative` and our `AlphaIntakeTesting`.
+- **One class per mechanism** (`Shooter`, `Turret`, `Intake`, …). Each class owns its own hardware and methods, and OpModes use the mechanism classes. See `ARCHITECTURE.md`.
 
 ## Stack
 
-- Java, FTC SDK 12.x, **FTCLib 2.1.1** (command-based, mirrors FRC), **Pedro Pathing 2.1.2** for autonomous. The team does not use RoadRunner.
+- Java, FTC SDK 12.x, **Pedro Pathing** for autonomous. The team does not use RoadRunner or FTCLib.
 - Hardware: REV Control Hub + Expansion Hub, Limelight 3A, goBILDA Pinpoint odometry, goBILDA 5203 motors.
-- Android build flavors deploy robot-specific OpModes to the correct Control Hub:
-  - Shared code: `src/main/`
-  - Robot-specific OpModes: `src/practiceBot/`, `src/team11940/`, `src/team22091/`
-
-## Architecture rules (summary; the full rules are in `ARCHITECTURE.md`)
-
-- Actuators extend `SubsystemBase`. Sensors (Limelight, Pinpoint) are **plain helper classes** in `common/helpers/`. They are not registered with the scheduler, and the OpMode calls their `update()` each loop.
-- **State vs. status:** *state* is explicitly set by commands; *status* is observed or derived from sensors.
-- **Button bindings live only in TeleOp.** Don't mention buttons in command Javadocs.
-- Commands declare **every** subsystem they touch with `addRequirements(...)`.
+- Android build flavors deploy robot-specific OpModes to the correct Control Hub (`practiceBot`, `team11940`, `team22091`). Shared code lives in `src/main/`. The flavors are not set up in this repo yet; see `ARCHITECTURE.md`.
 
 ## Naming conventions
 
 | Thing | Convention | Example |
 |---|---|---|
-| Packages | lowercase | `common.subsystems` |
-| Classes | PascalCase | `TurretSubsystem` |
+| Packages | lowercase | `mechanisms` |
+| Classes | PascalCase | `Turret` |
 | Variables / methods | camelCase | `targetVelocity` |
 | Hardware variables | location first | `leftIntakeServo` |
 | Hardware config names | snake_case | `left_intake_servo` |
@@ -50,12 +49,11 @@ Claude Code loads this file automatically at the start of every session. It hold
 
 These cost us time before, so don't repeat them:
 
-- **FTCLib 2.1.1 API:** use `whileHeld` / `whenPressed`. Don't use `whileTrue` / `onTrue`, which are newer WPILib names. Use `getTrigger(GamepadKeys.Trigger.LEFT_TRIGGER)`. `Button.GUIDE` does not exist.
-- **Drive input axes:** strafe and rotation are negated in `DefaultDriveCommand`. The motor directions are correct; the negation is an input-convention transform, so don't "fix" the motors.
-- **goBILDA 5203 encoder:** 28 PPR × 4 = **112 CPR**. At 6000 RPM, max is about 11,200 ticks/sec. A 4× error here caused flywheel underperformance last season.
+- **goBILDA 5202/3/4 encoder ticks:** `[CONFIRM]` Our notes from last season say 112 counts per motor revolution, but goBILDA's spec and the SDK's goBILDA motor type use **28 counts per motor revolution** (7 pulses × 4 edges). The Alpha test code uses 28. Before tuning any velocity control, check on the robot: at full power with no load, a 1:1 (6000 RPM) motor should read about **2,800 ticks/sec** from `getVelocity()` if 28 is right, or about 11,200 if 112 is right.
 - **Continuous rotation servos:** 0.0 = full reverse, 0.5 = stop, 1.0 = full forward. `setDirection(REVERSE)` has caused problems.
 - **Limelight 3A:** needs an Ethernet device in the robot config named `limelight`. It lives at `172.29.0.1` on the Control Hub's internal subnet, not `192.168.1.11`. Exposure 1000 / gain 8 is a good starting point, and it can run at 90 FPS.
-- **FTC SDK 12.0 breaking change:** `AprilTagDetection` may be a single tag or a **cluster**. Check with `instanceof AprilTagSingleDetection` / `AprilTagClusterDetection` and cast. Last season's AprilTag code will not compile unchanged.
+- **FTC SDK 12.0 breaking change:** `AprilTagDetection` may be a single tag or a **cluster**. Check with `instanceof AprilTagSingleDetection` / `AprilTagClusterDetection` and cast. Older AprilTag code will not compile unchanged.
+- **Flywheels:** use `FLOAT` zero-power behavior, never `BRAKE`, on a heavy flywheel.
 - **Check the cables before the code.** Motors or sensors plugged into the wrong port are the most common time-waster.
 
 ## Dev environment
@@ -66,10 +64,11 @@ These cost us time before, so don't repeat them:
 
 ## Docs index
 
-- `docs/biobuzz-game-essentials.md`: scoring, ranking points, and the rules that affect code and design
-- `docs/biobuzz-hive-apriltag-geometry.md`: hive and cell dimensions, tag IDs and layout, camera math
-- `docs/biobuzz-robot-design.md`: current robot concept (turret shooter + Limelight), build order, and open decisions
+- `ARCHITECTURE.md`: structure, patterns, and rules for all team code
+- `TeamCode/docs/biobuzz-game-essentials.md`: scoring, ranking points, and the rules that affect code and design
+- `TeamCode/docs/biobuzz-hive-apriltag-geometry.md`: hive and cell dimensions, tag IDs and layout, camera math
+- `TeamCode/docs/biobuzz-robot-design.md`: current robot concept (turret shooter + Limelight), build order, and open decisions
 
 ## Heads up
 
-2026-2027 is the **last season** for this Java/FTCLib setup. In 2027-2028 FTC moves to SystemCore. Don't over-invest in framework cleverness that won't carry over; clear, teachable code matters more.
+2026-2027 is the **last season** of FTC Java in its current form. In 2027-2028 FTC moves to SystemCore with more standard OpModes, which is one reason we're using the standard SDK style now.

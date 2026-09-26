@@ -15,16 +15,19 @@
 - The raised cell's opening is **53.5–65.6 in high**, so the ball has to climb about 40 in from a shooter exit around 15–18 in.
 - The shooting side flips after every tip. A turret lets us shoot from anywhere on the correct side without precise chassis aiming.
 
-## Subsystem plan (proposal; follows `ARCHITECTURE.md`)
+## Mechanism plan (proposal; follows `ARCHITECTURE.md`)
 
-| Class | Type | Job |
-|---|---|---|
-| `ShooterSubsystem` | SubsystemBase | Flywheel + backspin velocity control; reports `atSpeed` status |
-| `TurretSubsystem` | SubsystemBase | Turret angle control, soft limits, homing |
-| `Limelight` (existing) | helper | Tag results: `tx`, `ty`, visible IDs |
-| `IndexSubsystem` / `IntakeSubsystem` | SubsystemBase | Feed and collect; max 4 balls held |
+These are plain mechanism classes used by iterative OpModes. This season has no FTCLib and no subsystems.
 
-The specific classes, states, and commands are decided one session at a time, proposal first.
+| Class | Job |
+|---|---|
+| `Shooter` | Flywheel + backspin velocity control; answers `isAtSpeed()` |
+| `Turret` | Turret angle control, soft limits, homing |
+| `Vision` | Limelight wrapper: `tx`, `ty`, visible tag IDs, alliance filtering |
+| `Intake` / feeder | Collect and feed balls; max 4 held |
+| `Drivetrain` | Mecanum drive for TeleOp; Pedro Pathing handles Auto |
+
+The specific classes, states, and methods are decided one session at a time, proposal first.
 
 ## Control approach
 
@@ -32,7 +35,7 @@ The specific classes, states, and commands are decided one session at a time, pr
 - **Distance:** `d = (50 − lensHeight) / tan(cameraTilt + ty)`.
 - **Flywheel speed:** a **lookup table** of distance → flywheel RPM (and backspin RPM), measured at 4–6 distances and interpolated between them. Don't use physics equations. Students can re-tune a table at an event.
 - **Firing gate:** only feed a ball when the flywheel (and backspin wheel) are within a velocity tolerance **and** the turret is on target.
-- **Velocity control:** `DcMotorEx.setVelocity()` with tuned PIDF. Remember the 5203 is 112 counts per revolution.
+- **Velocity control:** `DcMotorEx.setVelocity()` with tuned PIDF. Confirm the encoder counts per revolution first (28 or 112, see `CLAUDE.md`).
 - **Backspin:** start at a **fixed ratio** to the flywheel speed. Tune it separately only if testing shows spin matters.
 - **Target entry angle:** a ball coming down at ~30° arrives square-on to the tilted window and has the largest usable opening.
 
