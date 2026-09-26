@@ -10,11 +10,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * An iterative OpMode that runs ONE intake motor (goBILDA 5200 series)
  * using buttons on gamepad1. HOLD a button to run the intake.
  *
- *   Left Bumper  -> REVERSE at 50% power (push a stuck game piece back out)
+ *   Left Bumper  -> REVERSE at 60% power (push a stuck game piece back out)
  *   Right Bumper -> 100% power
- *   Y            ->  75% power
- *   X            ->  50% power
- *   A            ->  25% power
+ *   Y            ->  85% power
+ *   X            ->  75% power
+ *   A            ->  65% power
  *   No button    -> intake stops
  *
  * Left Bumper beats every other button.
