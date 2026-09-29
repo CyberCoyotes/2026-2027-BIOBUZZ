@@ -13,7 +13,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *
  * Two controllers are used:
  *   gamepad1 (driver)   -> INTAKE  (driving will be added here later)
- *   gamepad2 (operator) -> SHOOTER (flywheel and backspin, each on its own controls)
+ *   gamepad2 (operator) -> SHOOTER (flywheel and backspin together)
  *
  * On the Driver Station, pair the controllers with Start + A (gamepad1)
  * and Start + B (gamepad2).
@@ -26,27 +26,22 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *   A            ->  65% power
  *   No button    -> intake stops
  *
- * GAMEPAD 2 - FLYWHEEL (hold Right Trigger to run):
- *   Right Trigger                -> 100% power (the default)
- *   Right Trigger + D-Pad Up     -> 100% power
- *   Right Trigger + D-Pad Right  ->  85% power
- *   Right Trigger + D-Pad Left   ->  75% power
- *   Right Trigger + D-Pad Down   ->  65% power
- *   Right Bumper                 -> REVERSE at 60% power
+ * GAMEPAD 2 - SHOOTER (HOLD a button to run BOTH the flywheel and the backspin
+ * at the SAME power):
+ *   Y  -> 60% power
+ *   X  -> 55% power
+ *   B  -> 50% power
+ *   A  -> 45% power
+ *   No button -> both coast to a stop
  *
- * GAMEPAD 2 - BACKSPIN (hold Left Trigger to run):
- *   Left Trigger                 -> 100% power (the default)
- *   Left Trigger + Y             -> 100% power
- *   Left Trigger + B             ->  75% power
- *   Left Trigger + X             ->  50% power
- *   Left Trigger + A             ->  25% power
- *   Left Bumper                  -> REVERSE at 60% power
+ * GAMEPAD 2 - SHOOTER REVERSE (for clearing a jam, 60% power the other way):
+ *   Right Bumper -> reverses the FLYWHEEL only
+ *   Left Bumper  -> reverses the BACKSPIN only
  *
- * The flywheel and the backspin are SEPARATE on purpose, so each one can be
- * tuned on its own. The D-Pad only changes the flywheel. The Y/B/X/A buttons
- * only change the backspin. You can run both at the same time.
- * Each motor's reverse beats its own power buttons.
- * If more than one preset button is held, the HIGHEST power wins.
+ * The backspin wheel spins the OPPOSITE way from the flywheel. That is set
+ * in one place: FLYWHEEL_DIRECTION below. The backspin direction follows it.
+ * A reverse bumper beats the shooter buttons for that motor.
+ * If more than one shooter button is held, the HIGHEST power wins.
  *
  * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
  *
@@ -71,34 +66,20 @@ public class AlphaCombinedTesting extends OpMode {
 
     // ---------- SHOOTER settings (gamepad2) ----------
 
-    // A trigger reads 0.0 (not pressed) to 1.0 (pressed all the way).
-    // We count it as "held" once it is pushed past this number, so a light
-    // accidental touch does not start a motor. Raise it if that happens.
-    private static final double TRIGGER_PRESSED_THRESHOLD = 0.10;
-
-    // FLYWHEEL power for each D-Pad direction (0.0 to 1.0).
-    private static final double FLYWHEEL_POWER_DPAD_UP    = 1.00;
-    private static final double FLYWHEEL_POWER_DPAD_RIGHT = 0.85;
-    private static final double FLYWHEEL_POWER_DPAD_LEFT  = 0.75;
-    private static final double FLYWHEEL_POWER_DPAD_DOWN  = 0.65;
-
-    // Flywheel power when the Right Trigger is held and NO D-Pad direction is held.
-    private static final double FLYWHEEL_POWER_DEFAULT    = 1.00;
+    // Power for each button (0.0 to 1.0). The flywheel AND the backspin both
+    // get this same power. Change these to test different speeds.
+    private static final double SHOOTER_POWER_Y = 0.60;
+    private static final double SHOOTER_POWER_X = 0.55;
+    private static final double SHOOTER_POWER_B = 0.50;
+    private static final double SHOOTER_POWER_A = 0.45;
 
     // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double FLYWHEEL_POWER_REVERSE    = -0.60;
+    private static final double FLYWHEEL_POWER_REVERSE = -0.60;
+    private static final double BACKSPIN_POWER_REVERSE = -0.60;
 
-    // BACKSPIN power for each face button (0.0 to 1.0).
-    private static final double BACKSPIN_POWER_HIGH        = 1.00;  // Y
-    private static final double BACKSPIN_POWER_MEDIUM_HIGH = 0.75;  // B
-    private static final double BACKSPIN_POWER_MEDIUM_LOW  = 0.50;  // X
-    private static final double BACKSPIN_POWER_LOW         = 0.25;  // A
-
-    // Backspin power when the Left Trigger is held and NO face button is held.
-    private static final double BACKSPIN_POWER_DEFAULT     = 1.00;
-
-    // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double BACKSPIN_POWER_REVERSE     = -0.60;
+    // The flywheel direction. If the FLYWHEEL spins the wrong way, flip this
+    // ONE line. The backspin wheel is always set to the opposite direction.
+    private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.FORWARD;
 
     // ---------- Telemetry settings ----------
 
@@ -141,13 +122,18 @@ public class AlphaCombinedTesting extends OpMode {
         flywheelMotor = hardwareMap.get(DcMotorEx.class, "flywheel_motor");
         backspinMotor = hardwareMap.get(DcMotorEx.class, "backspin_motor");
 
-        // If a motor spins the wrong way, flip it between FORWARD and REVERSE.
-        // Both were flipped after testing on the robot:
-        //   intake   was REVERSE, now FORWARD
-        //   backspin was FORWARD, now REVERSE
+        // If the intake spins the wrong way, flip it between FORWARD and REVERSE.
         intakeMotor.setDirection(DcMotor.Direction.FORWARD);
-        flywheelMotor.setDirection(DcMotor.Direction.FORWARD);
-        backspinMotor.setDirection(DcMotor.Direction.REVERSE);
+
+        // The flywheel uses FLYWHEEL_DIRECTION (set at the top of the file).
+        flywheelMotor.setDirection(FLYWHEEL_DIRECTION);
+
+        // The backspin wheel spins the OPPOSITE way from the flywheel.
+        if (FLYWHEEL_DIRECTION == DcMotor.Direction.FORWARD) {
+            backspinMotor.setDirection(DcMotor.Direction.REVERSE);
+        } else {
+            backspinMotor.setDirection(DcMotor.Direction.FORWARD);
+        }
 
         // We are controlling power directly, not using the encoder for speed control.
         intakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -163,6 +149,8 @@ public class AlphaCombinedTesting extends OpMode {
 
         telemetry.addData("Status", "Initialized");
         telemetry.addData("Encoder Status", "NOT CONNECTED - Power control only");
+        telemetry.addData("Flywheel Direction", FLYWHEEL_DIRECTION);
+        telemetry.addData("Backspin Direction", backspinMotor.getDirection());
         addControlsTelemetry();
     }
 
@@ -193,8 +181,7 @@ public class AlphaCombinedTesting extends OpMode {
     public void loop() {
         // 1. Read the gamepads and decide what each mechanism should do.
         updateIntake();
-        updateFlywheel();
-        updateBackspin();
+        updateShooter();
 
         // 2. Send the power to the motors.
         intakeMotor.setPower(intakePower);
@@ -208,6 +195,7 @@ public class AlphaCombinedTesting extends OpMode {
         // double backspinRpm = backspinMotor.getVelocity() / BACKSPIN_TICKS_PER_REV * 60.0;
 
         // 3. Show what is happening on the Driver Station.
+        // The power shown is the power we COMMANDED, so it is negative when reversing.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
         telemetry.addData("Intake Control (gp1)", intakeControl);
         telemetry.addData("Intake Power", "%.0f%%", intakePower * 100);
@@ -243,14 +231,10 @@ public class AlphaCombinedTesting extends OpMode {
         telemetry.addLine("--- GAMEPAD 1: INTAKE ---");
         telemetry.addLine("Right Bumper 100% | Y 85% | X 75% | A 65%");
         telemetry.addLine("Left Bumper = REVERSE");
-        telemetry.addLine("--- GAMEPAD 2: FLYWHEEL ---");
-        telemetry.addLine("Hold Right Trigger (100%) + D-Pad:");
-        telemetry.addLine("Up 100% | Right 85% | Left 75% | Down 65%");
-        telemetry.addLine("Right Bumper = REVERSE");
-        telemetry.addLine("--- GAMEPAD 2: BACKSPIN ---");
-        telemetry.addLine("Hold Left Trigger (100%) + button:");
-        telemetry.addLine("Y 100% | B 75% | X 50% | A 25%");
-        telemetry.addLine("Left Bumper = REVERSE");
+        telemetry.addLine("--- GAMEPAD 2: SHOOTER (flywheel + backspin) ---");
+        telemetry.addLine("Y 60% | X 55% | B 50% | A 45%");
+        telemetry.addLine("Right Bumper = REVERSE flywheel only");
+        telemetry.addLine("Left Bumper = REVERSE backspin only");
     }
 
     /*
@@ -283,76 +267,48 @@ public class AlphaCombinedTesting extends OpMode {
     }
 
     /*
-     * Picks the flywheel power from gamepad2's Right Trigger, D-Pad, and Right Bumper.
+     * Picks the flywheel AND backspin power from gamepad2's Y / X / B / A.
+     * Both motors get the same power. The reverse bumpers can then override
+     * one motor at a time.
      */
-    private void updateFlywheel() {
-        boolean rightTriggerHeld = gamepad2.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+    private void updateShooter() {
+        double shooterPower;
+        String shooterControl;
 
-        // Check REVERSE first, so clearing a jam always works.
+        // Check the shooter buttons from HIGHEST power to LOWEST.
+        // The first one that is pressed wins, and the rest are skipped.
+        if (gamepad2.y) {
+            shooterPower = SHOOTER_POWER_Y;
+            shooterControl = "Y";
+        } else if (gamepad2.x) {
+            shooterPower = SHOOTER_POWER_X;
+            shooterControl = "X";
+        } else if (gamepad2.b) {
+            shooterPower = SHOOTER_POWER_B;
+            shooterControl = "B";
+        } else if (gamepad2.a) {
+            shooterPower = SHOOTER_POWER_A;
+            shooterControl = "A";
+        } else {
+            // No button held, so stop both motors.
+            shooterPower = 0.0;
+            shooterControl = "None";
+        }
+
+        // Both motors start with the same power.
+        flywheelPower = shooterPower;
+        flywheelControl = shooterControl;
+        backspinPower = shooterPower;
+        backspinControl = shooterControl;
+
+        // REVERSE beats the shooter buttons, so clearing a jam always works.
         if (gamepad2.right_bumper) {
             flywheelPower = FLYWHEEL_POWER_REVERSE;
             flywheelControl = "Right Bumper (REVERSE)";
-        } else if (rightTriggerHeld) {
-            // The Right Trigger is held, so the flywheel runs.
-            // The D-Pad picks the power. Check from HIGHEST power to LOWEST.
-            if (gamepad2.dpad_up) {
-                flywheelPower = FLYWHEEL_POWER_DPAD_UP;
-                flywheelControl = "Right Trigger + D-Pad Up";
-            } else if (gamepad2.dpad_right) {
-                flywheelPower = FLYWHEEL_POWER_DPAD_RIGHT;
-                flywheelControl = "Right Trigger + D-Pad Right";
-            } else if (gamepad2.dpad_left) {
-                flywheelPower = FLYWHEEL_POWER_DPAD_LEFT;
-                flywheelControl = "Right Trigger + D-Pad Left";
-            } else if (gamepad2.dpad_down) {
-                flywheelPower = FLYWHEEL_POWER_DPAD_DOWN;
-                flywheelControl = "Right Trigger + D-Pad Down";
-            } else {
-                flywheelPower = FLYWHEEL_POWER_DEFAULT;
-                flywheelControl = "Right Trigger (default power)";
-            }
-        } else {
-            // Nothing held, so stop the flywheel.
-            // The D-Pad alone does nothing on purpose.
-            flywheelPower = 0.0;
-            flywheelControl = "None";
         }
-    }
-
-    /*
-     * Picks the backspin power from gamepad2's Left Trigger, Y / B / X / A, and Left Bumper.
-     */
-    private void updateBackspin() {
-        boolean leftTriggerHeld = gamepad2.left_trigger > TRIGGER_PRESSED_THRESHOLD;
-
-        // Check REVERSE first, so clearing a jam always works.
         if (gamepad2.left_bumper) {
             backspinPower = BACKSPIN_POWER_REVERSE;
             backspinControl = "Left Bumper (REVERSE)";
-        } else if (leftTriggerHeld) {
-            // The Left Trigger is held, so the backspin wheel runs.
-            // The face buttons pick the power. Check from HIGHEST power to LOWEST.
-            if (gamepad2.y) {
-                backspinPower = BACKSPIN_POWER_HIGH;
-                backspinControl = "Left Trigger + Y";
-            } else if (gamepad2.b) {
-                backspinPower = BACKSPIN_POWER_MEDIUM_HIGH;
-                backspinControl = "Left Trigger + B";
-            } else if (gamepad2.x) {
-                backspinPower = BACKSPIN_POWER_MEDIUM_LOW;
-                backspinControl = "Left Trigger + X";
-            } else if (gamepad2.a) {
-                backspinPower = BACKSPIN_POWER_LOW;
-                backspinControl = "Left Trigger + A";
-            } else {
-                backspinPower = BACKSPIN_POWER_DEFAULT;
-                backspinControl = "Left Trigger (default power)";
-            }
-        } else {
-            // Nothing held, so stop the backspin wheel.
-            // The face buttons alone do nothing on purpose.
-            backspinPower = 0.0;
-            backspinControl = "None";
         }
     }
 }
