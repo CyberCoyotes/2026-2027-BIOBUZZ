@@ -142,9 +142,12 @@ public class AlphaCombinedTesting extends OpMode {
         backspinMotor = hardwareMap.get(DcMotorEx.class, "backspin_motor");
 
         // If a motor spins the wrong way, flip it between FORWARD and REVERSE.
-        intakeMotor.setDirection(DcMotor.Direction.REVERSE);
+        // Both were flipped after testing on the robot:
+        //   intake   was REVERSE, now FORWARD
+        //   backspin was FORWARD, now REVERSE
+        intakeMotor.setDirection(DcMotor.Direction.FORWARD);
         flywheelMotor.setDirection(DcMotor.Direction.FORWARD);
-        backspinMotor.setDirection(DcMotor.Direction.FORWARD);
+        backspinMotor.setDirection(DcMotor.Direction.REVERSE);
 
         // We are controlling power directly, not using the encoder for speed control.
         intakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
