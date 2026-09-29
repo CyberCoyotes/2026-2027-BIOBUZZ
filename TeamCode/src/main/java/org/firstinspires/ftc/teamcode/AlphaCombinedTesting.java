@@ -38,8 +38,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *   Right Bumper -> reverses the FLYWHEEL only
  *   Left Bumper  -> reverses the BACKSPIN only
  *
- * The backspin wheel spins the OPPOSITE way from the flywheel. That is set
- * in one place: FLYWHEEL_DIRECTION below. The backspin direction follows it.
+ * The flywheel and the backspin each have their OWN direction setting:
+ * FLYWHEEL_DIRECTION and BACKSPIN_DIRECTION below.
  * A reverse bumper beats the shooter buttons for that motor.
  * If more than one shooter button is held, the HIGHEST power wins.
  *
@@ -77,9 +77,10 @@ public class AlphaCombinedTesting extends OpMode {
     private static final double FLYWHEEL_POWER_REVERSE = -0.60;
     private static final double BACKSPIN_POWER_REVERSE = -0.60;
 
-    // The flywheel direction. If the FLYWHEEL spins the wrong way, flip this
-    // ONE line. The backspin wheel is always set to the opposite direction.
-    private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.FORWARD;
+    // Each motor has its OWN direction. If a wheel spins the wrong way when you
+    // press A / B / X / Y, flip that motor's line between FORWARD and REVERSE.
+    private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.REVERSE;
+    private static final DcMotor.Direction BACKSPIN_DIRECTION = DcMotor.Direction.FORWARD;
 
     // ---------- Telemetry settings ----------
 
@@ -125,15 +126,9 @@ public class AlphaCombinedTesting extends OpMode {
         // If the intake spins the wrong way, flip it between FORWARD and REVERSE.
         intakeMotor.setDirection(DcMotor.Direction.FORWARD);
 
-        // The flywheel uses FLYWHEEL_DIRECTION (set at the top of the file).
+        // The flywheel and backspin directions are set at the top of the file.
         flywheelMotor.setDirection(FLYWHEEL_DIRECTION);
-
-        // The backspin wheel spins the OPPOSITE way from the flywheel.
-        if (FLYWHEEL_DIRECTION == DcMotor.Direction.FORWARD) {
-            backspinMotor.setDirection(DcMotor.Direction.REVERSE);
-        } else {
-            backspinMotor.setDirection(DcMotor.Direction.FORWARD);
-        }
+        backspinMotor.setDirection(BACKSPIN_DIRECTION);
 
         // We are controlling power directly, not using the encoder for speed control.
         intakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
