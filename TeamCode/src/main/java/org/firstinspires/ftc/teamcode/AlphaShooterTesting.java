@@ -12,11 +12,13 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * (goBILDA 5200 series) using gamepad1. This is the shooter part of
  * AlphaCombinedTesting, on its own, so the shooter can be tested alone.
  *
- * HOLD a button to run BOTH the flywheel and the backspin at the SAME power:
- *   Y  -> 60% power
- *   X  -> 55% power
- *   B  -> 50% power
- *   A  -> 45% power
+ * HOLD a button to run BOTH the flywheel and the backspin.
+ * Each motor has its OWN power number for each button, so you can tune them
+ * separately. Starting values (flywheel / backspin):
+ *   Y  -> 60% / 60%
+ *   X  -> 55% / 55%
+ *   B  -> 50% / 50%
+ *   A  -> 45% / 45%
  *   No button -> both coast to a stop
  *
  * REVERSE (for clearing a jam, 60% power the other way):
@@ -37,12 +39,20 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @TeleOp(name = "Alpha-Shooter Testing", group = "Testing")
 public class AlphaShooterTesting extends OpMode {
 
-    // Power for each button (0.0 to 1.0). The flywheel AND the backspin both
-    // get this same power. Change these to test different speeds.
-    private static final double SHOOTER_POWER_Y = 0.60;
-    private static final double SHOOTER_POWER_X = 0.55;
-    private static final double SHOOTER_POWER_B = 0.50;
-    private static final double SHOOTER_POWER_A = 0.45;
+    // Each button sets the FLYWHEEL and the BACKSPIN power (0.0 to 1.0).
+    // They are separate numbers on purpose, so you can tune each wheel on its own.
+    // Shooting power is always POSITIVE. Change these to test different speeds.
+    //
+    //                                Y     X     B     A
+    private static final double FLYWHEEL_POWER_Y = 0.60;
+    private static final double FLYWHEEL_POWER_X = 0.55;
+    private static final double FLYWHEEL_POWER_B = 0.50;
+    private static final double FLYWHEEL_POWER_A = 0.45;
+
+    private static final double BACKSPIN_POWER_Y = 0.60;
+    private static final double BACKSPIN_POWER_X = 0.55;
+    private static final double BACKSPIN_POWER_B = 0.50;
+    private static final double BACKSPIN_POWER_A = 0.45;
 
     // Reverse power is NEGATIVE so the motor spins the other way.
     private static final double FLYWHEEL_POWER_REVERSE = -0.60;
@@ -73,7 +83,14 @@ public class AlphaShooterTesting extends OpMode {
      */
     private void addControlsTelemetry() {
         telemetry.addLine("--- SHOOTER (flywheel + backspin) ---");
-        telemetry.addLine("Y 60% | X 55% | B 50% | A 45%");
+        // Each line shows the flywheel power / backspin power for that button.
+        telemetry.addLine(String.format("Y: %.0f%% / %.0f%%   X: %.0f%% / %.0f%%",
+                FLYWHEEL_POWER_Y * 100, BACKSPIN_POWER_Y * 100,
+                FLYWHEEL_POWER_X * 100, BACKSPIN_POWER_X * 100));
+        telemetry.addLine(String.format("B: %.0f%% / %.0f%%   A: %.0f%% / %.0f%%",
+                FLYWHEEL_POWER_B * 100, BACKSPIN_POWER_B * 100,
+                FLYWHEEL_POWER_A * 100, BACKSPIN_POWER_A * 100));
+        telemetry.addLine("(flywheel / backspin)");
         telemetry.addLine("Right Bumper = REVERSE flywheel only");
         telemetry.addLine("Left Bumper = REVERSE backspin only");
     }
@@ -133,33 +150,36 @@ public class AlphaShooterTesting extends OpMode {
      */
     @Override
     public void loop() {
-        double shooterPower;
+        double flywheelPower;
+        double backspinPower;
         String shooterControl;
 
         // Check the shooter buttons from HIGHEST power to LOWEST.
         // The first one that is pressed wins, and the rest are skipped.
+        // Each button sets the flywheel power AND the backspin power.
         if (gamepad1.y) {
-            shooterPower = SHOOTER_POWER_Y;
+            flywheelPower = FLYWHEEL_POWER_Y;
+            backspinPower = BACKSPIN_POWER_Y;
             shooterControl = "Y";
         } else if (gamepad1.x) {
-            shooterPower = SHOOTER_POWER_X;
+            flywheelPower = FLYWHEEL_POWER_X;
+            backspinPower = BACKSPIN_POWER_X;
             shooterControl = "X";
         } else if (gamepad1.b) {
-            shooterPower = SHOOTER_POWER_B;
+            flywheelPower = FLYWHEEL_POWER_B;
+            backspinPower = BACKSPIN_POWER_B;
             shooterControl = "B";
         } else if (gamepad1.a) {
-            shooterPower = SHOOTER_POWER_A;
+            flywheelPower = FLYWHEEL_POWER_A;
+            backspinPower = BACKSPIN_POWER_A;
             shooterControl = "A";
         } else {
             // No button held, so stop both motors.
-            shooterPower = 0.0;
+            flywheelPower = 0.0;
+            backspinPower = 0.0;
             shooterControl = "None";
         }
-
-        // Both motors start with the same power.
-        double flywheelPower = shooterPower;
         String flywheelControl = shooterControl;
-        double backspinPower = shooterPower;
         String backspinControl = shooterControl;
 
         // REVERSE beats the shooter buttons, so clearing a jam always works.
