@@ -77,10 +77,10 @@ public class AlphaCombinedTesting extends OpMode {
     private static final double FLYWHEEL_POWER_B = 0.50;
     private static final double FLYWHEEL_POWER_A = 0.45;
 
-    private static final double BACKSPIN_POWER_Y = 0.60;
-    private static final double BACKSPIN_POWER_X = 0.55;
-    private static final double BACKSPIN_POWER_B = 0.50;
-    private static final double BACKSPIN_POWER_A = 0.45;
+    private static final double BACKSPIN_POWER_Y = 1.00;
+    private static final double BACKSPIN_POWER_X = 0.95;
+    private static final double BACKSPIN_POWER_B = 0.90;
+    private static final double BACKSPIN_POWER_A = 0.85;
 
     // Reverse power is NEGATIVE so the motor spins the other way.
     private static final double FLYWHEEL_POWER_REVERSE = -0.60;
