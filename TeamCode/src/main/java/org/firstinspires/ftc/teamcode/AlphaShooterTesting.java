@@ -9,44 +9,45 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 /*
  * Alpha-Shooter Testing
  * An iterative OpMode that runs the shooter FLYWHEEL motor (goBILDA 5200 series)
- * using buttons on gamepad1. HOLD a button to run the flywheel.
+ * using gamepad1. The RIGHT TRIGGER is the "run the flywheel" control.
  *
- *   Left Bumper  -> REVERSE at 60% power (push a stuck game piece back out)
- *   Right Bumper -> 100% power
- *   Y            ->  85% power
- *   X            ->  75% power
- *   A            ->  65% power
- *   No button    -> flywheel coasts to a stop
+ *   Right Trigger (held)            -> flywheel runs at the DEFAULT power (100%)
+ *   Right Trigger + D-Pad Up        -> 100% power
+ *   Right Trigger + D-Pad Right     ->  85% power
+ *   Right Trigger + D-Pad Left      ->  75% power
+ *   Right Trigger + D-Pad Down      ->  65% power
+ *   Left Trigger (held)             -> REVERSE at 60% power (push a stuck game piece back out)
+ *   Nothing held                    -> flywheel coasts to a stop
  *
- * Left Bumper beats every other button.
- * If more than one flywheel button is held, the HIGHEST power wins.
- *
- * On a PS5 controller: A = Cross, X = Square, Y = Triangle.
+ * The D-Pad only does something WHILE the Right Trigger is held.
+ * Left Trigger beats everything else, so clearing a jam always works.
+ * If more than one D-Pad direction is held, the HIGHEST power wins.
  *
  * BACKSPIN motor is commented out for now. Remove the // marks to turn it back on.
  *
  * Robot configuration (on the Driver Station):
  *   Motor name: flywheel_motor   (backspin_motor not needed yet)
  *   Motor type: goBILDA 5202/3/4 series
- *     // Encoder ticks per ONE turn of the motor's output shaft.
-    // goBILDA 5202/3/4 motors: 28 ticks per turn of the motor itself.
-    // If your motor has a gearbox, multiply by the gear ratio
-    // (example: a 3.7:1 gearbox -> 28 * 3.7 = 103.6).
-    // ENCODER NOT CONNECTED on the prototype. Remove the // when it is plugged in.
-    // private static final double FLYWHEEL_TICKS_PER_REV = 28.0;
-    // private static final double BACKSPIN_TICKS_PER_REV = 28.0;
  */
 @TeleOp(name = "Alpha-Shooter Testing", group = "Testing")
 public class AlphaShooterTesting extends OpMode {
 
-    // Power for each button (0.0 to 1.0). Change these to test different speeds.
-    private static final double POWER_RIGHT_BUMPER = 1.00;
-    private static final double POWER_Y            = 0.85;
-    private static final double POWER_X            = 0.75;
-    private static final double POWER_A            = 0.65;
+    // A trigger reads 0.0 (not pressed) to 1.0 (pressed all the way).
+    // We count it as "held" once it is pushed past this number, so a light
+    // accidental touch does not start the flywheel. Raise it if that happens.
+    private static final double TRIGGER_PRESSED_THRESHOLD = 0.10;
+
+    // Power for each D-Pad direction (0.0 to 1.0). Change these to test different speeds.
+    private static final double POWER_DPAD_UP    = 1.00;
+    private static final double POWER_DPAD_RIGHT = 0.85;
+    private static final double POWER_DPAD_LEFT  = 0.75;
+    private static final double POWER_DPAD_DOWN  = 0.65;
+
+    // Power when the Right Trigger is held and NO D-Pad direction is held.
+    private static final double POWER_DEFAULT    = 1.00;
 
     // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double POWER_LEFT_BUMPER  = -0.60;
+    private static final double POWER_REVERSE    = -0.60;
 
     // Backspin preset powers (not used yet).
     // private static final double BACKSPIN_LOW         = 0.25;
@@ -95,7 +96,7 @@ public class AlphaShooterTesting extends OpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.addData("Flywheel Motor", "Connected");
         telemetry.addData("Encoder Status", "NOT CONNECTED - Power control only");
-        telemetry.addData("Control", "Hold buttons to run flywheel");
+        telemetry.addData("Control", "Hold Right Trigger, pick power with D-Pad");
         telemetry.addLine("Ready to start!");
     }
 
@@ -120,30 +121,40 @@ public class AlphaShooterTesting extends OpMode {
     @Override
     public void loop() {
         double flywheelPower;
-        String activeButton;
+        String activeControl;
+
+        boolean rightTriggerHeld = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean leftTriggerHeld  = gamepad1.left_trigger  > TRIGGER_PRESSED_THRESHOLD;
 
         // Check REVERSE first, so clearing a jam always works.
-        // Then check the flywheel buttons from HIGHEST power to LOWEST.
-        // The first one that is pressed wins, and the rest are skipped.
-        if (gamepad1.left_bumper) {
-            flywheelPower = POWER_LEFT_BUMPER;
-            activeButton = "Left Bumper (REVERSE)";
-        } else if (gamepad1.right_bumper) {
-            flywheelPower = POWER_RIGHT_BUMPER;
-            activeButton = "Right Bumper";
-        } else if (gamepad1.y) {
-            flywheelPower = POWER_Y;
-            activeButton = "Y";
-        } else if (gamepad1.x) {
-            flywheelPower = POWER_X;
-            activeButton = "X";
-        } else if (gamepad1.a) {
-            flywheelPower = POWER_A;
-            activeButton = "A";
+        if (leftTriggerHeld) {
+            flywheelPower = POWER_REVERSE;
+            activeControl = "Left Trigger (REVERSE)";
+        } else if (rightTriggerHeld) {
+            // The Right Trigger is held, so the flywheel runs.
+            // The D-Pad picks the power. Check from HIGHEST power to LOWEST.
+            // The first one that is pressed wins, and the rest are skipped.
+            if (gamepad1.dpad_up) {
+                flywheelPower = POWER_DPAD_UP;
+                activeControl = "Right Trigger + D-Pad Up";
+            } else if (gamepad1.dpad_right) {
+                flywheelPower = POWER_DPAD_RIGHT;
+                activeControl = "Right Trigger + D-Pad Right";
+            } else if (gamepad1.dpad_left) {
+                flywheelPower = POWER_DPAD_LEFT;
+                activeControl = "Right Trigger + D-Pad Left";
+            } else if (gamepad1.dpad_down) {
+                flywheelPower = POWER_DPAD_DOWN;
+                activeControl = "Right Trigger + D-Pad Down";
+            } else {
+                flywheelPower = POWER_DEFAULT;
+                activeControl = "Right Trigger (default power)";
+            }
         } else {
-            // No button held, so stop the flywheel.
+            // Nothing held, so stop the flywheel.
+            // The D-Pad alone does nothing on purpose.
             flywheelPower = 0.0;
-            activeButton = "None";
+            activeControl = "None";
         }
 
         // Send the power to the motor.
@@ -157,7 +168,7 @@ public class AlphaShooterTesting extends OpMode {
 
         // Show what is happening on the Driver Station.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Button", activeButton);
+        telemetry.addData("Control", activeControl);
         telemetry.addData("Flywheel Power", "%.0f%%", flywheelPower * 100);
         // telemetry.addData("Flywheel RPM", "%.0f", flywheelRpm);
         // telemetry.addData("Backspin RPM", "%.0f", backspinRpm);
