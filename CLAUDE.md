@@ -15,17 +15,17 @@ Claude Code loads this file automatically at the start of every session. It hold
 
 1. **Read `ARCHITECTURE.md` first.** It is the source of truth for structure and conventions.
 2. **Propose before coding.** Show the design (classes, states, methods, how it wires into TeleOp/Auto) and **wait for approval** before writing code unless prior authorization is already written.
-3. **One mechanism class or one OpMode per session.**
+3. **One subsystem class (plus its test OpMode) or one OpMode per session.**
 4. **`[CONFIRM]` markers** in `ARCHITECTURE.md` or `TeamCode/docs/` mark unresolved decisions. **Stop and ask** before doing any work that depends on one.
 5. When a game fact matters, check `TeamCode/docs/` first. If the docs and the Competition Manual disagree, the manual wins. Say so.
 
 ## The approach this season: standard FTC SDK style
 
-- **No FTCLib and no command-based code** (no subsystems, commands, or schedulers). We follow the patterns in the FTC SDK samples.
+- **No FTCLib and no command-based code** (no commands, no schedulers, no base classes like `SubsystemBase`). We follow the patterns in the FTC SDK samples.
 - **Reference code:** `FtcRobotController/src/main/java/org/firstinspires/ftc/robotcontroller/external/samples/`. Start from the closest sample and keep its structure and comment style. **Don't modify anything under `FtcRobotController/`.**
 - **Our code:** everything under `TeamCode/src/`.
 - **Iterative OpModes** (`extends OpMode`: `init`, `init_loop`, `start`, `loop`, `stop`), like `BasicOpMode_Iterative` and our `AlphaIntakeTesting`.
-- **One class per mechanism** (`Shooter`, `Turret`, `Intake`, …). Each class owns its own hardware and methods, and OpModes use the mechanism classes. See `ARCHITECTURE.md`.
+- **One subsystem class per mechanism** (`ShooterSubsystem`, `TurretSubsystem`, `IntakeSubsystem`, …) in the `subsystems/` folder. A subsystem is a plain Java class with no base class. It owns its own hardware and methods, and OpModes use the subsystems. Subsystem class names end in `Subsystem`; OpMode names don't. See `ARCHITECTURE.md`.
 
 ## Stack
 
@@ -38,7 +38,8 @@ Claude Code loads this file automatically at the start of every session. It hold
 | Thing | Convention | Example |
 |---|---|---|
 | Packages | lowercase | `mechanisms` |
-| Classes | PascalCase | `Turret` |
+| Classes | PascalCase | `AlphaShooterTesting` |
+| Subsystem classes | PascalCase, ends in `Subsystem` | `TurretSubsystem` |
 | Variables / methods | camelCase | `targetVelocity` |
 | Hardware variables | location first | `leftIntakeServo` |
 | Hardware config names | snake_case | `left_intake_servo` |

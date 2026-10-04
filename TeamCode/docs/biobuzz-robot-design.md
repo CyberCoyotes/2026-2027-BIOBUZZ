@@ -15,17 +15,17 @@
 - The raised cell's opening is **53.5–65.6 in high**, so the ball has to climb about 40 in from a shooter exit around 15–18 in.
 - The shooting side flips after every tip. A turret lets us shoot from anywhere on the correct side without precise chassis aiming.
 
-## Mechanism plan (proposal; follows `ARCHITECTURE.md`)
+## Subsystem plan (proposal; follows `ARCHITECTURE.md`)
 
-These are plain mechanism classes used by iterative OpModes. This season has no FTCLib and no subsystems.
+These are plain subsystem classes (in the `subsystems/` folder) used by iterative OpModes. This season has no FTCLib: no base class, no commands, and no scheduler.
 
 | Class | Job |
 |---|---|
-| `Shooter` | Flywheel + backspin velocity control; answers `isAtSpeed()` |
-| `Turret` | Turret angle control, soft limits, homing |
-| `Vision` | Limelight wrapper: `tx`, `ty`, visible tag IDs, alliance filtering |
-| `Intake` / feeder | Collect and feed balls; max 4 held |
-| `Drivetrain` | Mecanum drive for TeleOp; Pedro Pathing handles Auto |
+| `ShooterSubsystem` | Flywheel + backspin velocity control; answers `isAtSpeed()` |
+| `TurretSubsystem` | Turret angle control, soft limits, homing |
+| `VisionSubsystem` | Limelight wrapper: `tx`, `ty`, visible tag IDs, alliance filtering |
+| `IntakeSubsystem` / feeder | Collect and feed balls; max 4 held |
+| `DrivetrainSubsystem` | Mecanum drive for TeleOp; Pedro Pathing handles Auto |
 
 The specific classes, states, and methods are decided one session at a time, proposal first.
 
