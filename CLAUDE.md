@@ -7,7 +7,7 @@ Claude Code loads this file automatically at the start of every session. It hold
 - Reed City Cyber Coyotes, a middle school FTC program with two teams, **ACME Fabrications (11940)** and **ACME Innovations (22091)**, plus a practice bot.
 - The programmers are **8th graders**. Write code a 13-year-old can read, trace, and change:
   - Prefer clear, verbose code to clever code. Don't use lambdas, streams, or deep inheritance.
-  - Explain *why* in comments, not just *what*. The existing `Alpha*Testing.java` OpModes show the comment style we want.
+  - Explain *why* in comments, not just *what*. The existing `*Alpha.java` OpModes show the comment style we want.
   - Use one idea per method. Name things for what they do in the game.
 - The coach reviews all work. Pushback is welcome: flag problems, risky assumptions, or a better approach instead of quietly going along.
 
@@ -24,7 +24,7 @@ Claude Code loads this file automatically at the start of every session. It hold
 - **No FTCLib and no command-based code** (no commands, no schedulers, no base classes like `SubsystemBase`). We follow the patterns in the FTC SDK samples.
 - **Reference code:** `FtcRobotController/src/main/java/org/firstinspires/ftc/robotcontroller/external/samples/`. Start from the closest sample and keep its structure and comment style. **Don't modify anything under `FtcRobotController/`.**
 - **Our code:** everything under `TeamCode/src/`.
-- **Iterative OpModes** (`extends OpMode`: `init`, `init_loop`, `start`, `loop`, `stop`), like `BasicOpMode_Iterative` and our `AlphaIntakeTesting`.
+- **Iterative OpModes** (`extends OpMode`: `init`, `init_loop`, `start`, `loop`, `stop`), like `BasicOpMode_Iterative` and our `IntakeAlpha`.
 - **One subsystem class per mechanism** (`ShooterSubsystem`, `TurretSubsystem`, `IntakeSubsystem`, …) in the `subsystems/` folder. A subsystem is a plain Java class with no base class. It owns its own hardware and methods, and OpModes use the subsystems. Subsystem class names end in `Subsystem`; OpMode names don't. See `ARCHITECTURE.md`.
 
 ## Stack
@@ -38,7 +38,7 @@ Claude Code loads this file automatically at the start of every session. It hold
 | Thing | Convention | Example |
 |---|---|---|
 | Packages | lowercase | `mechanisms` |
-| Classes | PascalCase | `AlphaShooterTesting` |
+| Classes | PascalCase | `ShooterAlphaPower` |
 | Subsystem classes | PascalCase, ends in `Subsystem` | `TurretSubsystem` |
 | Variables / methods | camelCase | `targetVelocity` |
 | Hardware variables | location first | `leftIntakeServo` |

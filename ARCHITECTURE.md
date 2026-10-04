@@ -29,12 +29,12 @@ We still organize the robot into **subsystems**, the same idea as in FRC: one cl
 ```
 org.firstinspires.ftc.teamcode
 ├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DrivetrainSubsystem, VisionSubsystem …
-├── testing/        Alpha*Testing and other single-subsystem test OpModes   [CONFIRM]
+├── testing/        test OpModes (*Alpha, TurretTesting, ...)   [CONFIRM]
 ├── pedroPathing/   Pedro Pathing constants and tuning (per Pedro's setup guide)
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing `AlphaIntakeTesting`, `AlphaShooterTesting`, and `AlphaCombinedTesting` sit at the package root. Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`IntakeAlpha`, `ShooterAlphaPower`, `ShooterAlphaRPM`, `TeleOpAlpha`, `TurretTesting`) sit at the package root. Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -114,7 +114,7 @@ Keep that four-step order in every TeleOp `loop()`.
 | Thing | Convention | Example |
 |---|---|---|
 | Packages | lowercase | `subsystems` |
-| Classes (OpModes and others) | PascalCase | `AlphaShooterTesting` |
+| Classes (OpModes and others) | PascalCase | `ShooterAlphaPower` |
 | Subsystem classes | PascalCase, ends in `Subsystem` | `TurretSubsystem` |
 | Variables / methods | camelCase | `targetVelocity` |
 | Hardware variables | location first | `leftIntakeServo` |
@@ -155,7 +155,7 @@ Add new names here when you add hardware. Names in code must match the configura
 
 ## 4. Reference code
 
-- **Style models:** `AlphaIntakeTesting.java` and `AlphaShooterTesting.java`. They show the comment style, the constants-at-the-top pattern, and iterative OpMode structure.
+- **Style models:** `IntakeAlpha.java` and `ShooterAlphaPower.java`. They show the comment style, the constants-at-the-top pattern, and iterative OpMode structure.
 - **Gold-standard subsystem class:** `[CONFIRM]`. The first subsystem class written and approved becomes the template for the rest. `ShooterSubsystem` is the first one planned.
 - **SDK samples most likely to be useful:** `BasicOpMode_Iterative`, `ConceptExternalHardwareClass` + `RobotHardware`, `ConceptAprilTag`, `SensorLimelight3A`, `SensorGoBildaPinpoint`, `RobotAutoDriveToAprilTagOmni`.
 
@@ -174,8 +174,8 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Hardware:** `flywheel_motor` and `backspin_motor`, both goBILDA 5203 series (6000 RPM, believed `[CONFIRM]`) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
 - **Control:** speed control in RPM (`setTargetRpm()` / `setTargetRpms()`). `setPower()` is open loop, for tests and clearing jams. `stop()` coasts (never commands a speed of 0).
 - **States:** `IDLE`, `OPEN_LOOP`, `SPINNING_UP`, `READY`. `isAtSpeed()` is true only in `READY` and is the shooter's half of the firing gate. The turret's on-target check is the other half.
-- **Test OpMode:** `ShooterTesting`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
-- **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterTesting`.
+- **Test OpMode:** `ShooterAlphaRPM`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
+- **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterAlphaRPM`.
 - **Not in this class:** the distance-to-RPM shot table (a separate class later), feeding, and anything that reads a gamepad.
 
 ### TurretSubsystem (`subsystems/TurretSubsystem.java`): code written, not yet tested on the robot

@@ -25,7 +25,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *   Motor type: goBILDA 5202/3/4 series
  */
 @TeleOp(name = "Intake Testing - Alpha", group = "Testing")
-public class AlphaIntakeTesting extends OpMode {
+public class IntakeAlpha extends OpMode {
 
     // Power for each button (0.0 to 1.0). Change these to test different speeds.
     private static final double POWER_TEST_ONE = 1.00;

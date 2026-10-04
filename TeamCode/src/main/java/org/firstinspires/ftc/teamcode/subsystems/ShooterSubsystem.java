@@ -44,7 +44,7 @@ public class ShooterSubsystem {
     private static final String FLYWHEEL_MOTOR_NAME = "flywheel_motor";
     private static final String BACKSPIN_MOTOR_NAME = "backspin_motor";
 
-    // Each motor has its OWN direction. These are copied from AlphaShooterTesting.
+    // Each motor has its OWN direction. These are copied from ShooterAlphaPower.
     // We want a POSITIVE RPM to mean "shooting". If a wheel spins the wrong way,
     // flip that motor's line between FORWARD and REVERSE.
     private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.REVERSE;
@@ -55,7 +55,7 @@ public class ShooterSubsystem {
     // ------------------------------------------------------------------
     // Encoder ticks per ONE turn of the motor shaft.
     // [CONFIRM] 28 is goBILDA's spec for a 1:1 (6000 RPM) 5203 motor. Last season's
-    // notes said 112. To check on the robot: run ShooterTesting, hold the RIGHT TRIGGER
+    // notes said 112. To check on the robot: run ShooterAlphaRPM, hold the RIGHT TRIGGER
     // (full power, wheel clear!), and read "ticks/sec" on the Driver Station.
     //   about 2,800 ticks/sec -> 28 is right.   about 11,200 ticks/sec -> change both to 112.
     private static final double FLYWHEEL_TICKS_PER_REV = 28.0;

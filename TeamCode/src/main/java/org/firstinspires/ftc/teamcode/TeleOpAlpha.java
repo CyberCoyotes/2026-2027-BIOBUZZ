@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 /*
  * Alpha-Combined Testing
  * An iterative OpMode that runs the INTAKE, the shooter FLYWHEEL, and the
- * BACKSPIN wheel together. It combines AlphaIntakeTesting and AlphaShooterTesting.
+ * BACKSPIN wheel together. It combines IntakeAlpha and ShooterAlphaPower.
  *
  * Two controllers are used:
  *   gamepad1 (driver)   -> INTAKE  (driving will be added here later)
@@ -52,7 +52,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *   Motor name: backspin_motor   (goBILDA 5202/3/4 series)
  */
 @TeleOp(name = "TeleOp Alpha-2", group = "Testing")
-public class AlphaCombinedTesting extends OpMode {
+public class TeleOpAlpha extends OpMode {
 
     // ---------- INTAKE settings (gamepad1) ----------
 
