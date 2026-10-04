@@ -133,7 +133,7 @@ Names already in use:
 | `backspin_motor` | Backspin wheel (goBILDA 5203 series, believed `[CONFIRM]`) |
 | `turret_motor` | Turret rotation motor (goBILDA 5203 series, believed `[CONFIRM]`; gearbox ratio TBD) |
 | `turret_encoder` | REV Through Bore Encoder in incremental (quadrature) mode, on the turret ring gear. Plugged into an encoder port with no motor attached. Read only. |
-| `turret_home_switch` | REV magnetic limit switch (active-low) that re-zeros the turret angle (digital port) `[CONFIRM]` name |
+| `turret_home_switch` | REV magnetic limit switch (active-low) that re-zeros the turret angle (digital port). Name approved. |
 | `limelight` | Limelight 3A (Ethernet device) |
 
 Add new names here when you add hardware. Names in code must match the configuration exactly.
