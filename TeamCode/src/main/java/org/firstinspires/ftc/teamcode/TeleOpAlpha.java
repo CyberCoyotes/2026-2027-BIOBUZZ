@@ -51,7 +51,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *   Motor name: flywheel_motor   (goBILDA 5202/3/4 series)
  *   Motor name: backspin_motor   (goBILDA 5202/3/4 series)
  */
-@TeleOp(name = "Alpha-Combined Testing", group = "Testing")
+@TeleOp(name = "TeleOp Alpha-2", group = "Testing")
 public class AlphaCombinedTesting extends OpMode {
 
     // ---------- INTAKE settings (gamepad1) ----------
