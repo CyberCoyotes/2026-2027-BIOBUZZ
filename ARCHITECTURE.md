@@ -178,12 +178,12 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterTesting`.
 - **Not in this class:** the distance-to-RPM shot table (a separate class later), feeding, and anything that reads a gamepad.
 
-### TurretSubsystem (`subsystems/TurretSubsystem.java`): conventions approved, code not written yet
+### TurretSubsystem (`subsystems/TurretSubsystem.java`): code written, not yet tested on the robot
 
 - **Hardware:**
   - `turret_motor`: power only. The turret is not controlled with the motor's own encoder.
   - `turret_encoder`: REV Through Bore Encoder, incremental (quadrature) mode, **8192 counts per encoder revolution**, on the ring gear. Read only. The Control Hub cannot read this encoder's absolute pulse output.
-  - `turret_home_switch`: REV magnetic limit switch. It is **active-low**: it reads LOW when a magnet is near. Confirm on the robot with telemetry.
+  - `turret_home_switch`: REV magnetic limit switch. It is **active-low**: it reads LOW when a magnet is near. Confirm on the robot with telemetry. **Configure it as a "Digital Device"** in the Driver Station, not "REV Touch Sensor": the SDK's touch-sensor class is not a `DigitalChannel`, which is what our code reads.
 - **Gearing:** both spur gears (motor pinion and encoder pinion) are 16T. The ring gear is believed to be 48T `[CONFIRM]`. So the encoder turns 3 times per turret revolution, which is `8192 × (ring teeth / 16) / 360` = about 68.3 ticks per turret degree. Cross-check by turning the turret by hand through a marked 90°.
 - **Angle convention:**
   - **0° is the home switch, and it points at the intake direction** (straight ahead).
@@ -194,8 +194,9 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
   - At power-up the turret is placed by hand **on the switch**. INIT telemetry warns if the switch is not active. There is no motion at INIT (G304, G403).
   - During a match, the switch turning on resets the encoder count to zero (0°). To avoid repeated re-zeroing while hovering at the magnet's edge, it re-arms only after the turret has moved about 10° away.
   - The hub keeps encoder counts between Auto and TeleOp, so nothing is stored in a static field. `isZeroConfirmed()` is false until the switch has been crossed once.
-- **Control:** our own P controller (D added only if it oscillates) on the angle error, with a small friction kick, a max power clamp, soft limits that also cut power pushing past a limit, and `BRAKE` on stop.
-- **Test OpMode:** `TurretTesting` (manual stick plus D-pad preset angles).
+- **Control:** our own P controller (D added only if it oscillates) on the angle error, with a small friction kick, a max power clamp, and soft limits that cut power pushing past a limit. The motor `FLOAT`s until the first command (so the turret can be placed on the switch by hand during INIT), then uses `BRAKE` to hold position. `stop()` floats again.
+- **Starting values:** soft limits start at ±45° and `TurretTesting` presets at ±30°, so a wrong sign cannot hurt the cables. Widen them (about ±130°, presets 90°) after the encoder direction, switch polarity and ticks per degree check out. Stick right = turn right, which is a *negative* angle, so `TurretTesting` flips the stick sign.
+- **Test OpMode:** `TurretTesting` (manual stick, D-pad preset angles, B to stop). Its header has the safe first-test order.
 - **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.
 
 ## 7. Session protocol (for Claude Code)
