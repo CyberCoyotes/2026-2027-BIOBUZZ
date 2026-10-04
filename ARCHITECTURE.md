@@ -29,12 +29,12 @@ We still organize the robot into **subsystems**, the same idea as in FRC: one cl
 ```
 org.firstinspires.ftc.teamcode
 ├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DrivetrainSubsystem, VisionSubsystem …
-├── testing/        test OpModes (*Alpha, TurretTesting, ...)   [CONFIRM]
+├── testing/        test OpModes (the *Alpha files)   [CONFIRM]
 ├── pedroPathing/   Pedro Pathing constants and tuning (per Pedro's setup guide)
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing test OpModes (`IntakeAlpha`, `ShooterAlphaPower`, `ShooterAlphaRPM`, `TeleOpAlpha`, `TurretTesting`) sit at the package root. Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`IntakeAlpha`, `ShooterAlphaPower`, `ShooterAlphaRPM`, `TeleOpAlpha`, `TurretAlpha`) sit at the package root. Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -195,8 +195,8 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
   - During a match, the switch turning on resets the encoder count to zero (0°). To avoid repeated re-zeroing while hovering at the magnet's edge, it re-arms only after the turret has moved about 10° away.
   - The hub keeps encoder counts between Auto and TeleOp, so nothing is stored in a static field. `isZeroConfirmed()` is false until the switch has been crossed once.
 - **Control:** our own P controller (D added only if it oscillates) on the angle error, with a small friction kick, a max power clamp, and soft limits that cut power pushing past a limit. The motor `FLOAT`s until the first command (so the turret can be placed on the switch by hand during INIT), then uses `BRAKE` to hold position. `stop()` floats again.
-- **Starting values:** soft limits start at ±45° and `TurretTesting` presets at ±30°, so a wrong sign cannot hurt the cables. Widen them (about ±130°, presets 90°) after the encoder direction, switch polarity and ticks per degree check out. Stick right = turn right, which is a *negative* angle, so `TurretTesting` flips the stick sign.
-- **Test OpMode:** `TurretTesting` (manual stick, D-pad preset angles, B to stop). Its header has the safe first-test order.
+- **Starting values:** soft limits start at ±45° and `TurretAlpha` presets at ±30°, so a wrong sign cannot hurt the cables. Widen them (about ±130°, presets 90°) after the encoder direction, switch polarity and ticks per degree check out. Stick right = turn right, which is a *negative* angle, so `TurretAlpha` flips the stick sign.
+- **Test OpMode:** `TurretAlpha` (manual stick, D-pad preset angles, B to stop). Its header has the safe first-test order.
 - **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.
 
 ## 7. Session protocol (for Claude Code)

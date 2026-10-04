@@ -46,7 +46,7 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *   Digital Device name:  turret_home_switch  (REV magnetic limit switch)
  */
 @TeleOp(name = "Turret Testing", group = "Testing")
-public class TurretTesting extends OpMode {
+public class TurretAlpha extends OpMode {
 
     // The D-pad Left and Right presets turn this many degrees to each side.
     // Start small. Raise it to 90 after the soft limits are widened.

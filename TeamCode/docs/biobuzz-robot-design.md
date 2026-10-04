@@ -24,7 +24,7 @@ These are plain subsystem classes (in the `subsystems/` folder) used by iterativ
 | `ShooterSubsystem` | Flywheel + backspin velocity control; answers `isAtSpeed()` |
 | `TurretSubsystem` | Turret angle control, soft limits, homing |
 | `VisionSubsystem` | Limelight wrapper: `tx`, `ty`, visible tag IDs, alliance filtering |
-| `IntakeSubsystem` / feeder | Collect and feed balls; max 4 held |
+| `IntakeSubsystem` | Collect balls and move them through the transfer / feeder chute to the shooter; max 4 held |
 | `DrivetrainSubsystem` | Mecanum drive for TeleOp; Pedro Pathing handles Auto |
 
 The specific classes, states, and methods are decided one session at a time, proposal first.
