@@ -10,6 +10,8 @@ Last season (DECODE) we used FTCLib command-based code. **This season we use the
 2. **It's easier to trace.** An iterative OpMode runs top to bottom every loop, with no scheduler deciding what runs when.
 3. **It carries forward.** 2027-2028 moves FTC to SystemCore with more standard OpModes. Code habits built this year transfer.
 
+We still organize the robot into **subsystems**, the same idea as in FRC: one class per mechanism. What we dropped is the framework (FTCLib's base classes, commands, and scheduler), not the idea. Our subsystems are plain Java classes.
+
 ## 2. MUST: non-negotiable conventions
 
 ### Where code lives
@@ -17,21 +19,22 @@ Last season (DECODE) we used FTCLib command-based code. **This season we use the
 | Path | What goes there |
 |---|---|
 | `FtcRobotController/src/main/java/org/firstinspires/ftc/robotcontroller/external/samples/` | FTC's reference samples. **Read only.** |
-| `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/` | Shared team code: mechanism classes, test OpModes |
+| `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/` | Shared team code: test OpModes (and the subfolders below) |
+| `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/` | Subsystem classes: `ShooterSubsystem`, `TurretSubsystem`, … |
 | `TeamCode/src/<flavor>/java/...` | Robot-specific OpModes (once flavors are set up; see section 5) |
 | `TeamCode/docs/` | Game and robot reference docs |
 
-### Suggested package layout `[CONFIRM]`
+### Package layout
 
 ```
 org.firstinspires.ftc.teamcode
-├── mechanisms/     Shooter, Turret, Intake, Drivetrain, Vision …
-├── testing/        Alpha*Testing and other single-mechanism test OpModes
+├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DrivetrainSubsystem, VisionSubsystem …
+├── testing/        Alpha*Testing and other single-subsystem test OpModes   [CONFIRM]
 ├── pedroPathing/   Pedro Pathing constants and tuning (per Pedro's setup guide)
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The existing `AlphaIntakeTesting` and `AlphaShooterTesting` sit at the package root. Moving them into `testing/` is a `[CONFIRM]`.
+The `subsystems/` folder is decided. The existing `AlphaIntakeTesting`, `AlphaShooterTesting`, and `AlphaCombinedTesting` sit at the package root. Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -41,56 +44,60 @@ The existing `AlphaIntakeTesting` and `AlphaShooterTesting` sit at the package r
 - Put all tunable numbers at the top as `private static final` constants with a comment explaining how to change them. The Alpha test OpModes are the model.
 - Annotate with `@TeleOp(name = "…", group = "…")` or `@Autonomous(...)`. Test OpModes use `group = "Testing"`.
 
-### Mechanism classes (one per mechanism)
+### Subsystem classes (one per mechanism)
 
-Each mechanism is a **plain Java class**: no base class and no scheduler. It follows the idea in the SDK's `ConceptExternalHardwareClass` sample, split by mechanism.
+Each subsystem is a **plain Java class**: no base class (no FTCLib `SubsystemBase`), no commands, and no scheduler. It follows the idea in the SDK's `ConceptExternalHardwareClass` sample, split by mechanism. The difference from an FRC subsystem is that nothing calls `periodic()` for you: the OpMode's `loop()` calls `update()`.
+
+**Naming:** every subsystem class name ends in `Subsystem` (`ShooterSubsystem`), and OpMode class names never do. That way, anywhere you see a class name, you can tell whether it's an OpMode or a subsystem. Use the full name for the variable too (`shooterSubsystem`).
 
 ```java
-public class Shooter {
+package org.firstinspires.ftc.teamcode.subsystems;
+
+public class ShooterSubsystem {
     // Constants: tunable numbers, ALL_CAPS
     // Hardware: private motor/servo/sensor fields
 
-    public Shooter(HardwareMap hardwareMap) { /* get hardware, set directions and modes */ }
+    public ShooterSubsystem(HardwareMap hardwareMap) { /* get hardware, set directions and modes */ }
 
     // Actions the OpMode calls: setTargetRpm(), stop(), …
     // Questions the OpMode asks: isAtSpeed(), getRpm(), …
 
-    public void update() { /* called once per loop() if the mechanism needs it */ }
+    public void update() { /* called once per loop() if the subsystem needs it */ }
     public void addTelemetry(Telemetry telemetry) { /* shows its own data */ }
 }
 ```
 
 Rules:
-- **A mechanism owns its hardware.** Only `Shooter` touches the flywheel motors, only `Turret` touches the turret motor, and so on. OpModes call mechanism methods; they don't reach into the motors.
+- **A subsystem owns its hardware.** Only `ShooterSubsystem` touches the flywheel motors, only `TurretSubsystem` touches the turret motor, and so on. OpModes call subsystem methods; they don't reach into the motors.
 - **Constructor = setup.** It gets hardware from the `HardwareMap` and sets directions, modes, and zero-power behavior.
-- **`update()` runs once per loop** for any mechanism with ongoing work (velocity checks, turret aiming, timers). The OpMode calls it; nothing calls it automatically.
-- **State vs. status:** *state* is what the code told the mechanism to do (`targetRpm`, an enum like `IDLE / SPINNING_UP / READY`). *Status* is what sensors report (`getRpm()`, `hasTarget()`). Keep them separate so telemetry can show both.
-- **No button references inside mechanism classes.** Gamepad handling lives only in TeleOp OpModes.
-- **Sensors-only devices** (Limelight, Pinpoint) get plain wrapper classes too, e.g. `Vision`, with an `update()` that reads the latest data once per loop.
+- **`update()` runs once per loop** for any subsystem with ongoing work (velocity checks, turret aiming, timers). The OpMode calls it; nothing calls it automatically.
+- **State vs. status:** *state* is what the code told the subsystem to do (`targetRpm`, an enum like `IDLE / SPINNING_UP / READY`). *Status* is what sensors report (`getRpm()`, `hasTarget()`). Keep them separate so telemetry can show both.
+- **No button references inside subsystem classes.** Gamepad handling lives only in TeleOp OpModes.
+- **Sensors-only devices** (Limelight, Pinpoint) get plain wrapper classes too, e.g. `VisionSubsystem`, with an `update()` that reads the latest data once per loop.
 
 ### Typical TeleOp shape
 
 ```java
 @TeleOp(name = "BIOBUZZ TeleOp", group = "Competition")
 public class BiobuzzTeleOp extends OpMode {
-    private Drivetrain drivetrain;
-    private Shooter shooter;
+    private DrivetrainSubsystem drivetrainSubsystem;
+    private ShooterSubsystem shooterSubsystem;
 
     @Override public void init() {
-        drivetrain = new Drivetrain(hardwareMap);
-        shooter = new Shooter(hardwareMap);
+        drivetrainSubsystem = new DrivetrainSubsystem(hardwareMap);
+        shooterSubsystem = new ShooterSubsystem(hardwareMap);
     }
 
     @Override public void loop() {
         // 1. Read sensors (vision.update(), odometry, …)
         // 2. Read gamepads and decide what to do
-        // 3. Tell mechanisms what to do, then call their update()
+        // 3. Tell subsystems what to do, then call their update()
         // 4. Telemetry
     }
 
     @Override public void stop() {
-        shooter.stop();
-        drivetrain.stop();
+        shooterSubsystem.stop();
+        drivetrainSubsystem.stop();
     }
 }
 ```
@@ -100,14 +107,15 @@ Keep that four-step order in every TeleOp `loop()`.
 ### Autonomous
 
 - **Pedro Pathing** for paths. Follow Pedro's example pattern: an iterative OpMode with `follower.update()` in `loop()` and a `pathState` switch that moves from step to step.
-- Auto uses the **same mechanism classes** as TeleOp.
+- Auto uses the **same subsystem classes** as TeleOp.
 
 ### Naming
 
 | Thing | Convention | Example |
 |---|---|---|
-| Packages | lowercase | `mechanisms` |
-| Classes | PascalCase | `Turret` |
+| Packages | lowercase | `subsystems` |
+| Classes (OpModes and others) | PascalCase | `AlphaShooterTesting` |
+| Subsystem classes | PascalCase, ends in `Subsystem` | `TurretSubsystem` |
 | Variables / methods | camelCase | `targetVelocity` |
 | Hardware variables | location first | `leftIntakeServo` |
 | Hardware config names | snake_case | `left_intake_servo` |
@@ -134,10 +142,10 @@ Add new names here when you add hardware. Names in code must match the configura
 
 ## 3. MUST NOT: anti-patterns
 
-- No FTCLib, commands, subsystems, or schedulers.
+- No FTCLib, no commands, and no schedulers. No base class like `SubsystemBase`. (Plain subsystem classes are fine and expected.)
 - No lambdas, streams, or anonymous classes. Write the loop out.
 - No `sleep()` or blocking waits inside `loop()`. Use `ElapsedTime` timers instead.
-- No gamepad reads inside mechanism classes.
+- No gamepad reads inside subsystem classes.
 - No two classes controlling the same motor.
 - No magic numbers buried in code. Make every tunable value a named constant.
 - Don't use the BIOBUZZ AprilTags to locate the robot on the field. They move with the hive; use Pinpoint for position and the tags only for aiming (see `TeamCode/docs/biobuzz-hive-apriltag-geometry.md`).
@@ -145,7 +153,7 @@ Add new names here when you add hardware. Names in code must match the configura
 ## 4. Reference code
 
 - **Style models:** `AlphaIntakeTesting.java` and `AlphaShooterTesting.java`. They show the comment style, the constants-at-the-top pattern, and iterative OpMode structure.
-- **Gold-standard mechanism class:** `[CONFIRM]`. The first mechanism class written and approved becomes the template for the rest (the `Shooter` is a likely choice).
+- **Gold-standard subsystem class:** `[CONFIRM]`. The first subsystem class written and approved becomes the template for the rest. `ShooterSubsystem` is the first one planned.
 - **SDK samples most likely to be useful:** `BasicOpMode_Iterative`, `ConceptExternalHardwareClass` + `RobotHardware`, `ConceptAprilTag`, `SensorLimelight3A`, `SensorGoBildaPinpoint`, `RobotAutoDriveToAprilTagOmni`.
 
 ## 5. Setup still needed
@@ -156,7 +164,7 @@ Add new names here when you add hardware. Names in code must match the configura
 
 ## 6. Hardware and behavior
 
-The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` for the concept (turret shooter, backspin wheel, Limelight aiming) and its open decisions. Add each mechanism's hardware and behavior to this section once its design is approved.
+The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` for the concept (turret shooter, backspin wheel, Limelight aiming) and its open decisions. Add each subsystem's hardware and behavior to this section once its design is approved.
 
 ## 7. Session protocol (for Claude Code)
 
@@ -164,9 +172,9 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 
 ## 8. Open decisions (`[CONFIRM]` checklist)
 
-- [ ] Package layout (section 2)
+- [x] Package layout (section 2): a `subsystems/` folder, and subsystem class names end in `Subsystem`. (The `testing/` move below is still open.)
 - [ ] Move the Alpha test OpModes into `testing/`?
-- [ ] Gold-standard mechanism class (section 4)
+- [ ] Gold-standard subsystem class (section 4)
 - [ ] goBILDA encoder counts per revolution: 28 or 112? Measure on the robot (see `CLAUDE.md`).
 - [ ] Main branch: `main` or `master`?
 - [ ] Vision source: Limelight 3A or a webcam with `VisionPortal` (see the robot design doc)
@@ -174,8 +182,9 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 ## 9. Mentor checklist (anti-drift)
 
 When reviewing a change, check that:
-- [ ] It's an iterative OpMode or a plain mechanism class, not FTCLib-style code
-- [ ] Only the owning mechanism touches each motor or servo
+- [ ] It's an iterative OpMode or a plain subsystem class, not FTCLib-style code (no base class, no commands, no scheduler)
+- [ ] Subsystem class names end in `Subsystem`, and OpMode names don't
+- [ ] Only the owning subsystem touches each motor or servo
 - [ ] No gamepad code outside TeleOp OpModes
 - [ ] Tunable numbers are named constants with explanatory comments
 - [ ] Hardware config names match this doc
