@@ -36,7 +36,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *   Motor name: flywheel_motor   (goBILDA 5202/3/4 series)
  *   Motor name: backspin_motor   (goBILDA 5202/3/4 series)
  */
-@TeleOp(name = "Alpha-Shooter Testing", group = "Testing")
+@TeleOp(name = "Shooter Testing-Alpha", group = "Testing")
 public class AlphaShooterTesting extends OpMode {
 
     // Each button sets the FLYWHEEL and the BACKSPIN power (0.0 to 1.0).
