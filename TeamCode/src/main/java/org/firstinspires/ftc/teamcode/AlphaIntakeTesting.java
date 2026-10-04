@@ -28,13 +28,13 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class AlphaIntakeTesting extends OpMode {
 
     // Power for each button (0.0 to 1.0). Change these to test different speeds.
-    private static final double POWER_RIGHT_BUMPER = 1.00;
-    private static final double POWER_Y            = 0.85;
-    private static final double POWER_X            = 0.75;
-    private static final double POWER_A            = 0.65;
+    private static final double POWER_TEST_ONE = 1.00;
+    private static final double POWER_TEST_TWO  = 0.85;
+    private static final double POWER_TEST_THREE = 0.75;
+    private static final double POWER_TEST_FOUR = 0.65;
 
     // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double POWER_LEFT_BUMPER  = -0.60;
+    private static final double POWER_REVERSE  = -0.60;
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
@@ -87,24 +87,25 @@ public class AlphaIntakeTesting extends OpMode {
         // Then check the intake buttons from HIGHEST power to LOWEST.
         // The first one that is pressed wins, and the rest are skipped.
         if (gamepad1.left_bumper) {
-            intakePower = POWER_LEFT_BUMPER;
+            intakePower = POWER_REVERSE;
             activeButton = "Left Bumper (REVERSE)";
         } else if (gamepad1.right_bumper) {
-            intakePower = POWER_RIGHT_BUMPER;
+            intakePower = POWER_TEST_ONE;
             activeButton = "Right Bumper";
         } else if (gamepad1.y) {
-            intakePower = POWER_Y;
+            intakePower = POWER_TEST_TWO;
             activeButton = "Y";
         } else if (gamepad1.x) {
-            intakePower = POWER_X;
+            intakePower = POWER_TEST_THREE;
             activeButton = "X";
         } else if (gamepad1.a) {
-            intakePower = POWER_A;
+            intakePower = POWER_TEST_FOUR;
             activeButton = "A";
         } else {
             // No button held, so stop the intake.
             intakePower = 0.0;
             activeButton = "None";
+
         }
 
         // Send the power to the motor.
