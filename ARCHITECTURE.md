@@ -28,7 +28,7 @@ We still organize the robot into **subsystems**, the same idea as in FRC: one cl
 
 ```
 org.firstinspires.ftc.teamcode
-├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DrivetrainSubsystem, VisionSubsystem …
+├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, MecanumDriveSubsystem, VisionSubsystem …
 ├── testing/        test OpModes (the *Alpha files)   [CONFIRM]
 ├── pedroPathing/   Pedro Pathing constants and tuning (per Pedro's setup guide)
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
@@ -80,11 +80,11 @@ Rules:
 ```java
 @TeleOp(name = "BIOBUZZ TeleOp", group = "Competition")
 public class BiobuzzTeleOp extends OpMode {
-    private DrivetrainSubsystem drivetrainSubsystem;
+    private MecanumDriveSubsystem mecanumDriveSubsystem;
     private ShooterSubsystem shooterSubsystem;
 
     @Override public void init() {
-        drivetrainSubsystem = new DrivetrainSubsystem(hardwareMap);
+        mecanumDriveSubsystem = new MecanumDriveSubsystem(hardwareMap);
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
     }
 
@@ -97,7 +97,7 @@ public class BiobuzzTeleOp extends OpMode {
 
     @Override public void stop() {
         shooterSubsystem.stop();
-        drivetrainSubsystem.stop();
+        mecanumDriveSubsystem.stop();
     }
 }
 ```
@@ -107,7 +107,7 @@ Keep that four-step order in every TeleOp `loop()`.
 ### Autonomous
 
 - **Pedro Pathing** for paths. Follow Pedro's example pattern: an iterative OpMode with `follower.update()` in `loop()` and a `pathState` switch that moves from step to step.
-- Auto uses the **same subsystem classes** as TeleOp.
+- Auto uses the **same subsystem classes** as TeleOp, **except the drivetrain**. Pedro's `Follower` drives the four drive motors in Auto, and only one class may control a motor, so `MecanumDriveSubsystem` is for TeleOp and Pedro drives in Auto. Never use both in one OpMode. Pedro's motor names and directions in its `Constants` must match ours. If we later want Pedro path-following inside TeleOp (a lower priority), `MecanumDriveSubsystem` would wrap the `Follower` and keep the same public methods, so TeleOp OpModes would not change.
 
 ### Naming
 
@@ -131,6 +131,10 @@ Names already in use:
 | `intake_motor` | Intake motor (goBILDA 5202/3/4) |
 | `flywheel_motor` | Shooter flywheel (goBILDA 5202/3/4) |
 | `backspin_motor` | Backspin wheel (goBILDA 5203 series, believed `[CONFIRM]`) |
+| `left_front_motor` | Drive motor, left front (mecanum) |
+| `left_rear_motor` | Drive motor, left rear (mecanum) |
+| `right_front_motor` | Drive motor, right front (mecanum) |
+| `right_rear_motor` | Drive motor, right rear (mecanum) |
 | `turret_motor` | Turret rotation motor (goBILDA 5203 series, believed `[CONFIRM]`; gearbox ratio TBD) |
 | `turret_encoder` | REV Through Bore Encoder in incremental (quadrature) mode, on the turret ring gear. Plugged into an encoder port with no motor attached. Read only. |
 | `turret_home_switch` | REV magnetic limit switch (active-low) that re-zeros the turret angle (digital port). Name approved. |
@@ -198,6 +202,17 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Starting values:** soft limits start at ±45° and `TurretAlpha` presets at ±30°, so a wrong sign cannot hurt the cables. Widen them (about ±130°, presets 90°) after the encoder direction, switch polarity and ticks per degree check out. Stick right = turn right, which is a *negative* angle, so `TurretAlpha` flips the stick sign.
 - **Test OpMode:** `TurretAlpha` (manual stick, D-pad preset angles, B to stop). Its header has the safe first-test order.
 - **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.
+
+### MecanumDriveSubsystem (`subsystems/MecanumDriveSubsystem.java`): design approved, code not written yet
+
+- **Hardware:** four drive motors named `left_front_motor`, `left_rear_motor`, `right_front_motor`, `right_rear_motor` (the same wiring on the practice bot, 11940 and 22091). The Driver Station config on each robot must use these names (one-time edit).
+- **Owns the motors directly** for TeleOp, in power mode (`RUN_WITHOUT_ENCODER`). Pedro drives them in Auto (see Autonomous above).
+- **Convention (matches Pedro Pathing, Pinpoint and the turret):** `drive(forward, strafe, turn)`. **Forward is positive, strafe LEFT is positive, turn COUNTERCLOCKWISE is positive.** Each input is -1.0 to 1.0. The stick signs are flipped in `DriveAlpha`, with a comment saying why.
+- **Wheel math:** leftFront = forward - strafe - turn, rightFront = forward + strafe + turn, leftRear = forward + strafe - turn, rightRear = forward - strafe + turn. If any wheel would pass 1.0, all four are scaled down together.
+- **Methods:** `drive`, `setPowerScale` (slow mode), `setWheelPowers` (raw, used by `drive` and the wheel tests), `stop`, `addTelemetry`. No `update()`, because there is no ongoing work.
+- **Zero-power behavior:** `BRAKE` (a named constant), for precise stops. The robot is tall, so watch for tipping.
+- **Robot-centric only** in the first version. Field-centric comes later, with a Pinpoint wrapper that supplies the heading.
+- **Test OpMode:** `DriveAlpha` (sticks drive; hold the right trigger for slow mode; X, A, Y and B each spin one wheel for the direction check).
 
 ## 7. Session protocol (for Claude Code)
 
