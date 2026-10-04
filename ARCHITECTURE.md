@@ -203,7 +203,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Test OpMode:** `TurretAlpha` (manual stick, D-pad preset angles, B to stop). Its header has the safe first-test order.
 - **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.
 
-### MecanumDriveSubsystem (`subsystems/MecanumDriveSubsystem.java`): design approved, code not written yet
+### MecanumDriveSubsystem (`subsystems/MecanumDriveSubsystem.java`): code written, not yet tested on the robot
 
 - **Hardware:** four drive motors named `left_front_motor`, `left_rear_motor`, `right_front_motor`, `right_rear_motor` (the same wiring on the practice bot, 11940 and 22091). The Driver Station config on each robot must use these names (one-time edit).
 - **Owns the motors directly** for TeleOp, in power mode (`RUN_WITHOUT_ENCODER`). Pedro drives them in Auto (see Autonomous above).
@@ -213,6 +213,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Zero-power behavior:** `BRAKE` (a named constant), for precise stops. The robot is tall, so watch for tipping.
 - **Robot-centric only** in the first version. Field-centric comes later, with a Pinpoint wrapper that supplies the heading.
 - **Test OpMode:** `DriveAlpha` (sticks drive; hold the right trigger for slow mode; X, A, Y and B each spin one wheel for the direction check).
+- **Starting values to check on the robot:** the direction constants (left motors `REVERSE`, right motors `FORWARD`, copied from the FTC sample), the slow-mode scale (40%), and `BRAKE`. Do the wheel test with the robot on blocks first.
 
 ## 7. Session protocol (for Claude Code)
 
