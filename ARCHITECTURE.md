@@ -130,10 +130,10 @@ Names already in use:
 |---|---|
 | `intake_motor` | Intake motor (goBILDA 5202/3/4) |
 | `flywheel_motor` | Shooter flywheel (goBILDA 5202/3/4) |
-| `backspin_motor` | Backspin wheel (goBILDA 5202 series) |
-| `turret_motor` | Turret rotation motor (assumed goBILDA 5202 series, ratio TBD `[CONFIRM]` 5202 vs 5203) |
-| `turret_encoder` | External quadrature encoder on the turret ring gear (plugged into an encoder port, no motor attached) |
-| `turret_home_switch` | REV magnetic limit switch that re-zeros the turret angle (digital port) `[CONFIRM]` name |
+| `backspin_motor` | Backspin wheel (goBILDA 5203 series, believed `[CONFIRM]`) |
+| `turret_motor` | Turret rotation motor (goBILDA 5203 series, believed `[CONFIRM]`; gearbox ratio TBD) |
+| `turret_encoder` | REV Through Bore Encoder in incremental (quadrature) mode, on the turret ring gear. Plugged into an encoder port with no motor attached. Read only. |
+| `turret_home_switch` | REV magnetic limit switch (active-low) that re-zeros the turret angle (digital port) `[CONFIRM]` name |
 | `limelight` | Limelight 3A (Ethernet device) |
 
 Add new names here when you add hardware. Names in code must match the configuration exactly.
@@ -171,12 +171,32 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 
 ### ShooterSubsystem (`subsystems/ShooterSubsystem.java`)
 
-- **Hardware:** `flywheel_motor` and `backspin_motor`, both goBILDA 5202 series (6000 RPM) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
+- **Hardware:** `flywheel_motor` and `backspin_motor`, both goBILDA 5203 series (6000 RPM, believed `[CONFIRM]`) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
 - **Control:** speed control in RPM (`setTargetRpm()` / `setTargetRpms()`). `setPower()` is open loop, for tests and clearing jams. `stop()` coasts (never commands a speed of 0).
 - **States:** `IDLE`, `OPEN_LOOP`, `SPINNING_UP`, `READY`. `isAtSpeed()` is true only in `READY` and is the shooter's half of the firing gate. The turret's on-target check is the other half.
 - **Test OpMode:** `ShooterTesting`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
 - **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterTesting`.
 - **Not in this class:** the distance-to-RPM shot table (a separate class later), feeding, and anything that reads a gamepad.
+
+### TurretSubsystem (`subsystems/TurretSubsystem.java`): conventions approved, code not written yet
+
+- **Hardware:**
+  - `turret_motor`: power only. The turret is not controlled with the motor's own encoder.
+  - `turret_encoder`: REV Through Bore Encoder, incremental (quadrature) mode, **8192 counts per encoder revolution**, on the ring gear. Read only. The Control Hub cannot read this encoder's absolute pulse output.
+  - `turret_home_switch`: REV magnetic limit switch. It is **active-low**: it reads LOW when a magnet is near. Confirm on the robot with telemetry.
+- **Gearing:** both spur gears (motor pinion and encoder pinion) are 16T. The ring gear is believed to be 48T `[CONFIRM]`. So the encoder turns 3 times per turret revolution, which is `8192 × (ring teeth / 16) / 360` = about 68.3 ticks per turret degree. Cross-check by turning the turret by hand through a marked 90°.
+- **Angle convention:**
+  - **0° is the home switch, and it points at the intake direction** (straight ahead).
+  - Angles are **signed**, and the travel is about 270° (±135°). The 90° dead zone is directly behind, opposite the intake.
+  - **Positive is counterclockwise viewed from above** (turning left). This matches Pinpoint and Pedro Pathing heading, so `shooterFieldHeading = robotHeading + turretAngle`.
+  - Soft limits sit about 5° inside the range (about ±130°).
+- **Zeroing:**
+  - At power-up the turret is placed by hand **on the switch**. INIT telemetry warns if the switch is not active. There is no motion at INIT (G304, G403).
+  - During a match, the switch turning on resets the encoder count to zero (0°). To avoid repeated re-zeroing while hovering at the magnet's edge, it re-arms only after the turret has moved about 10° away.
+  - The hub keeps encoder counts between Auto and TeleOp, so nothing is stored in a static field. `isZeroConfirmed()` is false until the switch has been crossed once.
+- **Control:** our own P controller (D added only if it oscillates) on the angle error, with a small friction kick, a max power clamp, soft limits that also cut power pushing past a limit, and `BRAKE` on stop.
+- **Test OpMode:** `TurretTesting` (manual stick plus D-pad preset angles).
+- **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.
 
 ## 7. Session protocol (for Claude Code)
 
@@ -188,7 +208,9 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - [ ] Move the Alpha test OpModes into `testing/`?
 - [ ] Gold-standard subsystem class (section 4)
 - [ ] goBILDA encoder counts per revolution: 28 or 112? Measure on the robot (see `CLAUDE.md`).
-- [ ] Turret motor: goBILDA 5202 series (assumed for now) or 5203? Ask again before writing `TurretSubsystem` constants.
+- [ ] goBILDA motor series: all motors are believed to be 5203 (not 5202). Confirm on the motors' labels before writing `TurretSubsystem` constants.
+- [ ] Turret ring gear tooth count (believed 48T; both pinions are 16T). Count it in Onshape.
+- [ ] Evaluate a 360° turret (cables and slip ring, wrap-around logic). Finish the 270° version first.
 - [ ] Main branch: `main` or `master`?
 - [ ] Vision source: Limelight 3A or a webcam with `VisionPortal` (see the robot design doc)
 

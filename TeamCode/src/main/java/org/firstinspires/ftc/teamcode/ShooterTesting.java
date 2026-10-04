@@ -43,8 +43,8 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
  *
  * Robot configuration (on the Driver Station):
- *   Motor name: flywheel_motor   (goBILDA 5202 series, encoder plugged in)
- *   Motor name: backspin_motor   (goBILDA 5202 series, encoder plugged in)
+ *   Motor name: flywheel_motor   (goBILDA 5203 series, encoder plugged in)
+ *   Motor name: backspin_motor   (goBILDA 5203 series, encoder plugged in)
  */
 @TeleOp(name = "Shooter Testing", group = "Testing")
 public class ShooterTesting extends OpMode {
