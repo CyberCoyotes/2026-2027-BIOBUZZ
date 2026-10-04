@@ -131,6 +131,7 @@ Names already in use:
 | `intake_motor` | Intake motor (goBILDA 5202/3/4) |
 | `flywheel_motor` | Shooter flywheel (goBILDA 5202/3/4) |
 | `backspin_motor` | Backspin wheel (goBILDA 5202 series) |
+| `turret_motor` | Turret rotation motor (goBILDA 5202/3 series, ratio TBD) |
 | `limelight` | Limelight 3A (Ethernet device) |
 
 Add new names here when you add hardware. Names in code must match the configuration exactly.
