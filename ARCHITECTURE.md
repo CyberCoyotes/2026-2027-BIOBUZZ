@@ -130,7 +130,7 @@ Names already in use:
 |---|---|
 | `intake_motor` | Intake motor (goBILDA 5202/3/4) |
 | `flywheel_motor` | Shooter flywheel (goBILDA 5202/3/4) |
-| `backspin_motor` | Backspin wheel (planned) |
+| `backspin_motor` | Backspin wheel (goBILDA 5202 series) |
 | `limelight` | Limelight 3A (Ethernet device) |
 
 Add new names here when you add hardware. Names in code must match the configuration exactly.
@@ -165,6 +165,15 @@ Add new names here when you add hardware. Names in code must match the configura
 ## 6. Hardware and behavior
 
 The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` for the concept (turret shooter, backspin wheel, Limelight aiming) and its open decisions. Add each subsystem's hardware and behavior to this section once its design is approved.
+
+### ShooterSubsystem (`subsystems/ShooterSubsystem.java`)
+
+- **Hardware:** `flywheel_motor` and `backspin_motor`, both goBILDA 5202 series (6000 RPM) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
+- **Control:** speed control in RPM (`setTargetRpm()` / `setTargetRpms()`). `setPower()` is open loop, for tests and clearing jams. `stop()` coasts (never commands a speed of 0).
+- **States:** `IDLE`, `OPEN_LOOP`, `SPINNING_UP`, `READY`. `isAtSpeed()` is true only in `READY` and is the shooter's half of the firing gate. The turret's on-target check is the other half.
+- **Test OpMode:** `ShooterTesting`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
+- **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterTesting`.
+- **Not in this class:** the distance-to-RPM shot table (a separate class later), feeding, and anything that reads a gamepad.
 
 ## 7. Session protocol (for Claude Code)
 
