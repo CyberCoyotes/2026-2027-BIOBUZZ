@@ -10,7 +10,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 /*
  * Shooter Subsystem
- * Owns the shooter FLYWHEEL and the BACKSPIN wheel (goBILDA 5202 series, 6000 RPM).
+ * Owns the shooter FLYWHEEL and the BACKSPIN wheel (goBILDA 5203 series, 6000 RPM).
  * Only this class touches those two motors. OpModes call its methods.
  *
  * It has two ways to run the wheels:
@@ -31,8 +31,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * but the numbers still work because we tune the shot RPMs by measuring on the robot.
  *
  * Robot configuration (on the Driver Station):
- *   Motor name: flywheel_motor   (goBILDA 5202 series, 6000 RPM, encoder plugged in)
- *   Motor name: backspin_motor   (goBILDA 5202 series, 6000 RPM, encoder plugged in)
+ *   Motor name: flywheel_motor   (goBILDA 5203 series, 6000 RPM, encoder plugged in)
+ *   Motor name: backspin_motor   (goBILDA 5203 series, 6000 RPM, encoder plugged in)
  * Set both motors to the matching goBILDA motor type in the configuration. The
  * Control Hub's built-in speed-control numbers depend on the motor type.
  */
@@ -54,14 +54,14 @@ public class ShooterSubsystem {
     // Encoder and motor numbers
     // ------------------------------------------------------------------
     // Encoder ticks per ONE turn of the motor shaft.
-    // [CONFIRM] 28 is goBILDA's spec for a 1:1 (6000 RPM) 5202 motor. Last season's
+    // [CONFIRM] 28 is goBILDA's spec for a 1:1 (6000 RPM) 5203 motor. Last season's
     // notes said 112. To check on the robot: run ShooterTesting, hold the RIGHT TRIGGER
     // (full power, wheel clear!), and read "ticks/sec" on the Driver Station.
     //   about 2,800 ticks/sec -> 28 is right.   about 11,200 ticks/sec -> change both to 112.
     private static final double FLYWHEEL_TICKS_PER_REV = 28.0;
     private static final double BACKSPIN_TICKS_PER_REV = 28.0;
 
-    // The motor's top speed with no load (goBILDA 5202 6000 RPM motor).
+    // The motor's top speed with no load (goBILDA 5203 6000 RPM motor).
     private static final double MOTOR_MAX_RPM = 6000.0;
 
     // The highest RPM we will let an OpMode ask for. Under load the motor cannot hold
