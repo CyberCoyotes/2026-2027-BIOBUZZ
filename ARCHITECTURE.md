@@ -131,7 +131,9 @@ Names already in use:
 | `intake_motor` | Intake motor (goBILDA 5202/3/4) |
 | `flywheel_motor` | Shooter flywheel (goBILDA 5202/3/4) |
 | `backspin_motor` | Backspin wheel (goBILDA 5202 series) |
-| `turret_motor` | Turret rotation motor (goBILDA 5202/3 series, ratio TBD) |
+| `turret_motor` | Turret rotation motor (assumed goBILDA 5202 series, ratio TBD `[CONFIRM]` 5202 vs 5203) |
+| `turret_encoder` | External quadrature encoder on the turret ring gear (plugged into an encoder port, no motor attached) |
+| `turret_home_switch` | REV magnetic limit switch that re-zeros the turret angle (digital port) `[CONFIRM]` name |
 | `limelight` | Limelight 3A (Ethernet device) |
 
 Add new names here when you add hardware. Names in code must match the configuration exactly.
@@ -186,6 +188,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - [ ] Move the Alpha test OpModes into `testing/`?
 - [ ] Gold-standard subsystem class (section 4)
 - [ ] goBILDA encoder counts per revolution: 28 or 112? Measure on the robot (see `CLAUDE.md`).
+- [ ] Turret motor: goBILDA 5202 series (assumed for now) or 5203? Ask again before writing `TurretSubsystem` constants.
 - [ ] Main branch: `main` or `master`?
 - [ ] Vision source: Limelight 3A or a webcam with `VisionPortal` (see the robot design doc)
 
