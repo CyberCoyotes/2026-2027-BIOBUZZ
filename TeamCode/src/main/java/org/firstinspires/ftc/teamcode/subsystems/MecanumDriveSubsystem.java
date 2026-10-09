@@ -52,10 +52,10 @@ public class MecanumDriveSubsystem {
     // ------------------------------------------------------------------
     // Hardware names. These MUST match the robot configuration exactly.
     // ------------------------------------------------------------------
-    private static final String LEFT_FRONT_MOTOR_NAME = "left_front_motor";
-    private static final String LEFT_REAR_MOTOR_NAME = "left_rear_motor";
-    private static final String RIGHT_FRONT_MOTOR_NAME = "right_front_motor";
-    private static final String RIGHT_REAR_MOTOR_NAME = "right_rear_motor";
+    private static final String LEFT_FRONT_MOTOR_NAME = "left_front";
+    private static final String LEFT_REAR_MOTOR_NAME = "left_rear";
+    private static final String RIGHT_FRONT_MOTOR_NAME = "right_front";
+    private static final String RIGHT_REAR_MOTOR_NAME = "right_rear";
 
     // ------------------------------------------------------------------
     // Directions. TEST THESE on the robot with the wheels off the floor!
