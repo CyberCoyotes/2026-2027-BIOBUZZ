@@ -76,6 +76,25 @@ public class DriveAlpha extends OpMode {
     }
 
     /*
+     * Shows the RAW numbers from gamepad1, before any deadband or sign flip.
+     * This is for finding a controller problem: with your hands OFF the controller, every stick
+     * should read about 0.00, both triggers 0.00, and every button false. Anything else means
+     * the controller (or how the Driver Station sees it) is the problem, not the drive code.
+     */
+    private void addRawGamepadTelemetry() {
+        telemetry.addLine("--- RAW GAMEPAD 1 (hands off = all zeros / false) ---");
+        telemetry.addData("Controller type", gamepad1.type());
+        telemetry.addData("Left stick x, y", "%.2f, %.2f",
+                gamepad1.left_stick_x, gamepad1.left_stick_y);
+        telemetry.addData("Right stick x, y", "%.2f, %.2f",
+                gamepad1.right_stick_x, gamepad1.right_stick_y);
+        telemetry.addData("Triggers L, R", "%.2f, %.2f",
+                gamepad1.left_trigger, gamepad1.right_trigger);
+        telemetry.addData("Face buttons", "X=%b  A=%b  Y=%b  B=%b",
+                gamepad1.x, gamepad1.a, gamepad1.y, gamepad1.b);
+    }
+
+    /*
      * Ignores a stick value that is too small to be on purpose.
      */
     private double applyDeadband(double stickValue) {
@@ -105,6 +124,7 @@ public class DriveAlpha extends OpMode {
         // The Driver Station clears its screen every loop, so we add the
         // button map again here. That keeps it on the screen until START.
         telemetry.addData("Status", "Ready to start!");
+        addRawGamepadTelemetry();
         addControlsTelemetry();
     }
 
@@ -171,6 +191,7 @@ public class DriveAlpha extends OpMode {
         // 4. Show what is happening on the Driver Station.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
         telemetry.addData("Control", driveControl);
+        addRawGamepadTelemetry();
         mecanumDriveSubsystem.addTelemetry(telemetry);
     }
 
