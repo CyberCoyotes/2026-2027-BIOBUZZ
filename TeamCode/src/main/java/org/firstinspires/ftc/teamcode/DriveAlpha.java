@@ -42,7 +42,7 @@ import org.firstinspires.ftc.teamcode.subsystems.MecanumDriveSubsystem;
  * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
  *
  * Robot configuration (on the Driver Station):
- *   Motor names: left_front_motor, left_rear_motor, right_front_motor, right_rear_motor
+ *   Motor names: left_front, left_rear, right_front, right_rear
  */
 @TeleOp(name = "Drive Alpha", group = "Testing")
 public class DriveAlpha extends OpMode {

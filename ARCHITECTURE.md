@@ -131,10 +131,10 @@ Names already in use:
 | `intake_motor` | Intake motor (goBILDA 5202/3/4) |
 | `flywheel_motor` | Shooter flywheel (goBILDA 5202/3/4) |
 | `backspin_motor` | Backspin wheel (goBILDA 5203 series, believed `[CONFIRM]`) |
-| `left_front_motor` | Drive motor, left front (mecanum) |
-| `left_rear_motor` | Drive motor, left rear (mecanum) |
-| `right_front_motor` | Drive motor, right front (mecanum) |
-| `right_rear_motor` | Drive motor, right rear (mecanum) |
+| `left_front` | Drive motor, left front (mecanum) |
+| `left_rear` | Drive motor, left rear (mecanum) |
+| `right_front` | Drive motor, right front (mecanum) |
+| `right_rear` | Drive motor, right rear (mecanum) |
 | `turret_motor` | Turret rotation motor (goBILDA 5203 series, believed `[CONFIRM]`; gearbox ratio TBD) |
 | `turret_encoder` | REV Through Bore Encoder in incremental (quadrature) mode, on the turret ring gear. Plugged into an encoder port with no motor attached. Read only. |
 | `turret_home_switch` | REV magnetic limit switch (active-low) that re-zeros the turret angle (digital port). Name approved. |
@@ -205,7 +205,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 
 ### MecanumDriveSubsystem (`subsystems/MecanumDriveSubsystem.java`): code written, not yet tested on the robot
 
-- **Hardware:** four drive motors named `left_front_motor`, `left_rear_motor`, `right_front_motor`, `right_rear_motor` (the same wiring on the practice bot, 11940 and 22091). The Driver Station config on each robot must use these names (one-time edit).
+- **Hardware:** four drive motors named `left_front`, `left_rear`, `right_front`, `right_rear` (the same wiring on the practice bot, 11940 and 22091). The Driver Station config on each robot must use these names (one-time edit).
 - **Owns the motors directly** for TeleOp, in power mode (`RUN_WITHOUT_ENCODER`). Pedro drives them in Auto (see Autonomous above).
 - **Convention (matches Pedro Pathing, Pinpoint and the turret):** `drive(forward, strafe, turn)`. **Forward is positive, strafe LEFT is positive, turn COUNTERCLOCKWISE is positive.** Each input is -1.0 to 1.0. The stick signs are flipped in `DriveAlpha`, with a comment saying why.
 - **Wheel math:** leftFront = forward - strafe - turn, rightFront = forward + strafe + turn, leftRear = forward + strafe - turn, rightRear = forward - strafe + turn. If any wheel would pass 1.0, all four are scaled down together.
