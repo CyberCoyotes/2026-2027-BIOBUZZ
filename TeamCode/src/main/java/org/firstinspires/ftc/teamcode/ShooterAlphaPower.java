@@ -36,7 +36,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *   Motor name: flywheel_motor   (goBILDA 5202/3/4 series)
  *   Motor name: backspin_motor   (goBILDA 5202/3/4 series)
  */
-@TeleOp(name = "Shooter Testing-Alpha", group = "Testing")
+@TeleOp(name = "Shooter Testing-Power", group = "Testing")
 public class ShooterAlphaPower extends OpMode {
 
     // Each button sets the FLYWHEEL and the BACKSPIN power (0.0 to 1.0).
@@ -60,7 +60,7 @@ public class ShooterAlphaPower extends OpMode {
 
     // Each motor has its OWN direction. If a wheel spins the wrong way when you
     // press A / B / X / Y, flip that motor's line between FORWARD and REVERSE.
-    private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.REVERSE;
+    private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.FORWARD;
     private static final DcMotor.Direction BACKSPIN_DIRECTION = DcMotor.Direction.FORWARD;
 
     // ENCODER NOT CONNECTED on the prototype. Remove the // when it is plugged in.

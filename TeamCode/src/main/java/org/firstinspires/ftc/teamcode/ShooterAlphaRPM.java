@@ -46,7 +46,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  *   Motor name: flywheel_motor   (goBILDA 5203 series, encoder plugged in)
  *   Motor name: backspin_motor   (goBILDA 5203 series, encoder plugged in)
  */
-@TeleOp(name = "Shooter Testing", group = "Testing")
+@TeleOp(name = "Shooter Testing-RPM", group = "Testing")
 public class ShooterAlphaRPM extends OpMode {
 
     // Each button sets the FLYWHEEL and the BACKSPIN target speed in RPM.
