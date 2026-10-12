@@ -128,7 +128,7 @@ Names already in use:
 
 | Name | Device |
 |---|---|
-| `intake_motor` | Intake motor (goBILDA 5202/3/4) |
+| `intake_motor` | One motor for intake, index, and transfer (goBILDA 5203, probably 1620 RPM 3.71:1 `[CONFIRM]`) |
 | `flywheel_motor` | Shooter flywheel (goBILDA 5202/3/4) |
 | `backspin_motor` | Backspin wheel (goBILDA 5203 series, believed `[CONFIRM]`) |
 | `left_front` | Drive motor, left front (mecanum) |
