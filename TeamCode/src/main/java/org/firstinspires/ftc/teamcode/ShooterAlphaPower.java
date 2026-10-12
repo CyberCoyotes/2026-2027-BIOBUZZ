@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Alpha-Shooter Testing
  * An iterative OpMode that runs the shooter FLYWHEEL and the BACKSPIN wheel
  * (goBILDA 5200 series) using gamepad1. This is the shooter part of
- * AlphaCombinedTesting, on its own, so the shooter can be tested alone.
+ * TeleOpAlpha, on its own, so the shooter can be tested alone.
  *
  * HOLD a button to run BOTH the flywheel and the backspin.
  * Each motor has its OWN power number for each button, so you can tune them
@@ -36,8 +36,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *   Motor name: flywheel_motor   (goBILDA 5202/3/4 series)
  *   Motor name: backspin_motor   (goBILDA 5202/3/4 series)
  */
-@TeleOp(name = "Alpha-Shooter Testing", group = "Testing")
-public class AlphaShooterTesting extends OpMode {
+@TeleOp(name = "Shooter Testing-Alpha", group = "Testing")
+public class ShooterAlphaPower extends OpMode {
 
     // Each button sets the FLYWHEEL and the BACKSPIN power (0.0 to 1.0).
     // They are separate numbers on purpose, so you can tune each wheel on its own.
