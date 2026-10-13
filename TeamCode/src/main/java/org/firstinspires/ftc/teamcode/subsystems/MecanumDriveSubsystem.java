@@ -42,20 +42,20 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * This first version is ROBOT-CENTRIC: "forward" means the way the robot is facing.
  *
  * Robot configuration (on the Driver Station) for ALL three robots. The names MUST match:
- *   Motor name: left_front_motor
- *   Motor name: left_rear_motor
- *   Motor name: right_front_motor
- *   Motor name: right_rear_motor
+ *   Motor name: left_front
+ *   Motor name: left_rear
+ *   Motor name: right_front
+ *   Motor name: right_rear
  */
 public class MecanumDriveSubsystem {
 
     // ------------------------------------------------------------------
     // Hardware names. These MUST match the robot configuration exactly.
     // ------------------------------------------------------------------
-    private static final String LEFT_FRONT_MOTOR_NAME = "left_front_motor";
-    private static final String LEFT_REAR_MOTOR_NAME = "left_rear_motor";
-    private static final String RIGHT_FRONT_MOTOR_NAME = "right_front_motor";
-    private static final String RIGHT_REAR_MOTOR_NAME = "right_rear_motor";
+    private static final String LEFT_FRONT_MOTOR_NAME = "left_front";
+    private static final String LEFT_REAR_MOTOR_NAME = "left_rear";
+    private static final String RIGHT_FRONT_MOTOR_NAME = "right_front";
+    private static final String RIGHT_REAR_MOTOR_NAME = "right_rear";
 
     // ------------------------------------------------------------------
     // Directions. TEST THESE on the robot with the wheels off the floor!
