@@ -215,6 +215,16 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Test OpMode:** `DriveAlpha` (sticks drive; hold the right trigger for slow mode; X, A, Y and B each spin one wheel for the direction check).
 - **Starting values to check on the robot:** the direction constants (left motors `REVERSE`, right motors `FORWARD`, copied from the FTC sample), the slow-mode scale (40%), and `BRAKE`. Do the wheel test with the robot on blocks first.
 
+### IntakeSubsystem (`subsystems/IntakeSubsystem.java`): code written, not yet tested on the robot
+
+- **Hardware:** `intake_motor`, one goBILDA 5203 series at 1620 RPM (3.7:1, believed `[CONFIRM]`). The one motor spins the front intake **and** a second hex shaft with grippers in the transfer chute, so intake and transfer always run together.
+- **Control:** plain power, not RPM (`RUN_WITHOUT_ENCODER`). There is **one power dial** (`setIntakePower()`, 0.0 to 1.0, starting at 50%). `intake()` runs at +dial, `reverse()` runs at -dial, `stop()` coasts (`FLOAT`). Splitting reverse into its own number is an easy later change.
+- **States:** `STOPPED`, `INTAKING`, `REVERSING`.
+- **Encoder:** plugged in for testing. `update()` reads `getVelocity()` once per loop and `getTicksPerSecond()` returns it. It is shown in **raw ticks per second only, with no RPM conversion**, so nothing here depends on the 28-vs-112 `[CONFIRM]`.
+- **Test OpMode:** `IntakeAlpha` (Right Bumper = intake, Left Bumper = reverse and wins, D-pad Up/Down = dial +/-5% per press). The D-pad dial is for testing only; the best number found goes into `DEFAULT_INTAKE_POWER`.
+- **Starting values to check on the robot:** the motor direction (starts `REVERSE`, copied from the old `IntakeAlpha`), the default power, and `FLOAT` vs `BRAKE`.
+- **Not in this class:** a feed-to-shooter mode or ball counting. The firing gate and any different feed power are a later session.
+
 ## 7. Session protocol (for Claude Code)
 
 > Read `ARCHITECTURE.md` and `CLAUDE.md`. Read the reference code in section 4 and the closest SDK sample. Then do the task. Modify only the files the task lists. Propose before coding unless the task already says the design is approved. Ask before adding dependencies, changing hardware config names, or inventing new conventions. **If you hit a `[CONFIRM]` marker relevant to the task, stop and ask.**
