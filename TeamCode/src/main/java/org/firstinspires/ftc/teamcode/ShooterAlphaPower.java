@@ -72,7 +72,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  *   Servo name: shooter_servo (ShooterServoSubsystem,  goBILDA dual mode servo, POSITIONAL mode)
  * The motor directions are set inside the subsystems, not in this file.
  */
-@TeleOp(name = "Shooter Testing-Alpha", group = "Testing")
+@TeleOp(name = "Shooter Testing-AlphaPower", group = "Testing")
 public class ShooterAlphaPower extends OpMode {
 
     // ------------------------------------------------------------------
