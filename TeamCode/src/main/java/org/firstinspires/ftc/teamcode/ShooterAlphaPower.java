@@ -6,6 +6,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
+
 /*
  * Alpha-Shooter Testing
  * An iterative OpMode that runs the shooter FLYWHEEL and the BACKSPIN wheel
@@ -30,11 +32,21 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * A reverse bumper beats the shooter buttons for that motor.
  * If more than one shooter button is held, the HIGHEST power wins.
  *
+ * SHOOTER GATE (the servo), separate from the wheel buttons above:
+ *   Left Trigger -> TOGGLES the gate between LOADING and SHOOTING (one flip per press)
+ *   D-pad Up     -> nudge the gate's CURRENT position toward 1.0 (small step)
+ *   D-pad Down   -> nudge the gate's CURRENT position toward 0.0 (small step)
+ * The gate positions are not measured yet. Use the D-pad nudge to creep the gate to the
+ * right spot for each state, read the number on the screen, and then type it into
+ * LOADING_POSITION / SHOOTING_POSITION in ShooterServoSubsystem.
+ * The gate starts in LOADING when you hit INIT. It does NOT depend on the wheels.
+ *
  * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
  *
  * Robot configuration (on the Driver Station):
  *   Motor name: flywheel_motor   (goBILDA 5202/3/4 series)
  *   Motor name: backspin_motor   (goBILDA 5202/3/4 series)
+ *   Servo name: shooter_servo    (goBILDA dual mode servo, set to POSITIONAL mode)
  */
 @TeleOp(name = "Shooter Testing-Alpha", group = "Testing")
 public class ShooterAlphaPower extends OpMode {
@@ -71,12 +83,29 @@ public class ShooterAlphaPower extends OpMode {
     // private static final double FLYWHEEL_TICKS_PER_REV = 28.0;
     // private static final double BACKSPIN_TICKS_PER_REV = 28.0;
 
+    // The triggers give a number from 0.0 to 1.0. Past this much counts as "pressed".
+    private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
+
+    // How far one D-pad press moves the gate servo position (the position runs 0.0 to 1.0).
+    // 0.01 is about 3 degrees on a 300 degree servo (0.01 x 300). Make it smaller for
+    // finer adjustment, or bigger to move faster.
+    private static final double GATE_NUDGE_STEP = 0.01;
+
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
 
     // DcMotorEx is a DcMotor with extra features, like reading speed (velocity).
     private DcMotorEx flywheelMotor = null;
     private DcMotorEx backspinMotor = null;
+
+    // The gate servo is run by its own subsystem class.
+    private ShooterServoSubsystem shooterServoSubsystem;
+
+    // What the gate buttons were doing last loop. We compare to this loop so that
+    // holding a button gives ONE action, not a new one every loop (about 50 times a second).
+    private boolean wasGateTogglePressed = false;
+    private boolean wasNudgeUpPressed = false;
+    private boolean wasNudgeDownPressed = false;
 
     /*
      * Adds the button map to telemetry so the drivers can read it.
@@ -93,6 +122,9 @@ public class ShooterAlphaPower extends OpMode {
         telemetry.addLine("(flywheel / backspin)");
         telemetry.addLine("Right Bumper = REVERSE flywheel only");
         telemetry.addLine("Left Bumper = REVERSE backspin only");
+        telemetry.addLine("--- GATE ---");
+        telemetry.addLine("Left Trigger = TOGGLE gate (loading / shooting)");
+        telemetry.addLine("D-pad Up / Down = nudge gate position +/-");
     }
 
     /*
@@ -116,6 +148,9 @@ public class ShooterAlphaPower extends OpMode {
         // stopping it suddenly puts a lot of stress on the motor and gears.
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         backspinMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        // The gate servo moves to LOADING here, so it starts from a known place.
+        shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
 
         // Display initialization status on Driver Station
         telemetry.addData("Status", "Initialized");
@@ -196,6 +231,28 @@ public class ShooterAlphaPower extends OpMode {
         flywheelMotor.setPower(flywheelPower);
         backspinMotor.setPower(backspinPower);
 
+        // The gate is separate from the wheels, so it has its own buttons.
+        // A button counts as ONE press only on the loop where it goes from "not pressed"
+        // to "pressed". Without this check, holding it would flip the gate every loop.
+        boolean gateTogglePressed = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean nudgeUpPressed = gamepad1.dpad_up;
+        boolean nudgeDownPressed = gamepad1.dpad_down;
+
+        if (gateTogglePressed && !wasGateTogglePressed) {
+            shooterServoSubsystem.toggle();
+        }
+        if (nudgeUpPressed && !wasNudgeUpPressed) {
+            shooterServoSubsystem.nudgePosition(GATE_NUDGE_STEP);
+        }
+        if (nudgeDownPressed && !wasNudgeDownPressed) {
+            shooterServoSubsystem.nudgePosition(-GATE_NUDGE_STEP);
+        }
+
+        // Remember this loop's buttons for the next loop.
+        wasGateTogglePressed = gateTogglePressed;
+        wasNudgeUpPressed = nudgeUpPressed;
+        wasNudgeDownPressed = nudgeDownPressed;
+
         // ENCODER NOT CONNECTED on the prototype. Remove the // when it is plugged in.
         // getVelocity() returns encoder ticks per second.
         // Convert to RPM: (ticks per second / ticks per rev) * 60 seconds.
@@ -211,6 +268,7 @@ public class ShooterAlphaPower extends OpMode {
         telemetry.addData("Backspin Power", "%.0f%%", backspinPower * 100);
         // telemetry.addData("Flywheel RPM", "%.0f", flywheelRpm);
         // telemetry.addData("Backspin RPM", "%.0f", backspinRpm);
+        shooterServoSubsystem.addTelemetry(telemetry);
     }
 
     /*
@@ -219,6 +277,7 @@ public class ShooterAlphaPower extends OpMode {
     @Override
     public void stop() {
         // Always leave the motors stopped.
+        // The gate servo just stays where it is. A servo holds its position by itself.
         flywheelMotor.setPower(0.0);
         backspinMotor.setPower(0.0);
     }

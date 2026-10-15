@@ -138,6 +138,7 @@ Names already in use:
 | `turret_motor` | Turret rotation motor (goBILDA 5203 series, believed `[CONFIRM]`; gearbox ratio TBD) |
 | `turret_encoder` | REV Through Bore Encoder in incremental (quadrature) mode, on the turret ring gear. Plugged into an encoder port with no motor attached. Read only. |
 | `turret_home_switch` | REV magnetic limit switch (active-low) that re-zeros the turret angle (digital port). Name approved. |
+| `shooter_servo` | Shooter gate: goBILDA dual mode 300° torque servo, set to positional mode. Moves about 90° between LOADING and SHOOTING. |
 | `limelight` | Limelight 3A (Ethernet device) |
 
 Add new names here when you add hardware. Names in code must match the configuration exactly.
@@ -181,6 +182,16 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Test OpMode:** `ShooterAlphaRPM`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
 - **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterAlphaRPM`.
 - **Not in this class:** the distance-to-RPM shot table (a separate class later), feeding, and anything that reads a gamepad.
+
+### ShooterServoSubsystem (`subsystems/ShooterServoSubsystem.java`): code written, not yet tested on the robot
+
+- **Hardware:** `shooter_servo`, a goBILDA dual mode 300° torque servo. It acts as a **gate** and moves about 90° between two positions. Set it to **positional** mode with the goBILDA Servo Programmer, and configure it as a plain "Servo" on the Driver Station.
+- **Separate from `ShooterSubsystem`** so the flywheel tests still run on a robot where the servo is not configured yet.
+- **States:** `LOADING` and `SHOOTING`. A servo reports no position, so this is only what we commanded. `isAtPosition()` is a **time guess** (`SERVO_TRAVEL_SECONDS` since the last command), and is the gate's half of the future firing gate.
+- **Methods:** `goToLoading()`, `goToShooting()`, `toggle()`, `nudgePosition()` (for finding positions), `getState()`, `isAtPosition()`, `addTelemetry()`. No `update()`, because there is no ongoing work. It starts in `LOADING` when constructed (R103.B allows pre-positioning servos at INIT).
+- **Test OpModes:** both `ShooterAlphaPower` and `ShooterAlphaRPM`. **Left Trigger** toggles the gate (one flip per press). **D-pad Up/Down** nudges the current position by 0.01.
+- **`[CONFIRM]` positions are TBD:** `LOADING_POSITION` (0.30) and `SHOOTING_POSITION` (0.60) are placeholders. Find the real values with the D-pad nudge, then type them into the constants. Also tune `SERVO_TRAVEL_SECONDS` (0.50 is a guess).
+- **Open:** which end of travel is "closed", and whether the gate needs a different position in Auto.
 
 ### TurretSubsystem (`subsystems/TurretSubsystem.java`): code written, not yet tested on the robot
 

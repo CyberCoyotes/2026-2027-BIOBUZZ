@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 
 /*
@@ -40,11 +41,21 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * Y / X / B / A (speed control), then nothing (stop).
  * If more than one of Y / X / B / A is held, the HIGHEST speed wins.
  *
+ * SHOOTER GATE (the servo), separate from the wheel buttons above:
+ *   Left Trigger -> TOGGLES the gate between LOADING and SHOOTING (one flip per press)
+ *   D-pad Up     -> nudge the gate's CURRENT position toward 1.0 (small step)
+ *   D-pad Down   -> nudge the gate's CURRENT position toward 0.0 (small step)
+ * The gate positions are not measured yet. Use the D-pad nudge to creep the gate to the
+ * right spot for each state, read the number on the screen, and then type it into
+ * LOADING_POSITION / SHOOTING_POSITION in ShooterServoSubsystem.
+ * The gate starts in LOADING when you hit INIT. It does NOT depend on the wheels.
+ *
  * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
  *
  * Robot configuration (on the Driver Station):
  *   Motor name: flywheel_motor   (goBILDA 5203 series, encoder plugged in)
  *   Motor name: backspin_motor   (goBILDA 5203 series, encoder plugged in)
+ *   Servo name: shooter_servo    (goBILDA dual mode servo, set to POSITIONAL mode)
  */
 @TeleOp(name = "Shooter Testing-AlphaRPM", group = "Testing")
 public class ShooterAlphaRPM extends OpMode {
@@ -75,9 +86,21 @@ public class ShooterAlphaRPM extends OpMode {
     // The triggers give a number from 0.0 to 1.0. Past this much counts as "pressed".
     private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
 
+    // How far one D-pad press moves the gate servo position (the position runs 0.0 to 1.0).
+    // 0.01 is about 3 degrees on a 300 degree servo (0.01 x 300). Make it smaller for
+    // finer adjustment, or bigger to move faster.
+    private static final double GATE_NUDGE_STEP = 0.01;
+
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
     private ShooterSubsystem shooterSubsystem;
+    private ShooterServoSubsystem shooterServoSubsystem;
+
+    // What the gate buttons were doing last loop. We compare to this loop so that
+    // holding a button gives ONE action, not a new one every loop (about 50 times a second).
+    private boolean wasGateTogglePressed = false;
+    private boolean wasNudgeUpPressed = false;
+    private boolean wasNudgeDownPressed = false;
 
     /*
      * Adds the button map to telemetry so the drivers can read it.
@@ -93,6 +116,9 @@ public class ShooterAlphaRPM extends OpMode {
         telemetry.addLine("Right Trigger = FULL POWER encoder check");
         telemetry.addLine("Right Bumper = REVERSE flywheel only");
         telemetry.addLine("Left Bumper = REVERSE backspin only");
+        telemetry.addLine("--- GATE ---");
+        telemetry.addLine("Left Trigger = TOGGLE gate (loading / shooting)");
+        telemetry.addLine("D-pad Up / Down = nudge gate position +/-");
     }
 
     /*
@@ -102,6 +128,8 @@ public class ShooterAlphaRPM extends OpMode {
     public void init() {
         // The subsystem gets its own motors from the hardware map.
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
+        // The gate servo moves to LOADING here, so it starts from a known place.
+        shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
 
         // Display initialization status on Driver Station
         telemetry.addData("Status", "Initialized");
@@ -177,10 +205,33 @@ public class ShooterAlphaRPM extends OpMode {
         }
         shooterSubsystem.update();
 
+        // The gate is separate from the wheels, so it has its own buttons.
+        // A button counts as ONE press only on the loop where it goes from "not pressed"
+        // to "pressed". Without this check, holding it would flip the gate every loop.
+        boolean gateTogglePressed = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean nudgeUpPressed = gamepad1.dpad_up;
+        boolean nudgeDownPressed = gamepad1.dpad_down;
+
+        if (gateTogglePressed && !wasGateTogglePressed) {
+            shooterServoSubsystem.toggle();
+        }
+        if (nudgeUpPressed && !wasNudgeUpPressed) {
+            shooterServoSubsystem.nudgePosition(GATE_NUDGE_STEP);
+        }
+        if (nudgeDownPressed && !wasNudgeDownPressed) {
+            shooterServoSubsystem.nudgePosition(-GATE_NUDGE_STEP);
+        }
+
+        // Remember this loop's buttons for the next loop.
+        wasGateTogglePressed = gateTogglePressed;
+        wasNudgeUpPressed = nudgeUpPressed;
+        wasNudgeDownPressed = nudgeDownPressed;
+
         // 4. Show what is happening on the Driver Station.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
         telemetry.addData("Control", shooterControl);
         shooterSubsystem.addTelemetry(telemetry);
+        shooterServoSubsystem.addTelemetry(telemetry);
     }
 
     /*
@@ -189,6 +240,7 @@ public class ShooterAlphaRPM extends OpMode {
     @Override
     public void stop() {
         // Always leave the motors stopped.
+        // The gate servo just stays where it is. A servo holds its position by itself.
         shooterSubsystem.stop();
     }
 }
