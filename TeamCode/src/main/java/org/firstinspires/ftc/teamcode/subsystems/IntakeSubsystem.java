@@ -44,7 +44,7 @@ public class IntakeSubsystem {
     // ------------------------------------------------------------------
     // Hardware name. This MUST match the robot configuration exactly.
     // ------------------------------------------------------------------
-    private static final String INTAKE_MOTOR_NAME = "intake_motor";
+    private static final String INTAKE_MOTOR_NAME = "intake";
 
     // ------------------------------------------------------------------
     // Motor settings. TEST THESE on the robot!
