@@ -62,10 +62,10 @@ public class IntakeSubsystem {
     // ------------------------------------------------------------------
     // The power the dial starts at. Start gentle (50%) on a new mechanism.
     // Once IntakeAlpha shows us the best number, change it here.
-    private static final double DEFAULT_INTAKE_POWER = 0.50;
+    private static final double DEFAULT_INTAKE_POWER = 1.00;
 
     // The most the power dial can be turned up to. 1.0 is full power.
-    private static final double MAX_INTAKE_POWER = 1.0;
+    private static final double MAX_INTAKE_POWER = 1.00;
 
     // What the intake is doing right now.
     public enum IntakeState {
