@@ -2,18 +2,25 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 
 /*
  * Alpha-Shooter Testing
- * An iterative OpMode that runs the shooter FLYWHEEL and the BACKSPIN wheel
- * (goBILDA 5200 series) using gamepad1. This is the shooter part of
- * TeleOpAlpha, on its own, so the shooter can be tested alone.
+ * An iterative OpMode that tests the whole ball path with three subsystems:
+ *   ShooterSubsystem       -> the FLYWHEEL and the BACKSPIN wheel (plain POWER, no speed control)
+ *   ShooterServoSubsystem  -> the shooter GATE servo
+ *   IntakeSubsystem        -> the INTAKE (which also runs the transfer)
+ * This OpMode owns NO hardware itself. It only reads the gamepads and tells the subsystems
+ * what to do. (ShooterAlphaRPM is the speed-control version of the wheel tests.)
  *
+ * TWO CONTROLLERS: the shooter and gate are on gamepad1, the intake is on gamepad2.
+ * That keeps the buttons from fighting each other, because both jobs want the bumpers and D-pad.
+ *
+ * ------------------------- GAMEPAD 1: SHOOTER + GATE -------------------------
  * HOLD a button to run BOTH the flywheel and the backspin.
  * Each motor has its OWN power number for each button, so you can tune them
  * separately. Starting values (flywheel / backspin):
@@ -27,8 +34,6 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
  *   Right Bumper -> reverses the FLYWHEEL only
  *   Left Bumper  -> reverses the BACKSPIN only
  *
- * The flywheel and the backspin each have their OWN direction setting:
- * FLYWHEEL_DIRECTION and BACKSPIN_DIRECTION below.
  * A reverse bumper beats the shooter buttons for that motor.
  * If more than one shooter button is held, the HIGHEST power wins.
  *
@@ -41,16 +46,38 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
  * LOADING_POSITION / SHOOTING_POSITION in ShooterServoSubsystem.
  * The gate starts in LOADING when you hit INIT. It does NOT depend on the wheels.
  *
- * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
+ * ------------------------- GAMEPAD 2: INTAKE -------------------------
+ * HOLD a bumper to run the intake. There is ONE power dial, and the D-pad turns it up and down.
+ *   Right Bumper -> INTAKE (pull balls in) at the dial power
+ *   Left Bumper  -> REVERSE (push balls out) at the dial power
+ *   D-pad Up     -> turn the dial UP by 5% (each press)
+ *   D-pad Down   -> turn the dial DOWN by 5% (each press)
+ *   No bumper    -> intake stops
+ * Left Bumper beats Right Bumper, so clearing a jam always works.
  *
- * Robot configuration (on the Driver Station):
- *   Motor name: flywheel_motor   (goBILDA 5202/3/4 series)
- *   Motor name: backspin_motor   (goBILDA 5202/3/4 series)
- *   Servo name: shooter_servo    (goBILDA dual mode servo, set to POSITIONAL mode)
+ * THE POWER DIAL IS FOR TESTING ONLY. When this test shows us the best number, change
+ * DEFAULT_INTAKE_POWER at the top of IntakeSubsystem.
+ *
+ * THE INTAKE ALSO RUNS THE TRANSFER. One motor spins the front intake AND a hex shaft with
+ * grippers in the transfer chute. Test with a few balls loaded in the chute.
+ * KEEP HANDS AND BALLS CLEAR OF THE FLYWHEEL when you run the intake and shooter together.
+ *
+ * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle, bumpers = L1 / R1.
+ *
+ * Robot configuration (on the Driver Station). The NAMES live in each subsystem class,
+ * so check them there if they ever change:
+ *   Motor name: flywheel      (ShooterSubsystem,       goBILDA 5202/3/4 series)
+ *   Motor name: backspin      (ShooterSubsystem,       goBILDA 5202/3/4 series)
+ *   Motor name: intake        (IntakeSubsystem,        goBILDA 5202/3/4 series)
+ *   Servo name: shooter_servo (ShooterServoSubsystem,  goBILDA dual mode servo, POSITIONAL mode)
+ * The motor directions are set inside the subsystems, not in this file.
  */
 @TeleOp(name = "Shooter Testing-Alpha", group = "Testing")
 public class ShooterAlphaPower extends OpMode {
 
+    // ------------------------------------------------------------------
+    // Gamepad 1: shooter wheels
+    // ------------------------------------------------------------------
     // Each button sets the FLYWHEEL and the BACKSPIN power (0.0 to 1.0).
     // They are separate numbers on purpose, so you can tune each wheel on its own.
     // Shooting power is always POSITIVE. Change these to test different speeds.
@@ -70,19 +97,9 @@ public class ShooterAlphaPower extends OpMode {
     private static final double FLYWHEEL_POWER_REVERSE = -0.60;
     private static final double BACKSPIN_POWER_REVERSE = -0.60;
 
-    // Each motor has its OWN direction. If a wheel spins the wrong way when you
-    // press A / B / X / Y, flip that motor's line between FORWARD and REVERSE.
-    private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.REVERSE;
-    private static final DcMotor.Direction BACKSPIN_DIRECTION = DcMotor.Direction.FORWARD;
-
-    // ENCODER NOT CONNECTED on the prototype. Remove the // when it is plugged in.
-    // Encoder ticks per ONE turn of the motor's output shaft.
-    // goBILDA 5202/3/4 motors: 28 ticks per turn of the motor itself.
-    // If your motor has a gearbox, multiply by the gear ratio
-    // (example: a 3.7:1 gearbox -> 28 * 3.7 = 103.6).
-    // private static final double FLYWHEEL_TICKS_PER_REV = 28.0;
-    // private static final double BACKSPIN_TICKS_PER_REV = 28.0;
-
+    // ------------------------------------------------------------------
+    // Gamepad 1: shooter gate
+    // ------------------------------------------------------------------
     // The triggers give a number from 0.0 to 1.0. Past this much counts as "pressed".
     private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
 
@@ -91,27 +108,44 @@ public class ShooterAlphaPower extends OpMode {
     // finer adjustment, or bigger to move faster.
     private static final double GATE_NUDGE_STEP = 0.01;
 
+    // ------------------------------------------------------------------
+    // Gamepad 2: intake power dial
+    // ------------------------------------------------------------------
+    // How much one D-pad press changes the dial, in percent. 5 means 5%.
+    private static final int DIAL_STEP_PERCENT = 5;
+
+    // The lowest and highest the dial can go, in percent.
+    private static final int DIAL_MIN_PERCENT = 0;
+    private static final int DIAL_MAX_PERCENT = 100;
+
+    // ------------------------------------------------------------------
     // Declare OpMode members.
+    // ------------------------------------------------------------------
     private ElapsedTime runtime = new ElapsedTime();
 
-    // DcMotorEx is a DcMotor with extra features, like reading speed (velocity).
-    private DcMotorEx flywheelMotor = null;
-    private DcMotorEx backspinMotor = null;
-
-    // The gate servo is run by its own subsystem class.
+    // Each subsystem owns its own hardware. This OpMode only calls their methods.
+    private ShooterSubsystem shooterSubsystem;
     private ShooterServoSubsystem shooterServoSubsystem;
+    private IntakeSubsystem intakeSubsystem;
 
-    // What the gate buttons were doing last loop. We compare to this loop so that
-    // holding a button gives ONE action, not a new one every loop (about 50 times a second).
+    // The intake dial in WHOLE percent (50 means 50%). We count in whole numbers so adding 5
+    // over and over never drifts to something like 0.4999999.
+    private int dialPercent;
+
+    // What the buttons were doing LAST loop. A press lasts many loops (about 50 per second),
+    // but we want it to count only ONCE. So we only act when it was NOT pressed last loop
+    // and IS pressed now.
     private boolean wasGateTogglePressed = false;
-    private boolean wasNudgeUpPressed = false;
-    private boolean wasNudgeDownPressed = false;
+    private boolean wasGateNudgeUpPressed = false;
+    private boolean wasGateNudgeDownPressed = false;
+    private boolean wasDialUpPressed = false;
+    private boolean wasDialDownPressed = false;
 
     /*
      * Adds the button map to telemetry so the drivers can read it.
      */
     private void addControlsTelemetry() {
-        telemetry.addLine("--- SHOOTER (flywheel + backspin) ---");
+        telemetry.addLine("--- GAMEPAD 1: SHOOTER (flywheel / backspin) ---");
         // Each line shows the flywheel power / backspin power for that button.
         telemetry.addLine(String.format("Y: %.0f%% / %.0f%%   X: %.0f%% / %.0f%%",
                 FLYWHEEL_POWER_Y * 100, BACKSPIN_POWER_Y * 100,
@@ -122,9 +156,12 @@ public class ShooterAlphaPower extends OpMode {
         telemetry.addLine("(flywheel / backspin)");
         telemetry.addLine("Right Bumper = REVERSE flywheel only");
         telemetry.addLine("Left Bumper = REVERSE backspin only");
-        telemetry.addLine("--- GATE ---");
+        telemetry.addLine("--- GAMEPAD 1: GATE ---");
         telemetry.addLine("Left Trigger = TOGGLE gate (loading / shooting)");
         telemetry.addLine("D-pad Up / Down = nudge gate position +/-");
+        telemetry.addLine("--- GAMEPAD 2: INTAKE ---");
+        telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
+        telemetry.addLine("D-pad Up / Down = power dial +5% / -5%");
     }
 
     /*
@@ -132,31 +169,19 @@ public class ShooterAlphaPower extends OpMode {
      */
     @Override
     public void init() {
-        // The names MUST match the robot configuration exactly.
-        flywheelMotor = hardwareMap.get(DcMotorEx.class, "flywheel_motor");
-        backspinMotor = hardwareMap.get(DcMotorEx.class, "backspin_motor");
-
-        // The flywheel and backspin directions are set at the top of the file.
-        flywheelMotor.setDirection(FLYWHEEL_DIRECTION);
-        backspinMotor.setDirection(BACKSPIN_DIRECTION);
-
-        // We are controlling power directly. The encoder still reports speed for telemetry.
-        flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backspinMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-        // FLOAT lets the flywheel coast down. Do NOT use BRAKE on a heavy flywheel:
-        // stopping it suddenly puts a lot of stress on the motor and gears.
-        flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        backspinMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-
+        // Each subsystem gets its own hardware from the hardware map.
+        shooterSubsystem = new ShooterSubsystem(hardwareMap);
         // The gate servo moves to LOADING here, so it starts from a known place.
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
+        intakeSubsystem = new IntakeSubsystem(hardwareMap);
+
+        // Start the dial wherever the subsystem starts it, so the number only lives in one place.
+        // Math.round gives the nearest whole number (0.5 * 100 = 50).
+        dialPercent = (int) Math.round(intakeSubsystem.getIntakePower() * 100);
 
         // Display initialization status on Driver Station
         telemetry.addData("Status", "Initialized");
-        telemetry.addData("Encoder Status", "NOT CONNECTED - Power control only");
-        telemetry.addData("Flywheel Direction", FLYWHEEL_DIRECTION);
-        telemetry.addData("Backspin Direction", backspinMotor.getDirection());
+        telemetry.addData("Encoder Status", "Wheel encoders may be NOT CONNECTED - power control only");
         addControlsTelemetry();
     }
 
@@ -168,6 +193,7 @@ public class ShooterAlphaPower extends OpMode {
         // The Driver Station clears its screen every loop, so we add the
         // button map again here. That keeps it on the screen until START.
         telemetry.addData("Status", "Ready to start!");
+        telemetry.addData("Intake power dial", "%d%%", dialPercent);
         addControlsTelemetry();
     }
 
@@ -177,7 +203,6 @@ public class ShooterAlphaPower extends OpMode {
     @Override
     public void start() {
         runtime.reset();
-        addControlsTelemetry();
     }
 
     /*
@@ -185,6 +210,13 @@ public class ShooterAlphaPower extends OpMode {
      */
     @Override
     public void loop() {
+        // 1. Read sensors.
+        // (The shooter reads its own encoders inside shooterSubsystem.update(), below.)
+        intakeSubsystem.update();
+
+        // 2. Read the gamepads and decide what to do.
+
+        // ---- Gamepad 1: shooter wheels ----
         double flywheelPower;
         double backspinPower;
         String shooterControl;
@@ -227,48 +259,86 @@ public class ShooterAlphaPower extends OpMode {
             backspinControl = "Left Bumper (REVERSE)";
         }
 
-        // Send the power to the motors.
-        flywheelMotor.setPower(flywheelPower);
-        backspinMotor.setPower(backspinPower);
-
-        // The gate is separate from the wheels, so it has its own buttons.
+        // ---- Gamepad 1: shooter gate ----
         // A button counts as ONE press only on the loop where it goes from "not pressed"
         // to "pressed". Without this check, holding it would flip the gate every loop.
         boolean gateTogglePressed = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
-        boolean nudgeUpPressed = gamepad1.dpad_up;
-        boolean nudgeDownPressed = gamepad1.dpad_down;
+        boolean gateNudgeUpPressed = gamepad1.dpad_up;
+        boolean gateNudgeDownPressed = gamepad1.dpad_down;
 
+        // ---- Gamepad 2: intake ----
+        boolean dialUpPressed = gamepad2.dpad_up;
+        boolean dialDownPressed = gamepad2.dpad_down;
+
+        // Turn the dial only on the loop where the button FIRST goes down.
+        if (dialUpPressed && !wasDialUpPressed) {
+            dialPercent = dialPercent + DIAL_STEP_PERCENT;
+        }
+        if (dialDownPressed && !wasDialDownPressed) {
+            dialPercent = dialPercent - DIAL_STEP_PERCENT;
+        }
+
+        // Keep the dial between its lowest and highest settings.
+        if (dialPercent > DIAL_MAX_PERCENT) {
+            dialPercent = DIAL_MAX_PERCENT;
+        }
+        if (dialPercent < DIAL_MIN_PERCENT) {
+            dialPercent = DIAL_MIN_PERCENT;
+        }
+
+        // 3. Tell the subsystems what to do, then call their update().
+
+        // Shooter wheels. setPower() is plain power with no speed control. Zero power on
+        // BOTH wheels is the same as stop(), so they coast down.
+        shooterSubsystem.setPower(flywheelPower, backspinPower);
+        shooterSubsystem.update();
+
+        // Gate.
         if (gateTogglePressed && !wasGateTogglePressed) {
             shooterServoSubsystem.toggle();
         }
-        if (nudgeUpPressed && !wasNudgeUpPressed) {
+        if (gateNudgeUpPressed && !wasGateNudgeUpPressed) {
             shooterServoSubsystem.nudgePosition(GATE_NUDGE_STEP);
         }
-        if (nudgeDownPressed && !wasNudgeDownPressed) {
+        if (gateNudgeDownPressed && !wasGateNudgeDownPressed) {
             shooterServoSubsystem.nudgePosition(-GATE_NUDGE_STEP);
+        }
+
+        // Intake. Turn the percent into the 0.0 to 1.0 number the subsystem wants (50 -> 0.50).
+        intakeSubsystem.setIntakePower(dialPercent / 100.0);
+
+        // Check REVERSE first, so clearing a jam always works.
+        String intakeControl;
+        if (gamepad2.left_bumper) {
+            intakeSubsystem.reverse();
+            intakeControl = "Left Bumper (REVERSE)";
+        } else if (gamepad2.right_bumper) {
+            intakeSubsystem.intake();
+            intakeControl = "Right Bumper (INTAKE)";
+        } else {
+            // No bumper held, so stop the intake.
+            intakeSubsystem.stop();
+            intakeControl = "None";
         }
 
         // Remember this loop's buttons for the next loop.
         wasGateTogglePressed = gateTogglePressed;
-        wasNudgeUpPressed = nudgeUpPressed;
-        wasNudgeDownPressed = nudgeDownPressed;
+        wasGateNudgeUpPressed = gateNudgeUpPressed;
+        wasGateNudgeDownPressed = gateNudgeDownPressed;
+        wasDialUpPressed = dialUpPressed;
+        wasDialDownPressed = dialDownPressed;
 
-        // ENCODER NOT CONNECTED on the prototype. Remove the // when it is plugged in.
-        // getVelocity() returns encoder ticks per second.
-        // Convert to RPM: (ticks per second / ticks per rev) * 60 seconds.
-        // double flywheelRpm = flywheelMotor.getVelocity() / FLYWHEEL_TICKS_PER_REV * 60.0;
-        // double backspinRpm = backspinMotor.getVelocity() / BACKSPIN_TICKS_PER_REV * 60.0;
-
-        // Show what is happening on the Driver Station.
+        // 4. Show what is happening on the Driver Station.
         // The power shown is the power we COMMANDED, so it is negative when reversing.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
         telemetry.addData("Flywheel Control", flywheelControl);
         telemetry.addData("Flywheel Power", "%.0f%%", flywheelPower * 100);
         telemetry.addData("Backspin Control", backspinControl);
         telemetry.addData("Backspin Power", "%.0f%%", backspinPower * 100);
-        // telemetry.addData("Flywheel RPM", "%.0f", flywheelRpm);
-        // telemetry.addData("Backspin RPM", "%.0f", backspinRpm);
+        telemetry.addData("Intake Control", intakeControl);
+        shooterSubsystem.addTelemetry(telemetry);
         shooterServoSubsystem.addTelemetry(telemetry);
+        intakeSubsystem.addTelemetry(telemetry);
     }
 
     /*
@@ -278,7 +348,7 @@ public class ShooterAlphaPower extends OpMode {
     public void stop() {
         // Always leave the motors stopped.
         // The gate servo just stays where it is. A servo holds its position by itself.
-        flywheelMotor.setPower(0.0);
-        backspinMotor.setPower(0.0);
+        shooterSubsystem.stop();
+        intakeSubsystem.stop();
     }
 }
