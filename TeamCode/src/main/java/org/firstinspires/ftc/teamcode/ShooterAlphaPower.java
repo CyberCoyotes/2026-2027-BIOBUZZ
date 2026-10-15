@@ -48,7 +48,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
  *   Motor name: backspin_motor   (goBILDA 5202/3/4 series)
  *   Servo name: shooter_servo    (goBILDA dual mode servo, set to POSITIONAL mode)
  */
-@TeleOp(name = "Shooter Testing-Alpha", group = "Testing")
+@TeleOp(name = "Shooter Testing-AlphaPower", group = "Testing")
 public class ShooterAlphaPower extends OpMode {
 
     // Each button sets the FLYWHEEL and the BACKSPIN power (0.0 to 1.0).
@@ -133,8 +133,8 @@ public class ShooterAlphaPower extends OpMode {
     @Override
     public void init() {
         // The names MUST match the robot configuration exactly.
-        flywheelMotor = hardwareMap.get(DcMotorEx.class, "flywheel_motor");
-        backspinMotor = hardwareMap.get(DcMotorEx.class, "backspin_motor");
+        flywheelMotor = hardwareMap.get(DcMotorEx.class, "flywheel");
+        backspinMotor = hardwareMap.get(DcMotorEx.class, "backspin");
 
         // The flywheel and backspin directions are set at the top of the file.
         flywheelMotor.setDirection(FLYWHEEL_DIRECTION);
