@@ -2,23 +2,42 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 
 /*
  * Alpha-Intake Testing
- * An iterative OpMode that runs ONE intake motor (goBILDA 5200 series)
- * using buttons on gamepad1. HOLD a button to run the intake.
+ * An iterative OpMode that runs the intake with the IntakeSubsystem using gamepad1.
+ * HOLD a bumper to run the intake. There is ONE power dial, and the D-pad turns it up and down.
  *
- *   Left Bumper  -> REVERSE at 60% power (push a stuck game piece back out)
- *   Right Bumper -> 100% power
- *   Y            ->  85% power
- *   X            ->  75% power
- *   A            ->  65% power
- *   No button    -> intake stops
+ *   Right Bumper -> INTAKE (pull balls in) at the dial power
+ *   Left Bumper  -> REVERSE (push balls out) at the dial power
+ *   D-pad Up     -> turn the dial UP by 5% (each press)
+ *   D-pad Down   -> turn the dial DOWN by 5% (each press)
+ *   No bumper    -> intake stops
  *
- * Left Bumper beats every other button.
- * If more than one intake button is held, the HIGHEST power wins.
+ * Left Bumper beats Right Bumper, so clearing a jam always works.
+ *
+ * THE POWER DIAL IS FOR TESTING ONLY
+ *   The D-pad is NOT how the real TeleOp will set the intake power. When this test shows us the
+ *   best number, change DEFAULT_INTAKE_POWER at the top of IntakeSubsystem.
+ *
+ * THE INTAKE ALSO RUNS THE TRANSFER
+ *   One motor spins the front intake AND a hex shaft with grippers in the transfer chute.
+ *   So balls get pulled in and carried up the chute together. Test with a few balls loaded in
+ *   the chute, not just the empty robot.
+ *
+ * SAFE FIRST TEST (do these in order):
+ *   1. Robot on blocks. Start the dial at 50%. HOLD the Right Bumper. The intake must pull
+ *      IN. If it pushes OUT, flip INTAKE_DIRECTION in IntakeSubsystem.
+ *   2. Check the encoder speed on the screen goes UP while the intake runs. (If it always reads 0,
+ *      check that the encoder cable is plugged in.)
+ *   3. Feed in balls one at a time, then a few together. Use the D-pad to find the lowest power
+ *      that works reliably and the power where it starts to jam or throw balls around.
+ *   4. HOLD the Left Bumper to check that REVERSE clears a ball.
+ *
+ * On a PS5 controller: the bumpers are L1 and R1.
  *
  * Robot configuration (on the Driver Station):
  *   Motor name: intake_motor
@@ -27,37 +46,49 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @TeleOp(name = "Intake Testing - Alpha", group = "Testing")
 public class IntakeAlpha extends OpMode {
 
-    // Power for each button (0.0 to 1.0). Change these to test different speeds.
-    private static final double POWER_TEST_ONE = 1.00;
-    private static final double POWER_TEST_TWO  = 0.85;
-    private static final double POWER_TEST_THREE = 0.75;
-    private static final double POWER_TEST_FOUR = 0.65;
+    // How much one D-pad press changes the dial, in percent. 5 means 5%.
+    private static final int DIAL_STEP_PERCENT = 5;
 
-    // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double POWER_REVERSE  = -0.60;
+    // The lowest and highest the dial can go, in percent.
+    private static final int DIAL_MIN_PERCENT = 0;
+    private static final int DIAL_MAX_PERCENT = 100;
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
-    private DcMotor intakeMotor = null;
+    private IntakeSubsystem intakeSubsystem;
+
+    // The dial in WHOLE percent (50 means 50%). We count in whole numbers so adding 5 over and
+    // over never drifts to something like 0.4999999.
+    private int dialPercent;
+
+    // What the D-pad was doing LAST loop. A D-pad press lasts many loops, but we want it to
+    // count only ONCE. So we only act when it was NOT pressed last loop and IS pressed now.
+    private boolean dpadUpWasPressed = false;
+    private boolean dpadDownWasPressed = false;
+
+    /*
+     * Adds the button map to telemetry so the drivers can read it.
+     */
+    private void addControlsTelemetry() {
+        telemetry.addLine("--- CONTROLS ---");
+        telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
+        telemetry.addLine("D-pad Up / Down = power dial +5% / -5%");
+    }
 
     /*
      * Code to run ONCE when the driver hits INIT
      */
     @Override
     public void init() {
-        // The name "intake_motor" MUST match the robot configuration exactly.
-        intakeMotor = hardwareMap.get(DcMotor.class, "intake_motor");
+        // The subsystem gets its own motor from the hardware map.
+        intakeSubsystem = new IntakeSubsystem(hardwareMap);
 
-        // If the intake spins the wrong way, change FORWARD to REVERSE.
-        intakeMotor.setDirection(DcMotor.Direction.REVERSE);
-
-        // We are controlling power directly, not using the encoder for speed control.
-        intakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-        // FLOAT lets the intake coast to a stop. Try BRAKE if you want it to stop instantly.
-        intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        // Start the dial wherever the subsystem starts it, so the number only lives in one place.
+        // Math.round gives the nearest whole number (0.5 * 100 = 50).
+        dialPercent = (int) Math.round(intakeSubsystem.getIntakePower() * 100);
 
         telemetry.addData("Status", "Initialized");
+        addControlsTelemetry();
     }
 
     /*
@@ -65,6 +96,11 @@ public class IntakeAlpha extends OpMode {
      */
     @Override
     public void init_loop() {
+        // The Driver Station clears its screen every loop, so we add the
+        // button map again here. That keeps it on the screen until START.
+        telemetry.addData("Status", "Ready to start!");
+        telemetry.addData("Power dial", "%d%%", dialPercent);
+        addControlsTelemetry();
     }
 
     /*
@@ -80,41 +116,55 @@ public class IntakeAlpha extends OpMode {
      */
     @Override
     public void loop() {
-        double intakePower;
-        String activeButton;
+        // 1. Read sensors.
+        intakeSubsystem.update();
 
-        // Check REVERSE first, so clearing a jam always works.
-        // Then check the intake buttons from HIGHEST power to LOWEST.
-        // The first one that is pressed wins, and the rest are skipped.
-        if (gamepad1.left_bumper) {
-            intakePower = POWER_REVERSE;
-            activeButton = "Left Bumper (REVERSE)";
-        } else if (gamepad1.right_bumper) {
-            intakePower = POWER_TEST_ONE;
-            activeButton = "Right Bumper";
-        } else if (gamepad1.y) {
-            intakePower = POWER_TEST_TWO;
-            activeButton = "Y";
-        } else if (gamepad1.x) {
-            intakePower = POWER_TEST_THREE;
-            activeButton = "X";
-        } else if (gamepad1.a) {
-            intakePower = POWER_TEST_FOUR;
-            activeButton = "A";
-        } else {
-            // No button held, so stop the intake.
-            intakePower = 0.0;
-            activeButton = "None";
+        // 2. Read the gamepad and decide what to do.
+        boolean dpadUpPressed = gamepad1.dpad_up;
+        boolean dpadDownPressed = gamepad1.dpad_down;
 
+        // Turn the dial only on the loop where the button FIRST goes down.
+        if (dpadUpPressed && !dpadUpWasPressed) {
+            dialPercent = dialPercent + DIAL_STEP_PERCENT;
+        }
+        if (dpadDownPressed && !dpadDownWasPressed) {
+            dialPercent = dialPercent - DIAL_STEP_PERCENT;
         }
 
-        // Send the power to the motor.
-        intakeMotor.setPower(intakePower);
+        // Keep the dial between its lowest and highest settings.
+        if (dialPercent > DIAL_MAX_PERCENT) {
+            dialPercent = DIAL_MAX_PERCENT;
+        }
+        if (dialPercent < DIAL_MIN_PERCENT) {
+            dialPercent = DIAL_MIN_PERCENT;
+        }
 
-        // Show what is happening on the Driver Station.
+        // Remember the D-pad for the next loop.
+        dpadUpWasPressed = dpadUpPressed;
+        dpadDownWasPressed = dpadDownPressed;
+
+        // 3. Tell the intake what to do.
+        // Turn the percent into the 0.0 to 1.0 number the subsystem wants (50 -> 0.50).
+        intakeSubsystem.setIntakePower(dialPercent / 100.0);
+
+        // Check REVERSE first, so clearing a jam always works.
+        String activeButton;
+        if (gamepad1.left_bumper) {
+            intakeSubsystem.reverse();
+            activeButton = "Left Bumper (REVERSE)";
+        } else if (gamepad1.right_bumper) {
+            intakeSubsystem.intake();
+            activeButton = "Right Bumper (INTAKE)";
+        } else {
+            // No bumper held, so stop the intake.
+            intakeSubsystem.stop();
+            activeButton = "None";
+        }
+
+        // 4. Show what is happening on the Driver Station.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
         telemetry.addData("Button", activeButton);
-        telemetry.addData("Intake Power", "%.0f%%", intakePower * 100);
+        intakeSubsystem.addTelemetry(telemetry);
     }
 
     /*
@@ -123,6 +173,6 @@ public class IntakeAlpha extends OpMode {
     @Override
     public void stop() {
         // Always leave the motor stopped.
-        intakeMotor.setPower(0.0);
+        intakeSubsystem.stop();
     }
 }

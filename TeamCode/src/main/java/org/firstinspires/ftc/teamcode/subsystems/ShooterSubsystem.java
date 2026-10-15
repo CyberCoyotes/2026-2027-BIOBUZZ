@@ -41,8 +41,8 @@ public class ShooterSubsystem {
     // ------------------------------------------------------------------
     // Hardware names. These MUST match the robot configuration exactly.
     // ------------------------------------------------------------------
-    private static final String FLYWHEEL_MOTOR_NAME = "flywheel_motor";
-    private static final String BACKSPIN_MOTOR_NAME = "backspin_motor";
+    private static final String FLYWHEEL_MOTOR_NAME = "flywheel";
+    private static final String BACKSPIN_MOTOR_NAME = "backspin";
 
     // Each motor has its OWN direction. These are copied from ShooterAlphaPower.
     // We want a POSITIVE RPM to mean "shooting". If a wheel spins the wrong way,

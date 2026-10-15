@@ -67,7 +67,7 @@ public class TurretSubsystem {
     // ------------------------------------------------------------------
     private static final String TURRET_MOTOR_NAME = "turret_motor";
     private static final String TURRET_ENCODER_NAME = "turret_encoder";
-    private static final String HOME_SWITCH_NAME = "turret_home_switch";
+    private static final String HOME_SWITCH_NAME = "turret_home_sensor";
 
     // ------------------------------------------------------------------
     // Directions. These two MUST be right or the turret will run away!
