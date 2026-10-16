@@ -24,11 +24,16 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * HOLD a button to run BOTH the flywheel and the backspin.
  * Each motor has its OWN power number for each button, so you can tune them
  * separately. Starting values (flywheel / backspin):
- *   Y  -> 60% / 60%
- *   X  -> 55% / 55%
- *   B  -> 50% / 50%
- *   A  -> 45% / 45%
+ *   Y  -> 60% / 60%   (about 3600 RPM with no load, see below)
+ *   X  -> 55% / 55%   (about 3300 RPM with no load, see below)
  *   No button -> both coast to a stop
+ * These two were the closest shots in testing, so the other presets were dropped.
+ *
+ * RPM ESTIMATE: the motors top out at 6000 RPM with no load, so power x 6000 gives the speed
+ * we would see with nothing on the wheels (60% -> 3600, 55% -> 3300). With a ball and the
+ * wheel's own drag the real speed is LOWER, and it drops as the battery drains. To see the real
+ * number, hold Y or X and read "Flywheel RPM" in the shooter section of the telemetry.
+ * ShooterRPMAlpha uses these same two speeds as its targets.
  *
  * REVERSE (for clearing a jam, 60% power the other way):
  *   Right Bumper -> reverses the FLYWHEEL only
@@ -82,16 +87,14 @@ public class ShooterPowerAlpha extends OpMode {
     // They are separate numbers on purpose, so you can tune each wheel on its own.
     // Shooting power is always POSITIVE. Change these to test different speeds.
     //
-    //                                Y     X     B     A
+    //                                Y     X
     private static final double FLYWHEEL_POWER_Y = 0.60;
     private static final double FLYWHEEL_POWER_X = 0.55;
-    private static final double FLYWHEEL_POWER_B = 0.50;
-    private static final double FLYWHEEL_POWER_A = 0.45;
 
+    // The backspin matches the flywheel here. To spin the ball less, lower these numbers
+    // (for example, half of the flywheel number) and compare the shots.
     private static final double BACKSPIN_POWER_Y = 0.60;
     private static final double BACKSPIN_POWER_X = 0.55;
-    private static final double BACKSPIN_POWER_B = 0.50;
-    private static final double BACKSPIN_POWER_A = 0.45;
 
     // Reverse power is NEGATIVE so the motor spins the other way.
     private static final double FLYWHEEL_POWER_REVERSE = -0.60;
@@ -150,9 +153,6 @@ public class ShooterPowerAlpha extends OpMode {
         telemetry.addLine(String.format("Y: %.0f%% / %.0f%%   X: %.0f%% / %.0f%%",
                 FLYWHEEL_POWER_Y * 100, BACKSPIN_POWER_Y * 100,
                 FLYWHEEL_POWER_X * 100, BACKSPIN_POWER_X * 100));
-        telemetry.addLine(String.format("B: %.0f%% / %.0f%%   A: %.0f%% / %.0f%%",
-                FLYWHEEL_POWER_B * 100, BACKSPIN_POWER_B * 100,
-                FLYWHEEL_POWER_A * 100, BACKSPIN_POWER_A * 100));
         telemetry.addLine("(flywheel / backspin)");
         telemetry.addLine("Right Bumper = REVERSE flywheel only");
         telemetry.addLine("Left Bumper = REVERSE backspin only");
@@ -232,14 +232,6 @@ public class ShooterPowerAlpha extends OpMode {
             flywheelPower = FLYWHEEL_POWER_X;
             backspinPower = BACKSPIN_POWER_X;
             shooterControl = "X";
-        } else if (gamepad1.b) {
-            flywheelPower = FLYWHEEL_POWER_B;
-            backspinPower = BACKSPIN_POWER_B;
-            shooterControl = "B";
-        } else if (gamepad1.a) {
-            flywheelPower = FLYWHEEL_POWER_A;
-            backspinPower = BACKSPIN_POWER_A;
-            shooterControl = "A";
         } else {
             // No button held, so stop both motors.
             flywheelPower = 0.0;
