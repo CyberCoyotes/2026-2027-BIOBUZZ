@@ -5,7 +5,7 @@
 ## Concept
 
 - **Drivetrain:** reusing both mecanum chassis from last season. Pinpoint odometry, Pedro Pathing for auto.
-- **Shooter:** **weighted flywheel** plus an **independently controlled backspin wheel** at the top of the release arc.
+- **Shooter:** **weighted flywheel** plus an **independently controlled hood wheel** (smaller, on the back/top side in a fixed hood).
 - **Turret:** the shooter sits on a **rotating turret** aimed with **Limelight 3A + AprilTags**. Vision sets both turret angle and flywheel speed.
 - **Game pieces:** the shooter is designed for **POLLEN only** for now (2.8 in balls).
 
@@ -27,7 +27,7 @@ These are plain subsystem classes (in the `subsystems/` folder) used by iterativ
 
 | Class | Job |
 |---|---|
-| `ShooterSubsystem` | Flywheel + backspin velocity control; answers `isAtSpeed()` |
+| `ShooterSubsystem` | Flywheel + hood wheel velocity control; answers `isAtSpeed()` |
 | `TurretSubsystem` | Turret angle control, soft limits, homing |
 | `VisionSubsystem` | Limelight wrapper: `tx`, `ty`, visible tag IDs, alliance filtering |
 | `IntakeSubsystem` | Collect balls and move them through the transfer / feeder chute to the shooter; max 4 held |
@@ -39,10 +39,10 @@ The specific classes, states, and methods are decided one session at a time, pro
 
 - **Aim:** turn the turret until the target cluster's `tx` ≈ 0. Filter tags to our alliance, and target the **higher** cluster. See the geometry doc.
 - **Distance:** `d = (50 − lensHeight) / tan(cameraTilt + ty)`.
-- **Flywheel speed:** a **lookup table** of distance → flywheel RPM (and backspin RPM), measured at 4–6 distances and interpolated between them. Don't use physics equations. Students can re-tune a table at an event.
-- **Firing gate:** only feed a ball when the flywheel (and backspin wheel) are within a velocity tolerance **and** the turret is on target.
+- **Flywheel speed:** a **lookup table** of distance → flywheel RPM (and hood wheel RPM), measured at 4–6 distances and interpolated between them. Don't use physics equations. Students can re-tune a table at an event.
+- **Firing gate:** only feed a ball when the flywheel (and hood wheel) are within a velocity tolerance **and** the turret is on target.
 - **Velocity control:** `DcMotorEx.setVelocity()` with tuned PIDF. Confirm the encoder counts per revolution first (28 or 112, see `CLAUDE.md`).
-- **Backspin:** start at a **fixed ratio** to the flywheel speed. Tune it separately only if testing shows spin matters.
+- **Hood wheel:** start at a **fixed ratio** (hood wheel RPM ÷ flywheel RPM, `HOOD_WHEEL_RATIO`) to the flywheel speed. About 2.0 is expected for no ball spin because the hood wheel is half the flywheel diameter (`[CONFIRM]` on the robot). Tune it separately only if testing shows spin matters.
 - **Target entry angle:** a ball coming down at ~30° arrives square-on to the tilted window and has the largest usable opening.
 
 ## Fallback mode (required)
@@ -50,7 +50,7 @@ The specific classes, states, and methods are decided one session at a time, pro
 Build this first, and keep it working all season:
 
 - The turret locks straight ahead at a known angle.
-- There are **2–3 preset shooting spots**, each with fixed flywheel and backspin speeds, selected by the driver.
+- There are **2–3 preset shooting spots**, each with fixed flywheel and hood wheel speeds, selected by the driver.
 - There is no vision dependency. If the Limelight fails or the vision code isn't ready, the robot can still tip the hive.
 
 ## Limelight 3A mounting

@@ -145,8 +145,8 @@ Names already in use:
 | Name | Device |
 |---|---|
 | `intake_motor` | One motor for intake, index, and transfer (goBILDA 5203, probably 1620 RPM 3.71:1 `[CONFIRM]`) |
-| `flywheel_motor` | Shooter flywheel (goBILDA 5202/3/4) |
-| `backspin_motor` | Backspin wheel (goBILDA 5203 series, believed `[CONFIRM]`) |
+| `flywheel` | Shooter flywheel: goBILDA 5202/3/4, about 4 in, on the front of the ball path |
+| `hood_wheel` | Hood wheel: goBILDA 5203 series (believed `[CONFIRM]`), about 2 in, on the back/top side in the fixed hood. Its RPM relative to the flywheel sets the ball spin. |
 | `left_front` | Drive motor, left front (mecanum) |
 | `left_rear` | Drive motor, left rear (mecanum) |
 | `right_front` | Drive motor, right front (mecanum) |
@@ -188,11 +188,11 @@ Add new names here when you add hardware. Names in code must match the configura
 
 ## 6. Hardware and behavior
 
-The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` for the concept (turret shooter, backspin wheel, Limelight aiming) and its open decisions. Add each subsystem's hardware and behavior to this section once its design is approved.
+The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` for the concept (turret shooter, hood wheel, Limelight aiming) and its open decisions. Add each subsystem's hardware and behavior to this section once its design is approved.
 
 ### ShooterSubsystem (`subsystems/ShooterSubsystem.java`)
 
-- **Hardware:** `flywheel_motor` and `backspin_motor`, both goBILDA 5203 series (6000 RPM, believed `[CONFIRM]`) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
+- **Hardware:** `flywheel` and `hood_wheel`, both goBILDA 5203 series (6000 RPM, believed `[CONFIRM]`) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
 - **Control:** speed control in RPM (`setTargetRpm()` / `setTargetRpms()`). `setPower()` is open loop, for tests and clearing jams. `stop()` coasts (never commands a speed of 0).
 - **States:** `IDLE`, `OPEN_LOOP`, `SPINNING_UP`, `READY`. `isAtSpeed()` is true only in `READY` and is the shooter's half of the firing gate. The turret's on-target check is the other half.
 - **Test OpMode:** `ShooterRPMAlpha`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.

@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 /*
  * Alpha-Shooter Testing
  * An iterative OpMode that tests the whole ball path with three subsystems:
- *   ShooterSubsystem       -> the FLYWHEEL and the BACKSPIN wheel (plain POWER, no speed control)
+ *   ShooterSubsystem       -> the FLYWHEEL and the HOOD WHEEL (plain POWER, no speed control)
  *   ShooterServoSubsystem  -> the shooter GATE servo
  *   IntakeSubsystem        -> the INTAKE (which also runs the transfer)
  * This OpMode owns NO hardware itself. It only reads the gamepads and tells the subsystems
@@ -21,9 +21,9 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * That keeps the buttons from fighting each other, because both jobs want the bumpers and D-pad.
  *
  * ------------------------- GAMEPAD 1: SHOOTER + GATE -------------------------
- * HOLD a button to run BOTH the flywheel and the backspin.
+ * HOLD a button to run BOTH the flywheel and the hood wheel.
  * Each motor has its OWN power number for each button, so you can tune them
- * separately. Starting values (flywheel / backspin):
+ * separately. Starting values (flywheel / hood wheel):
  *   Y  -> 60% / 60%   (about 3600 RPM with no load, see below)
  *   X  -> 55% / 55%   (about 3300 RPM with no load, see below)
  *   No button -> both coast to a stop
@@ -37,7 +37,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  *
  * REVERSE (for clearing a jam, 60% power the other way):
  *   Right Bumper -> reverses the FLYWHEEL only
- *   Left Bumper  -> reverses the BACKSPIN only
+ *   Left Bumper  -> reverses the HOOD WHEEL only
  *
  * A reverse bumper beats the shooter buttons for that motor.
  * If more than one shooter button is held, the HIGHEST power wins.
@@ -72,7 +72,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * Robot configuration (on the Driver Station). The NAMES live in each subsystem class,
  * so check them there if they ever change:
  *   Motor name: flywheel      (ShooterSubsystem,       goBILDA 5202/3/4 series)
- *   Motor name: backspin      (ShooterSubsystem,       goBILDA 5202/3/4 series)
+ *   Motor name: hood_wheel     (ShooterSubsystem,       goBILDA 5202/3/4 series)
  *   Motor name: intake        (IntakeSubsystem,        goBILDA 5202/3/4 series)
  *   Servo name: shooter_servo (ShooterServoSubsystem,  goBILDA dual mode servo, POSITIONAL mode)
  * The motor directions are set inside the subsystems, not in this file.
@@ -83,7 +83,7 @@ public class ShooterPowerAlpha extends OpMode {
     // ------------------------------------------------------------------
     // Gamepad 1: shooter wheels
     // ------------------------------------------------------------------
-    // Each button sets the FLYWHEEL and the BACKSPIN power (0.0 to 1.0).
+    // Each button sets the FLYWHEEL and the HOOD WHEEL power (0.0 to 1.0).
     // They are separate numbers on purpose, so you can tune each wheel on its own.
     // Shooting power is always POSITIVE. Change these to test different speeds.
     //
@@ -91,18 +91,18 @@ public class ShooterPowerAlpha extends OpMode {
     private static final double FLYWHEEL_POWER_Y = 0.60;
     private static final double FLYWHEEL_POWER_X = 0.55;
 
-    // The backspin matches the flywheel here. Ball spin comes from the DIFFERENCE between how
+    // The hood wheel matches the flywheel here. Ball spin comes from the DIFFERENCE between how
     // fast the two wheel surfaces move, and surface speed = RPM x wheel diameter. The flywheel
-    // is about 4 inches and the backspin wheel about 2 inches, so at the SAME power the flywheel
+    // is about 4 inches and the hood wheel about 2 inches, so at the SAME power the flywheel
     // surface moves about TWICE as fast. For a no-spin shot, the flywheel needs about HALF the
-    // backspin wheel's power (for example 45% flywheel with 90% backspin). To reduce spin, raise
-    // the backspin power or lower the flywheel. Lowering the backspin makes the spin worse.
-    private static final double BACKSPIN_POWER_Y = 0.60;
-    private static final double BACKSPIN_POWER_X = 0.55;
+    // hood wheel's power (for example 45% flywheel with 90% hood wheel). To reduce spin, raise
+    // the hood wheel power or lower the flywheel. Lowering the hood wheel makes the spin worse.
+    private static final double HOOD_WHEEL_POWER_Y = 0.60;
+    private static final double HOOD_WHEEL_POWER_X = 0.55;
 
     // Reverse power is NEGATIVE so the motor spins the other way.
     private static final double FLYWHEEL_POWER_REVERSE = -0.60;
-    private static final double BACKSPIN_POWER_REVERSE = -0.60;
+    private static final double HOOD_WHEEL_POWER_REVERSE = -0.60;
 
     // ------------------------------------------------------------------
     // Gamepad 1: shooter gate
@@ -152,14 +152,14 @@ public class ShooterPowerAlpha extends OpMode {
      * Adds the button map to telemetry so the drivers can read it.
      */
     private void addControlsTelemetry() {
-        telemetry.addLine("--- GAMEPAD 1: SHOOTER (flywheel / backspin) ---");
-        // Each line shows the flywheel power / backspin power for that button.
+        telemetry.addLine("--- GAMEPAD 1: SHOOTER (flywheel / hood wheel) ---");
+        // Each line shows the flywheel power / hood wheel power for that button.
         telemetry.addLine(String.format("Y: %.0f%% / %.0f%%   X: %.0f%% / %.0f%%",
-                FLYWHEEL_POWER_Y * 100, BACKSPIN_POWER_Y * 100,
-                FLYWHEEL_POWER_X * 100, BACKSPIN_POWER_X * 100));
-        telemetry.addLine("(flywheel / backspin)");
+                FLYWHEEL_POWER_Y * 100, HOOD_WHEEL_POWER_Y * 100,
+                FLYWHEEL_POWER_X * 100, HOOD_WHEEL_POWER_X * 100));
+        telemetry.addLine("(flywheel / hood wheel)");
         telemetry.addLine("Right Bumper = REVERSE flywheel only");
-        telemetry.addLine("Left Bumper = REVERSE backspin only");
+        telemetry.addLine("Left Bumper = REVERSE hood wheel only");
         telemetry.addLine("--- GAMEPAD 1: GATE ---");
         telemetry.addLine("Left Trigger = TOGGLE gate (loading / shooting)");
         telemetry.addLine("D-pad Up / Down = nudge gate position +/-");
@@ -222,28 +222,28 @@ public class ShooterPowerAlpha extends OpMode {
 
         // ---- Gamepad 1: shooter wheels ----
         double flywheelPower;
-        double backspinPower;
+        double hoodWheelPower;
         String shooterControl;
 
         // Check the shooter buttons from HIGHEST power to LOWEST.
         // The first one that is pressed wins, and the rest are skipped.
-        // Each button sets the flywheel power AND the backspin power.
+        // Each button sets the flywheel power AND the hood wheel power.
         if (gamepad1.y) {
             flywheelPower = FLYWHEEL_POWER_Y;
-            backspinPower = BACKSPIN_POWER_Y;
+            hoodWheelPower = HOOD_WHEEL_POWER_Y;
             shooterControl = "Y";
         } else if (gamepad1.x) {
             flywheelPower = FLYWHEEL_POWER_X;
-            backspinPower = BACKSPIN_POWER_X;
+            hoodWheelPower = HOOD_WHEEL_POWER_X;
             shooterControl = "X";
         } else {
             // No button held, so stop both motors.
             flywheelPower = 0.0;
-            backspinPower = 0.0;
+            hoodWheelPower = 0.0;
             shooterControl = "None";
         }
         String flywheelControl = shooterControl;
-        String backspinControl = shooterControl;
+        String hoodWheelControl = shooterControl;
 
         // REVERSE beats the shooter buttons, so clearing a jam always works.
         if (gamepad1.right_bumper) {
@@ -251,8 +251,8 @@ public class ShooterPowerAlpha extends OpMode {
             flywheelControl = "Right Bumper (REVERSE)";
         }
         if (gamepad1.left_bumper) {
-            backspinPower = BACKSPIN_POWER_REVERSE;
-            backspinControl = "Left Bumper (REVERSE)";
+            hoodWheelPower = HOOD_WHEEL_POWER_REVERSE;
+            hoodWheelControl = "Left Bumper (REVERSE)";
         }
 
         // ---- Gamepad 1: shooter gate ----
@@ -286,7 +286,7 @@ public class ShooterPowerAlpha extends OpMode {
 
         // Shooter wheels. setPower() is plain power with no speed control. Zero power on
         // BOTH wheels is the same as stop(), so they coast down.
-        shooterSubsystem.setPower(flywheelPower, backspinPower);
+        shooterSubsystem.setPower(flywheelPower, hoodWheelPower);
         shooterSubsystem.update();
 
         // Gate.
@@ -329,8 +329,8 @@ public class ShooterPowerAlpha extends OpMode {
         telemetry.addData("Status", "Run Time: " + runtime.toString());
         telemetry.addData("Flywheel Control", flywheelControl);
         telemetry.addData("Flywheel Power", "%.0f%%", flywheelPower * 100);
-        telemetry.addData("Backspin Control", backspinControl);
-        telemetry.addData("Backspin Power", "%.0f%%", backspinPower * 100);
+        telemetry.addData("Hood Wheel Control", hoodWheelControl);
+        telemetry.addData("Hood Wheel Power", "%.0f%%", hoodWheelPower * 100);
         telemetry.addData("Intake Control", intakeControl);
         shooterSubsystem.addTelemetry(telemetry);
         shooterServoSubsystem.addTelemetry(telemetry);

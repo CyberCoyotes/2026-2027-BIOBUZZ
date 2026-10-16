@@ -15,8 +15,8 @@
 Build a shooter on a rotating turret for BIOBUZZ:
 
 - A **turret** driven by one motor mounted underneath, turning left and right to line up with the target.
-- A **weighted flywheel** with **variable output**, plus a **companion backspin motor** (independently controlled).
-- A **Limelight 3A** reads AprilTags to aim the turret and to estimate distance, which sets flywheel and backspin speed.
+- A **weighted flywheel** with **variable output**, plus a **companion hood wheel motor** (independently controlled).
+- A **Limelight 3A** reads AprilTags to aim the turret and to estimate distance, which sets flywheel and hood wheel speed.
 - Shooter is designed for **pollen** (2.8 in ball) only for now.
 - **All motors are goBILDA.** Exact models and gear ratios: **[CONFIRM]** (needed for ticks-to-degrees and ticks-per-rev math).
 
@@ -26,7 +26,7 @@ Build a shooter on a rotating turret for BIOBUZZ:
 - **2026-27 approach:** standard FTC SDK style. One class per mechanism for hardware code. Test OpModes are iterative OpModes (existing examples: `AlphaIntakeTesting`, `AlphaShooterTesting`).
 - Shared subsystem classes live in `src/main/`. Robot-specific OpModes live in flavor directories: `src/practiceBot/`, `src/team11940/`, `src/team22091/`.
 - Naming: packages lowercase, classes PascalCase, variables and methods camelCase, constants ALL_CAPS, hardware variables location-first (e.g., `leftIntakeServo`), hardware map names snake_case (e.g., `left_intake_servo`), doc filenames kebab-case.
-- Proposed hardware map names **[CONFIRM]**: `turret_motor`, `flywheel_motor`, `backspin_motor`. Limelight config entry is `limelight`.
+- Proposed hardware map names **[CONFIRM]**: `turret_motor`, `flywheel`, `hood_wheel`. Limelight config entry is `limelight`.
 - This is the final season of this Java setup. The program moves to SystemCore in 2027-28, so keep things simple and standard.
 
 ## 4. Hardware and API gotchas (learned the hard way)
@@ -86,27 +86,27 @@ The Limelight 3A is the FTC-supported, legal camera (`LL_3A`) and is already in 
 Three classes, one per mechanism, plus test OpModes. No code written yet.
 
 - `Turret`: motor, zeroing at init, ticks to degrees, soft limits, manual and auto control.
-- `Shooter`: flywheel and backspin motors, velocity control, at-speed checks, set speeds from a shot table.
+- `Shooter`: flywheel and hood wheel motors, velocity control, at-speed checks, set speeds from a shot table.
 - `LimelightVision` helper: alliance filtering, valid/stale checks, `tx`, `ty`, distance estimate. (Sensors are plain helper classes, not subsystems.)
 
 ## 8. Build order (test each step before the next)
 
-1. Hardware config and direction check (positive power = turret right, flywheel forward, backspin correct direction).
+1. Hardware config and direction check (positive power = turret right, flywheel forward, hood wheel correct direction).
 2. Turret manual control, zeroing, soft limits (protect cable wrap and frame).
-3. Flywheel and backspin open-loop tests.
+3. Flywheel and hood wheel open-loop tests.
 4. Velocity control with PIDF for both; "at speed" tolerance check.
 5. Limelight AprilTag pipeline: read `tx`, `ty`, valid flag; alliance filter; pick the higher cluster.
 6. Turret auto-aim: proportional on `tx` with deadband and max-power clamp, add D if it oscillates. Define behavior when the tag is lost.
-7. Distance estimate and lookup table of distance to flywheel and backspin speed (measure at 4-6 distances, interpolate).
+7. Distance estimate and lookup table of distance to flywheel and hood wheel speed (measure at 4-6 distances, interpolate).
 8. Shoot gate: feed only when aligned and both motors at speed.
 9. Pinpoint heading fallback to keep the turret pointed at the hive when tags drop out.
 10. Integrate in TeleOp, then Auto.
 
-Log `tx`, flywheel and backspin speed, and turret angle to telemetry in every test OpMode.
+Log `tx`, flywheel and hood wheel speed, and turret angle to telemetry in every test OpMode.
 
 ## 9. Open items
 
-- [ ] **[CONFIRM]** Exact goBILDA motor models and gear ratios for turret, flywheel, backspin.
+- [ ] **[CONFIRM]** Exact goBILDA motor models and gear ratios for turret, flywheel, hood wheel.
 - [ ] **[CONFIRM]** Hardware map names for the three motors.
 - [ ] **[CONFIRM]** Vision source: Limelight 3A (current plan) versus webcam with `VisionPortal`.
 - [ ] Measure actual tag and opening heights on the practice field or field CAD.

@@ -13,9 +13,9 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * This is the SPEED-CONTROL version of ShooterPowerAlpha: the buttons ask for an RPM
  * instead of a power. (ShooterPowerAlpha is still there for plain power tests.)
  *
- * HOLD a button to run BOTH the flywheel and the backspin at a target speed.
+ * HOLD a button to run BOTH the flywheel and the hood wheel at a target speed.
  * Each wheel has its OWN RPM for each button, so you can tune them separately.
- * Starting values (flywheel / backspin):
+ * Starting values (flywheel / hood wheel):
  *   Y  -> 3600 / 3600 RPM   (the 60% power shot from ShooterPowerAlpha)
  *   X  -> 3300 / 3300 RPM   (the 55% power shot from ShooterPowerAlpha)
  *   No button -> both coast to a stop
@@ -36,7 +36,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  *
  * REVERSE (for clearing a jam, 60% power the other way):
  *   Right Bumper -> reverses the FLYWHEEL only
- *   Left Bumper  -> reverses the BACKSPIN only
+ *   Left Bumper  -> reverses the HOOD WHEEL only
  *   (The other wheel stops while you do this.)
  *
  * Priority, highest first: bumpers (jam clearing), right trigger (encoder check),
@@ -55,14 +55,14 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
  *
  * Robot configuration (on the Driver Station):
- *   Motor name: flywheel_motor   (goBILDA 5203 series, encoder plugged in)
- *   Motor name: backspin_motor   (goBILDA 5203 series, encoder plugged in)
+ *   Motor name: flywheel   (goBILDA 5203 series, encoder plugged in)
+ *   Motor name: hood_wheel   (goBILDA 5203 series, encoder plugged in)
  *   Servo name: shooter_servo    (goBILDA dual mode servo, set to POSITIONAL mode)
  */
 @TeleOp(name = "Shooter RPM - Alpha", group = "Testing")
 public class ShooterRPMAlpha extends OpMode {
 
-    // Each button sets the FLYWHEEL and the BACKSPIN target speed in RPM.
+    // Each button sets the FLYWHEEL and the HOOD WHEEL target speed in RPM.
     // They are separate numbers on purpose, so you can tune each wheel on its own.
     // These are ESTIMATES worked out from the two power shots that tested best in
     // ShooterPowerAlpha: RPM = power x 6000 (the motor's top speed with no load).
@@ -76,19 +76,19 @@ public class ShooterRPMAlpha extends OpMode {
     private static final double FLYWHEEL_RPM_Y = 3600.0;
     private static final double FLYWHEEL_RPM_X = 3300.0;
 
-    // The backspin matches the flywheel here, like the power test. Ball spin comes from the
+    // The hood wheel matches the flywheel here, like the power test. Ball spin comes from the
     // DIFFERENCE between how fast the two wheel surfaces move (surface speed = RPM x diameter).
-    // The flywheel is about 4 inches and the backspin wheel about 2 inches, so at the SAME RPM
-    // the flywheel surface moves about TWICE as fast. For a no-spin shot, the backspin RPM
-    // needs to be about DOUBLE the flywheel RPM (for example 2700 flywheel with 5400 backspin).
-    // To reduce spin, raise the backspin or lower the flywheel. Lowering the backspin makes
+    // The flywheel is about 4 inches and the hood wheel about 2 inches, so at the SAME RPM
+    // the flywheel surface moves about TWICE as fast. For a no-spin shot, the hood wheel RPM
+    // needs to be about DOUBLE the flywheel RPM (for example 2700 flywheel with 5400 hood wheel).
+    // To reduce spin, raise the hood wheel or lower the flywheel. Lowering the hood wheel makes
     // the spin worse.
-    private static final double BACKSPIN_RPM_Y = 3600.0;
-    private static final double BACKSPIN_RPM_X = 3300.0;
+    private static final double HOOD_WHEEL_RPM_Y = 3600.0;
+    private static final double HOOD_WHEEL_RPM_X = 3300.0;
 
     // Reverse power is NEGATIVE so the motor spins the other way.
     private static final double FLYWHEEL_POWER_REVERSE = -0.60;
-    private static final double BACKSPIN_POWER_REVERSE = -0.60;
+    private static final double HOOD_WHEEL_POWER_REVERSE = -0.60;
 
     // Power for the encoder check (hold the Right Trigger). 1.0 is full power.
     private static final double ENCODER_CHECK_POWER = 1.0;
@@ -116,13 +116,13 @@ public class ShooterRPMAlpha extends OpMode {
      * Adds the button map to telemetry so the drivers can read it.
      */
     private void addControlsTelemetry() {
-        telemetry.addLine("--- CONTROLS (flywheel / backspin RPM) ---");
+        telemetry.addLine("--- CONTROLS (flywheel / hood wheel RPM) ---");
         telemetry.addLine(String.format("Y: %.0f / %.0f   X: %.0f / %.0f",
-                FLYWHEEL_RPM_Y, BACKSPIN_RPM_Y,
-                FLYWHEEL_RPM_X, BACKSPIN_RPM_X));
+                FLYWHEEL_RPM_Y, HOOD_WHEEL_RPM_Y,
+                FLYWHEEL_RPM_X, HOOD_WHEEL_RPM_X));
         telemetry.addLine("Right Trigger = FULL POWER encoder check");
         telemetry.addLine("Right Bumper = REVERSE flywheel only");
-        telemetry.addLine("Left Bumper = REVERSE backspin only");
+        telemetry.addLine("Left Bumper = REVERSE hood wheel only");
         telemetry.addLine("--- GATE ---");
         telemetry.addLine("Left Trigger = TOGGLE gate (loading / shooting)");
         telemetry.addLine("D-pad Up / Down = nudge gate position +/-");
@@ -173,31 +173,31 @@ public class ShooterRPMAlpha extends OpMode {
         // Check from HIGHEST priority to LOWEST. The first one that is true wins.
         String shooterControl;
         boolean reverseFlywheel = gamepad1.right_bumper;
-        boolean reverseBackspin = gamepad1.left_bumper;
+        boolean reverseHoodWheel = gamepad1.left_bumper;
         boolean encoderCheck = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
 
         // 3. Tell the shooter what to do, then call update().
-        if (reverseFlywheel || reverseBackspin) {
+        if (reverseFlywheel || reverseHoodWheel) {
             // REVERSE beats everything, so clearing a jam always works.
             // A wheel that is NOT being reversed gets 0 power.
             double flywheelPower = 0.0;
-            double backspinPower = 0.0;
+            double hoodWheelPower = 0.0;
             if (reverseFlywheel) {
                 flywheelPower = FLYWHEEL_POWER_REVERSE;
             }
-            if (reverseBackspin) {
-                backspinPower = BACKSPIN_POWER_REVERSE;
+            if (reverseHoodWheel) {
+                hoodWheelPower = HOOD_WHEEL_POWER_REVERSE;
             }
-            shooterSubsystem.setPower(flywheelPower, backspinPower);
+            shooterSubsystem.setPower(flywheelPower, hoodWheelPower);
             shooterControl = "Bumper (REVERSE)";
         } else if (encoderCheck) {
             shooterSubsystem.setPower(ENCODER_CHECK_POWER, ENCODER_CHECK_POWER);
             shooterControl = "Right Trigger (FULL POWER encoder check)";
         } else if (gamepad1.y) {
-            shooterSubsystem.setTargetRpms(FLYWHEEL_RPM_Y, BACKSPIN_RPM_Y);
+            shooterSubsystem.setTargetRpms(FLYWHEEL_RPM_Y, HOOD_WHEEL_RPM_Y);
             shooterControl = "Y";
         } else if (gamepad1.x) {
-            shooterSubsystem.setTargetRpms(FLYWHEEL_RPM_X, BACKSPIN_RPM_X);
+            shooterSubsystem.setTargetRpms(FLYWHEEL_RPM_X, HOOD_WHEEL_RPM_X);
             shooterControl = "X";
         } else {
             // No button held, so stop both motors. They coast down.
