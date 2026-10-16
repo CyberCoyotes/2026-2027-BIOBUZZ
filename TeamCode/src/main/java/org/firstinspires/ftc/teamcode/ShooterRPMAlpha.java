@@ -76,8 +76,13 @@ public class ShooterRPMAlpha extends OpMode {
     private static final double FLYWHEEL_RPM_Y = 3600.0;
     private static final double FLYWHEEL_RPM_X = 3300.0;
 
-    // The backspin matches the flywheel here, like the power test. To spin the ball less,
-    // lower these (for example, half of the flywheel number) and compare the shots.
+    // The backspin matches the flywheel here, like the power test. Ball spin comes from the
+    // DIFFERENCE between how fast the two wheel surfaces move (surface speed = RPM x diameter).
+    // The flywheel is about 4 inches and the backspin wheel about 2 inches, so at the SAME RPM
+    // the flywheel surface moves about TWICE as fast. For a no-spin shot, the backspin RPM
+    // needs to be about DOUBLE the flywheel RPM (for example 2700 flywheel with 5400 backspin).
+    // To reduce spin, raise the backspin or lower the flywheel. Lowering the backspin makes
+    // the spin worse.
     private static final double BACKSPIN_RPM_Y = 3600.0;
     private static final double BACKSPIN_RPM_X = 3300.0;
 
