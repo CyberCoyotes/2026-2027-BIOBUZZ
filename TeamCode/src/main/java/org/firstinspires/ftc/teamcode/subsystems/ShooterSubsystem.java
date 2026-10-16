@@ -47,7 +47,7 @@ public class ShooterSubsystem {
     // Each motor has its OWN direction. These are copied from ShooterPowerAlpha.
     // We want a POSITIVE RPM to mean "shooting". If a wheel spins the wrong way,
     // flip that motor's line between FORWARD and REVERSE.
-    private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.REVERSE;
+    private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.FORWARD;
     private static final DcMotor.Direction HOOD_WHEEL_DIRECTION = DcMotor.Direction.FORWARD;
 
     // ------------------------------------------------------------------

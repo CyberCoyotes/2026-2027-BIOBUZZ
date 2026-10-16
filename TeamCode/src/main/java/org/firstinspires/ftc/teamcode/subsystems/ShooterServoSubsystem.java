@@ -53,8 +53,8 @@ public class ShooterServoSubsystem {
     // (the OpMode shows the number). Then type the numbers you found in here.
     //
     // They start close together on purpose, so the first test cannot slam the gate.
-    private static final double LOADING_POSITION = 0.500;
-    private static final double SHOOTING_POSITION = 0.00;
+    private static final double LOADING_POSITION = 0.30;
+    private static final double SHOOTING_POSITION = -0.20;
 
     // The servo does not tell us when it arrives. This is how long we assume a 90 degree
     // move takes. Too short and isAtPosition() lies. Too long and we wait for nothing.
