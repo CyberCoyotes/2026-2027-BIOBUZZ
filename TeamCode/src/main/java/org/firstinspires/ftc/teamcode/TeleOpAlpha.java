@@ -2,159 +2,120 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.MecanumDriveSubsystem;
+
 /*
- * Alpha-Combined Testing
- * An iterative OpMode that runs the INTAKE, the shooter FLYWHEEL, and the
- * BACKSPIN wheel together. It combines IntakeAlpha and ShooterPowerAlpha.
+ * TeleOp Alpha 3
+ * An iterative OpMode that DRIVES the robot and runs the INTAKE, both on gamepad1.
+ * It is DriveAlpha (driving) and IntakeAlpha (intake) put together, so each part has
+ * already been tested on its own. This OpMode owns NO hardware. It only reads the gamepad
+ * and tells the subsystems what to do. (Shooter and turret will be added in later alphas.)
  *
- * Two controllers are used:
- *   gamepad1 (driver)   -> INTAKE  (driving will be added here later)
- *   gamepad2 (operator) -> SHOOTER (flywheel and backspin together)
+ * It starts ROBOT-CENTRIC: "forward" means the way the robot is facing.
  *
- * On the Driver Station, pair the controllers with Start + A (gamepad1)
- * and Start + B (gamepad2).
+ * DRIVING
+ *   Left Stick  -> drive forward / backward and slide (strafe) left / right
+ *   Right Stick -> turn (push right to turn right)
+ *   HOLD the Left Trigger -> SLOW MODE for careful lining up
  *
- * GAMEPAD 1 - INTAKE (HOLD a button to run):
- *   Left Bumper  -> REVERSE at 60% power (push a stuck game piece back out)
- *   Right Bumper -> 100% power
- *   Y            ->  85% power
- *   X            ->  75% power
- *   A            ->  65% power
- *   No button    -> intake stops
+ * INTAKE (HOLD a bumper to run)
+ *   Right Bumper -> INTAKE (pull balls in)
+ *   Left Bumper  -> REVERSE (push balls out)
+ *   No bumper    -> intake stops
+ *   Left Bumper beats Right Bumper, so clearing a jam always works.
+ *   The intake runs at the power set in IntakeSubsystem (DEFAULT_INTAKE_POWER).
+ *   To change it, change that number there. (IntakeAlpha has the power dial for testing.)
  *
- * GAMEPAD 2 - SHOOTER (HOLD a button to run BOTH the flywheel and the backspin).
- * Each motor has its OWN power number for each button, so you can tune them
- * separately. Starting values (flywheel / backspin):
- *   Y  -> 60% / 60%
- *   X  -> 55% / 55%
- *   B  -> 50% / 50%
- *   A  -> 45% / 45%
- *   No button -> both coast to a stop
+ * THE INTAKE ALSO RUNS THE TRANSFER. One motor spins the front intake AND a hex shaft with
+ * grippers in the transfer chute, so balls are carried up the chute while you drive.
  *
- * GAMEPAD 2 - SHOOTER REVERSE (for clearing a jam, 60% power the other way):
- *   Right Bumper -> reverses the FLYWHEEL only
- *   Left Bumper  -> reverses the BACKSPIN only
+ * NOT IN THIS OPMODE: the one-wheel direction test. Use DriveAlpha for that, with the
+ * robot on blocks.
  *
- * The flywheel and the backspin each have their OWN direction setting:
- * FLYWHEEL_DIRECTION and BACKSPIN_DIRECTION below.
- * A reverse bumper beats the shooter buttons for that motor.
- * If more than one shooter button is held, the HIGHEST power wins.
+ * WHY THE STICK SIGNS ARE FLIPPED
+ *   The drive subsystem uses the same convention as Pedro Pathing, Pinpoint and the turret:
+ *   forward +, strafe LEFT +, turn COUNTERCLOCKWISE +. The controller's sticks are different:
+ *   pushing a stick forward gives a NEGATIVE number, and pushing it right gives a POSITIVE
+ *   number. So we flip the sign of all three.
  *
- * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
+ * On a PS5 controller: the bumpers are L1 and R1, the triggers are L2 and R2.
  *
- * Robot configuration (on the Driver Station):
- *   Motor name: intake_motor     (goBILDA 5202/3/4 series)
- *   Motor name: flywheel_motor   (goBILDA 5202/3/4 series)
- *   Motor name: backspin_motor   (goBILDA 5202/3/4 series)
+ * Robot configuration (on the Driver Station). The names live in the subsystem classes:
+ *   Motor names: left_front, left_rear, right_front, right_rear   (MecanumDriveSubsystem)
+ *   Motor name:  intake                                           (IntakeSubsystem)
  */
-@TeleOp(name = "TeleOp - Alpha 2", group = "Testing")
+@TeleOp(name = "TeleOp - Alpha 3", group = "Testing")
 public class TeleOpAlpha extends OpMode {
 
-    // ---------- INTAKE settings (gamepad1) ----------
+    // The sticks do not always rest at exactly zero. Anything smaller than this is ignored,
+    // so the robot does not creep when you let go.
+    private static final double STICK_DEADBAND = 0.05;
 
-    // Power for each intake button (0.0 to 1.0). Change these to test different speeds.
-    private static final double INTAKE_POWER_RIGHT_BUMPER = 1.00;
-    private static final double INTAKE_POWER_Y            = 0.85;
-    private static final double INTAKE_POWER_X            = 0.75;
-    private static final double INTAKE_POWER_A            = 0.65;
+    // Holding the left trigger switches to this fraction of full speed (0.4 = 40%).
+    private static final double SLOW_MODE_POWER_SCALE = 0.4;
 
-    // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double INTAKE_POWER_REVERSE      = -0.60;
+    // The speed scale when slow mode is NOT held. 1.0 is full speed.
+    private static final double NORMAL_POWER_SCALE = 1.0;
 
-    // ---------- SHOOTER settings (gamepad2) ----------
-
-    // Each button sets the FLYWHEEL and the BACKSPIN power (0.0 to 1.0).
-    // They are separate numbers on purpose, so you can tune each wheel on its own.
-    // Shooting power is always POSITIVE. Change these to test different speeds.
-    //
-    //                                Y     X     B     A
-    private static final double FLYWHEEL_POWER_Y = 0.60;
-    private static final double FLYWHEEL_POWER_X = 0.55;
-    private static final double FLYWHEEL_POWER_B = 0.50;
-    private static final double FLYWHEEL_POWER_A = 0.45;
-
-    private static final double BACKSPIN_POWER_Y = 1.00;
-    private static final double BACKSPIN_POWER_X = 0.95;
-    private static final double BACKSPIN_POWER_B = 0.90;
-    private static final double BACKSPIN_POWER_A = 0.85;
-
-    // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double FLYWHEEL_POWER_REVERSE = -0.60;
-    private static final double BACKSPIN_POWER_REVERSE = -0.60;
-
-    // Each motor has its OWN direction. If a wheel spins the wrong way when you
-    // press A / B / X / Y, flip that motor's line between FORWARD and REVERSE.
-    private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.REVERSE;
-    private static final DcMotor.Direction BACKSPIN_DIRECTION = DcMotor.Direction.FORWARD;
-
-    // ---------- Telemetry settings ----------
-
-    // After START, the button map stays on the screen for this many seconds,
-    // then it goes away so the live data is easier to read.
-    private static final double CONTROLS_DISPLAY_SECONDS = 5.0;
-
-    // ENCODER NOT CONNECTED on the prototype. Remove the // when it is plugged in.
-    // Encoder ticks per ONE turn of the motor's output shaft.
-    // goBILDA 5202/3/4 motors: 28 ticks per turn of the motor itself.
-    // If your motor has a gearbox, multiply by the gear ratio
-    // (example: a 3.7:1 gearbox -> 28 * 3.7 = 103.6).
-    // private static final double FLYWHEEL_TICKS_PER_REV = 28.0;
-    // private static final double BACKSPIN_TICKS_PER_REV = 28.0;
+    // The trigger gives a number from 0.0 to 1.0. Past this much counts as "pressed".
+    private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
-    private DcMotor intakeMotor = null;
+    private MecanumDriveSubsystem mecanumDriveSubsystem;
+    private IntakeSubsystem intakeSubsystem;
 
-    // DcMotorEx is a DcMotor with extra features, like reading speed (velocity).
-    private DcMotorEx flywheelMotor = null;
-    private DcMotorEx backspinMotor = null;
+    /*
+     * Adds the button map to telemetry so the drivers can read it.
+     */
+    private void addControlsTelemetry() {
+        telemetry.addLine("--- CONTROLS ---");
+        telemetry.addLine("Left Stick = drive and strafe   Right Stick = turn");
+        telemetry.addLine("Left Trigger = SLOW MODE");
+        telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
+    }
 
-    // These are filled in by the update methods each loop,
-    // so loop() can show them in telemetry.
-    private double intakePower = 0.0;
-    private String intakeControl = "None";
-    private double flywheelPower = 0.0;
-    private String flywheelControl = "None";
-    private double backspinPower = 0.0;
-    private String backspinControl = "None";
+    /*
+     * Shows the RAW numbers from gamepad1, before any deadband or sign flip.
+     * This is for finding a controller problem: with your hands OFF the controller, every stick
+     * should read about 0.00, both triggers 0.00, and every button false. Anything else means
+     * the controller (or how the Driver Station sees it) is the problem, not the drive code.
+     * It is only shown before START, so it does not crowd the screen while driving.
+     */
+    private void addRawGamepadTelemetry() {
+        telemetry.addLine("--- RAW GAMEPAD 1 (hands off = all zeros / false) ---");
+        telemetry.addData("Controller type", gamepad1.type());
+        telemetry.addData("Left stick x, y", "%.2f, %.2f",
+                gamepad1.left_stick_x, gamepad1.left_stick_y);
+        telemetry.addData("Right stick x, y", "%.2f, %.2f",
+                gamepad1.right_stick_x, gamepad1.right_stick_y);
+        telemetry.addData("Triggers L, R", "%.2f, %.2f",
+                gamepad1.left_trigger, gamepad1.right_trigger);
+    }
+
+    /*
+     * Ignores a stick value that is too small to be on purpose.
+     */
+    private double applyDeadband(double stickValue) {
+        if (Math.abs(stickValue) < STICK_DEADBAND) {
+            return 0.0;
+        }
+        return stickValue;
+    }
 
     /*
      * Code to run ONCE when the driver hits INIT
      */
     @Override
     public void init() {
-        // The names MUST match the robot configuration exactly.
-        intakeMotor = hardwareMap.get(DcMotor.class, "intake_motor");
-        flywheelMotor = hardwareMap.get(DcMotorEx.class, "flywheel_motor");
-        backspinMotor = hardwareMap.get(DcMotorEx.class, "backspin_motor");
-
-        // If the intake spins the wrong way, flip it between FORWARD and REVERSE.
-        intakeMotor.setDirection(DcMotor.Direction.FORWARD);
-
-        // The flywheel and backspin directions are set at the top of the file.
-        flywheelMotor.setDirection(FLYWHEEL_DIRECTION);
-        backspinMotor.setDirection(BACKSPIN_DIRECTION);
-
-        // We are controlling power directly, not using the encoder for speed control.
-        intakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backspinMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-        // FLOAT lets the motors coast to a stop.
-        // Do NOT use BRAKE on the flywheel: stopping a heavy flywheel suddenly
-        // puts a lot of stress on the motor and gears.
-        intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        backspinMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        // Each subsystem gets its own motors from the hardware map.
+        mecanumDriveSubsystem = new MecanumDriveSubsystem(hardwareMap);
+        intakeSubsystem = new IntakeSubsystem(hardwareMap);
 
         telemetry.addData("Status", "Initialized");
-        telemetry.addData("Encoder Status", "NOT CONNECTED - Power control only");
-        telemetry.addData("Flywheel Direction", FLYWHEEL_DIRECTION);
-        telemetry.addData("Backspin Direction", backspinMotor.getDirection());
         addControlsTelemetry();
     }
 
@@ -166,6 +127,7 @@ public class TeleOpAlpha extends OpMode {
         // The Driver Station clears its screen every loop, so we add the
         // button map again here. That keeps it on the screen until START.
         telemetry.addData("Status", "Ready to start!");
+        addRawGamepadTelemetry();
         addControlsTelemetry();
     }
 
@@ -175,7 +137,6 @@ public class TeleOpAlpha extends OpMode {
     @Override
     public void start() {
         runtime.reset();
-        addControlsTelemetry();
     }
 
     /*
@@ -183,37 +144,57 @@ public class TeleOpAlpha extends OpMode {
      */
     @Override
     public void loop() {
-        // 1. Read the gamepads and decide what each mechanism should do.
-        updateIntake();
-        updateShooter();
+        // 1. Read sensors. (The drive has none. The intake reads its own encoder in update().)
+        intakeSubsystem.update();
 
-        // 2. Send the power to the motors.
-        intakeMotor.setPower(intakePower);
-        flywheelMotor.setPower(flywheelPower);
-        backspinMotor.setPower(backspinPower);
+        // 2. Read the gamepad and decide what to do.
+        // On the controller, pushing a stick FORWARD gives a negative number, and pushing it RIGHT
+        // gives a positive number. Our subsystem wants forward +, LEFT +, and COUNTERCLOCKWISE +,
+        // so we flip the sign of all three. (Turning right is clockwise, which is negative.)
+        double forward = applyDeadband(-gamepad1.left_stick_y);
+        double strafe = applyDeadband(-gamepad1.left_stick_x);
+        double turn = applyDeadband(-gamepad1.right_stick_x);
 
-        // ENCODER NOT CONNECTED on the prototype. Remove the // when it is plugged in.
-        // getVelocity() returns encoder ticks per second.
-        // Convert to RPM: (ticks per second / ticks per rev) * 60 seconds.
-        // double flywheelRpm = flywheelMotor.getVelocity() / FLYWHEEL_TICKS_PER_REV * 60.0;
-        // double backspinRpm = backspinMotor.getVelocity() / BACKSPIN_TICKS_PER_REV * 60.0;
+        boolean slowMode = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
 
-        // 3. Show what is happening on the Driver Station.
-        // The power shown is the power we COMMANDED, so it is negative when reversing.
-        telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Intake Control (gp1)", intakeControl);
-        telemetry.addData("Intake Power", "%.0f%%", intakePower * 100);
-        telemetry.addData("Flywheel Control (gp2)", flywheelControl);
-        telemetry.addData("Flywheel Power", "%.0f%%", flywheelPower * 100);
-        telemetry.addData("Backspin Control (gp2)", backspinControl);
-        telemetry.addData("Backspin Power", "%.0f%%", backspinPower * 100);
-        // telemetry.addData("Flywheel RPM", "%.0f", flywheelRpm);
-        // telemetry.addData("Backspin RPM", "%.0f", backspinRpm);
+        // 3. Tell the subsystems what to do. (The drive has no update() to call.)
 
-        // For the first few seconds after START, keep the button map on the screen.
-        if (runtime.seconds() < CONTROLS_DISPLAY_SECONDS) {
-            addControlsTelemetry();
+        // Drive.
+        String driveControl;
+        if (slowMode) {
+            mecanumDriveSubsystem.setPowerScale(SLOW_MODE_POWER_SCALE);
+            driveControl = "SLOW MODE";
+        } else {
+            mecanumDriveSubsystem.setPowerScale(NORMAL_POWER_SCALE);
+            driveControl = "Normal";
         }
+        mecanumDriveSubsystem.drive(forward, strafe, turn);
+
+        // Intake. Check REVERSE first, so clearing a jam always works.
+        String intakeControl;
+        if (gamepad1.left_bumper) {
+            intakeSubsystem.reverse();
+            intakeControl = "Left Bumper (REVERSE)";
+        } else if (gamepad1.right_bumper) {
+            intakeSubsystem.intake();
+            intakeControl = "Right Bumper (INTAKE)";
+        } else {
+            // No bumper held, so stop the intake.
+            intakeSubsystem.stop();
+            intakeControl = "None";
+        }
+
+        // 4. Show what is happening on the Driver Station, one section at a time.
+        telemetry.addData("Status", "Run Time: " + runtime.toString());
+
+        telemetry.addLine("--- DRIVE ---");
+        telemetry.addData("Drive Control", driveControl);
+        telemetry.addData("Drive inputs", "forward %.2f   strafe %.2f   turn %.2f",
+                forward, strafe, turn);
+
+        // The intake prints its own "--- INTAKE ---" heading, so we add our line under it.
+        intakeSubsystem.addTelemetry(telemetry);
+        telemetry.addData("Intake Control", intakeControl);
     }
 
     /*
@@ -222,105 +203,7 @@ public class TeleOpAlpha extends OpMode {
     @Override
     public void stop() {
         // Always leave the motors stopped.
-        intakeMotor.setPower(0.0);
-        flywheelMotor.setPower(0.0);
-        backspinMotor.setPower(0.0);
-    }
-
-    /*
-     * Adds the button map to telemetry. Called from init, init_loop, start,
-     * and the first few seconds of loop, so the drivers can read it.
-     */
-    private void addControlsTelemetry() {
-        telemetry.addLine("--- GAMEPAD 1: INTAKE ---");
-        telemetry.addLine("Right Bumper 100% | Y 85% | X 75% | A 65%");
-        telemetry.addLine("Left Bumper = REVERSE");
-        telemetry.addLine("--- GAMEPAD 2: SHOOTER (flywheel + backspin) ---");
-        // Each line shows the flywheel power / backspin power for that button.
-        telemetry.addLine(String.format("Y: %.0f%% / %.0f%%   X: %.0f%% / %.0f%%",
-                FLYWHEEL_POWER_Y * 100, BACKSPIN_POWER_Y * 100,
-                FLYWHEEL_POWER_X * 100, BACKSPIN_POWER_X * 100));
-        telemetry.addLine(String.format("B: %.0f%% / %.0f%%   A: %.0f%% / %.0f%%",
-                FLYWHEEL_POWER_B * 100, BACKSPIN_POWER_B * 100,
-                FLYWHEEL_POWER_A * 100, BACKSPIN_POWER_A * 100));
-        telemetry.addLine("(flywheel / backspin)");
-        telemetry.addLine("Right Bumper = REVERSE flywheel only");
-        telemetry.addLine("Left Bumper = REVERSE backspin only");
-    }
-
-    /*
-     * Picks the intake power from gamepad1's bumpers and Y / X / A.
-     */
-    private void updateIntake() {
-        // Check REVERSE first, so clearing a jam always works.
-        // Then check the intake buttons from HIGHEST power to LOWEST.
-        // The first one that is pressed wins, and the rest are skipped.
-        if (gamepad1.left_bumper) {
-            intakePower = INTAKE_POWER_REVERSE;
-            intakeControl = "Left Bumper (REVERSE)";
-        } else if (gamepad1.right_bumper) {
-            intakePower = INTAKE_POWER_RIGHT_BUMPER;
-            intakeControl = "Right Bumper";
-        } else if (gamepad1.y) {
-            intakePower = INTAKE_POWER_Y;
-            intakeControl = "Y";
-        } else if (gamepad1.x) {
-            intakePower = INTAKE_POWER_X;
-            intakeControl = "X";
-        } else if (gamepad1.a) {
-            intakePower = INTAKE_POWER_A;
-            intakeControl = "A";
-        } else {
-            // No button held, so stop the intake.
-            intakePower = 0.0;
-            intakeControl = "None";
-        }
-    }
-
-    /*
-     * Picks the flywheel AND backspin power from gamepad2's Y / X / B / A.
-     * Both motors get the same power. The reverse bumpers can then override
-     * one motor at a time.
-     */
-    private void updateShooter() {
-        String shooterControl;
-
-        // Check the shooter buttons from HIGHEST power to LOWEST.
-        // The first one that is pressed wins, and the rest are skipped.
-        // Each button sets the flywheel power AND the backspin power.
-        if (gamepad2.y) {
-            flywheelPower = FLYWHEEL_POWER_Y;
-            backspinPower = BACKSPIN_POWER_Y;
-            shooterControl = "Y";
-        } else if (gamepad2.x) {
-            flywheelPower = FLYWHEEL_POWER_X;
-            backspinPower = BACKSPIN_POWER_X;
-            shooterControl = "X";
-        } else if (gamepad2.b) {
-            flywheelPower = FLYWHEEL_POWER_B;
-            backspinPower = BACKSPIN_POWER_B;
-            shooterControl = "B";
-        } else if (gamepad2.a) {
-            flywheelPower = FLYWHEEL_POWER_A;
-            backspinPower = BACKSPIN_POWER_A;
-            shooterControl = "A";
-        } else {
-            // No button held, so stop both motors.
-            flywheelPower = 0.0;
-            backspinPower = 0.0;
-            shooterControl = "None";
-        }
-        flywheelControl = shooterControl;
-        backspinControl = shooterControl;
-
-        // REVERSE beats the shooter buttons, so clearing a jam always works.
-        if (gamepad2.right_bumper) {
-            flywheelPower = FLYWHEEL_POWER_REVERSE;
-            flywheelControl = "Right Bumper (REVERSE)";
-        }
-        if (gamepad2.left_bumper) {
-            backspinPower = BACKSPIN_POWER_REVERSE;
-            backspinControl = "Left Bumper (REVERSE)";
-        }
+        mecanumDriveSubsystem.stop();
+        intakeSubsystem.stop();
     }
 }
