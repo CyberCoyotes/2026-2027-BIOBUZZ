@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hood Wheel Ratio Test</title>
+<style>
+  /* Printable lab sheet. Open this file in a browser and print it (Letter size, 4 pages). */
+  @page { size: letter; margin: 0.5in; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11.5pt;
+    line-height: 1.35;
+    color: #111;
+    background: #fff;
+    margin: 0;
+  }
+  .page { width: 7.5in; margin: 0 auto; padding: 0.15in 0; page-break-after: always; break-after: page; }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+  h1 { font-size: 22pt; margin: 0 0 2pt; }
+  h2 { font-size: 14pt; margin: 12pt 0 4pt; border-bottom: 2px solid #111; padding-bottom: 2pt; }
+  h3 { font-size: 12pt; margin: 8pt 0 2pt; }
+  p { margin: 3pt 0; }
+  .sub { font-size: 12pt; color: #333; margin-bottom: 6pt; }
+  .names { display: flex; gap: 14pt; margin: 6pt 0 2pt; font-size: 11pt; }
+  .names span { flex: 1; border-bottom: 1.5px solid #111; padding-bottom: 1pt; }
+  .box { border: 2px solid #111; border-radius: 6px; padding: 6pt 9pt; margin: 6pt 0; }
+  .safety { border-color: #b00020; background: #fff3f3; }
+  .safety h2 { border-bottom-color: #b00020; color: #b00020; margin-top: 0; }
+  ul.check { list-style: none; padding: 0; margin: 3pt 0; }
+  ul.check li { margin: 3pt 0; padding-left: 20pt; text-indent: -20pt; }
+  ul.check li::before { content: "\2610\00a0\00a0"; font-size: 13pt; }
+  ol { margin: 3pt 0 3pt 18pt; padding: 0; }
+  ol li { margin: 3pt 0; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1.5px solid #111; padding: 2pt 3pt; text-align: center; vertical-align: middle; }
+  th { background: #e8e8e8; font-size: 9.5pt; line-height: 1.15; }
+  td.label { font-weight: bold; font-size: 11pt; }
+  .two { display: flex; gap: 10pt; }
+  .two > div { flex: 1; }
+  .roles td { text-align: left; font-size: 10.5pt; }
+  .roles td:first-child { font-weight: bold; width: 1.15in; }
+  .code td { text-align: left; font-size: 10.5pt; }
+  .code td:first-child { font-weight: bold; width: 0.55in; text-align: center; font-size: 13pt; }
+  .keys td { text-align: left; font-size: 10.5pt; }
+  .keys td:first-child { font-weight: bold; width: 1.55in; }
+  /* Data tables */
+  table.data th, table.data td { font-size: 10.5pt; }
+  table.data td.num { font-weight: bold; }
+  table.data tr.row td { height: 0.5in; }
+  table.data td.shot { padding: 0; width: 0.62in; }
+  table.data td.shot .sp { height: 0.27in; border-bottom: 1px dotted #777; }
+  table.data td.shot .ld { height: 0.23in; }
+  table.data td.write { width: 0.78in; }
+  .tiny { font-size: 9.5pt; color: #333; }
+  .big-blank { display: inline-block; min-width: 1.1in; border-bottom: 1.5px solid #111; }
+  .line { display: block; border-bottom: 1.5px solid #111; height: 0.32in; }
+  .note { background: #f2f2f2; border-left: 5px solid #555; padding: 4pt 8pt; margin: 6pt 0; font-size: 10.5pt; }
+
+  /* Denser spacing so the instruction pages and the data pages each fit on one printed page */
+  .dense { font-size: 10.5pt; line-height: 1.28; }
+  .dense h2 { font-size: 13pt; margin: 8pt 0 3pt; }
+  .dense h3 { font-size: 11pt; margin: 5pt 0 2pt; }
+  .dense ul.check li { margin: 2pt 0; }
+  .dense ol li { margin: 2pt 0; }
+  .dense .keys td, .dense .code td { font-size: 10pt; padding: 1.5pt 3pt; }
+  .dense .tiny { font-size: 9.5pt; }
+  .dense .note { margin: 4pt 0; font-size: 10pt; }
+  .tight table.data tr.row td { height: 0.4in; }
+  .tight table.data td.shot .sp { height: 0.21in; }
+  .tight table.data td.shot .ld { height: 0.19in; }
+  .tight table.data tr.short td { height: 0.32in; }
+  .tight .line { height: 0.27in; }
+  .tight h2 { margin: 8pt 0 3pt; }
+  .tight p { margin: 2pt 0; }
+  @media screen {
+    body { background: #ddd; }
+    .page { background: #fff; margin: 12px auto; padding: 0.4in; box-shadow: 0 1px 6px rgba(0,0,0,.25); }
+  }
+  @media print { .no-print { display: none; } .page { padding: 0; } }
+</style>
+</head>
+<body>
+
+<!-- ===================== PAGE 1: WHAT, SAFETY, SETUP ===================== -->
+<section class="page">
+  <h1>Hood Wheel Ratio Test</h1>
+  <p class="sub">Which hood wheel speed makes the ball spin the least?</p>
+  <div class="names"><span>Team: </span><span>Date: </span><span>Names: </span></div>
+
+  <h2>The big idea</h2>
+  <p>Our shooter squeezes the ball between <b>two wheels</b>: a <b>big flywheel</b> (about 4 inches) in front and a
+  <b>small hood wheel</b> (about 2 inches) in the back. If the two wheel surfaces move at <i>different</i> speeds,
+  the ball starts to <b>spin</b>. A spinning ball can curve or bounce in a way we do not want.</p>
+  <p>The small wheel has to turn <b>faster</b> to keep up with the big wheel. The number that tells us how much faster is the <b>ratio</b>:</p>
+  <div class="box" style="text-align:center; font-size:14pt;">
+    <b>Ratio = hood wheel speed &divide; flywheel speed</b><br>
+    <span style="font-size:11pt;">Example: flywheel 2000 RPM and ratio 2.00 &rarr; hood wheel = 2000 &times; 2.00 = <b>4000 RPM</b></span>
+  </div>
+  <p><b>Our guess:</b> a ratio near <b>2.00</b> gives the least spin. <b>Our job:</b> test it, and find out if the
+  best ratio stays the same when the flywheel goes faster or slower.</p>
+
+  <div class="box safety">
+    <h2>SAFETY &mdash; everybody must follow these</h2>
+    <ul class="check">
+      <li><b>Eye protection on</b> for everyone near the shooter.</li>
+      <li><b>Nobody stands in front</b> of the shooter or in the path of the ball.</li>
+      <li><b>Hands, hair, sleeves and lanyards stay away</b> from the wheels.</li>
+      <li><b>Wheels keep spinning after you stop them.</b> Wait until they are completely stopped before you reach in.</li>
+      <li>Anyone can yell <b>&ldquo;STOP!&rdquo;</b> The Driver presses <b>X</b> right away.</li>
+      <li><b>Only a coach clears a jam.</b></li>
+    </ul>
+  </div>
+
+  <h2>Jobs (one person can do two jobs if you are a small group)</h2>
+  <table class="roles">
+    <tr><td>Driver</td><td>Holds controller 1. Turns the dials, starts and stops the shooter, flips the gate. Says &ldquo;Shooting!&rdquo; before each shot.</td></tr>
+    <tr><td>Feeder</td><td>Holds controller 2. Runs the intake (Right Bumper) to load balls.</td></tr>
+    <tr><td>Video</td><td>Films every shot in <b>slow motion</b>. Says the shot number out loud.</td></tr>
+    <tr><td>Recorder</td><td>Writes everything in the data table. Reads the screen.</td></tr>
+    <tr><td>Spotter</td><td>Watches where the ball lands and watches for safety. Calls &ldquo;STOP!&rdquo; if needed.</td></tr>
+  </table>
+</section>
+
+<!-- ===================== PAGE 2: SET UP + HOW TO ===================== -->
+<section class="page dense">
+  <h2 style="margin-top:0;">Set up (do this once)</h2>
+  <ul class="check">
+    <li>Fresh battery. Battery volts: <span class="big-blank"></span></li>
+    <li><b>Coach check:</b> the encoder check and the gate positions are done. Coach initials: <span class="big-blank" style="min-width:0.8in;"></span></li>
+    <li>Put a tape mark on the floor. Shooting distance: <span class="big-blank"></span> inches. <b>Use the same mark for every shot.</b></li>
+    <li>Draw a <b>thick marker stripe</b> all the way around the ball. This is how we see the spin.</li>
+    <li>Set the phone to <b>slow motion</b> on a steady stand where it can see the ball leave the shooter.</li>
+    <li>On the Driver Station choose <b>&ldquo;Shooter Ratio - Alpha&rdquo;</b>. Press INIT. The gate should say <b>LOADING</b>. Press START.</li>
+  </ul>
+
+  <h2>Controls</h2>
+  <div class="two">
+    <div>
+      <h3>Controller 1 (Driver)</h3>
+      <table class="keys">
+        <tr><td>B / A</td><td>Flywheel RPM up / down</td></tr>
+        <tr><td>D-pad Right / Left</td><td>Ratio up / down</td></tr>
+        <tr><td>Y</td><td>Shooter ON</td></tr>
+        <tr><td>X</td><td><b>Shooter OFF</b> (STOP)</td></tr>
+        <tr><td>Left Trigger</td><td>Flip the gate</td></tr>
+        <tr><td>Back (Share)</td><td>Reset the &ldquo;lowest RPM&rdquo;</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>Controller 2 (Feeder)</h3>
+      <table class="keys">
+        <tr><td>Right Bumper</td><td>Intake: pull balls in</td></tr>
+        <tr><td>Left Bumper</td><td>Reverse the intake</td></tr>
+      </table>
+      <h3>Reading the screen</h3>
+      <p class="tiny"><b>At Speed? true</b> = OK to shoot.<br>
+      <b>CAPPED</b> = the hood wheel cannot go that fast. <b>Skip that row.</b><br>
+      <b>Lowest</b> = the slowest each wheel went while the ball went through.</p>
+    </div>
+  </div>
+
+  <h2>For every row of the data table</h2>
+  <ol>
+    <li><b>Driver:</b> set the flywheel RPM (B / A) and the ratio (D-pad) to match the row. Check the hood wheel RPM on the screen matches the table. If it says CAPPED, skip the row.</li>
+    <li><b>Driver:</b> press <b>Y</b>. Wait for <b>At Speed? true</b>.</li>
+    <li><b>Feeder:</b> load a ball. <b>Driver:</b> say &ldquo;Shooting!&rdquo; and flip the gate with the <b>Left Trigger</b>. Flip it back after the ball leaves.</li>
+    <li><b>Video</b> says &ldquo;Shot 1&rdquo;. <b>Recorder</b> fills in the spin code and the landing letter (see below).</li>
+    <li>Wait for <b>At Speed? true</b> again. Repeat until you have <b>5 shots</b>.</li>
+    <li><b>Recorder:</b> write the <b>Lowest</b> flywheel RPM and hood wheel RPM from the screen. Then the Driver presses <b>Back</b>.</li>
+    <li>Go to the next row. (Changing a dial also resets the &ldquo;lowest RPM&rdquo;.)</li>
+  </ol>
+
+  <h2>How to write down a shot</h2>
+  <p class="tiny">Watch the slow-motion video. Follow the marker stripe from the moment the ball leaves until it lands.</p>
+  <div class="two">
+    <div>
+      <h3>Top box: spin code (a letter + a number)</h3>
+      <table class="code">
+        <tr><td>B</td><td><b>Backspin</b>: the top of the ball turns <b>back toward the robot</b></td></tr>
+        <tr><td>N</td><td><b>No spin</b>: the stripe hardly moves (use <b>N0</b>)</td></tr>
+        <tr><td>T</td><td><b>Topspin</b>: the top of the ball turns <b>forward toward the target</b></td></tr>
+      </table>
+      <p class="tiny" style="margin-top:3pt;"><b>Number:</b> 0 = none &nbsp; 1 = a little (stripe goes around less than 2 times) &nbsp; 2 = medium (2 to 6 times) &nbsp; 3 = a lot (more than 6). Examples: <b>B2</b>, <b>N0</b>, <b>T1</b>.</p>
+    </div>
+    <div>
+      <h3>Bottom box: where it landed</h3>
+      <table class="code">
+        <tr><td>S</td><td><b>Short</b>: landed before the target</td></tr>
+        <tr><td>O</td><td><b>On</b> the target</td></tr>
+        <tr><td>L</td><td><b>Long</b>: landed past the target</td></tr>
+      </table>
+      <div class="note">The wheels keep spinning after you press X. <b>Never reach in until they stop.</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PAGE 3: DATA TABLE PART 1 ===================== -->
+<section class="page">
+  <h1 style="font-size:17pt;">Part 1 &mdash; Data Table (first distance)</h1>
+  <div class="names"><span>Distance: </span><span>Battery volts: </span><span>Recorder: </span></div>
+  <p class="tiny" style="margin:4pt 0;">Each shot box: <b>top</b> = spin code (like B2) &nbsp;|&nbsp; <b>bottom</b> = landing (S, O or L). Hood RPM = flywheel RPM &times; ratio.</p>
+
+  <table class="data">
+    <tr>
+      <th>Flywheel<br>RPM</th><th>Ratio</th><th>Hood<br>RPM</th>
+      <th>Shot<br>1</th><th>Shot<br>2</th><th>Shot<br>3</th><th>Shot<br>4</th><th>Shot<br>5</th>
+      <th>Lowest<br>flywheel<br>RPM</th><th>Lowest<br>hood<br>RPM</th>
+    </tr>
+
+    <!-- 1500 RPM -->
+    <tr class="row"><td class="num">1500</td><td class="num">1.80</td><td>2700</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td class="num">1500</td><td class="num">2.00</td><td>3000</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td class="num">1500</td><td class="num">2.20</td><td>3300</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td class="num">1500</td><td class="num">2.40</td><td>3600</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+
+    <!-- 2000 RPM -->
+    <tr class="row"><td class="num">2000</td><td class="num">1.80</td><td>3600</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td class="num">2000</td><td class="num">2.00</td><td>4000</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td class="num">2000</td><td class="num">2.20</td><td>4400</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td class="num">2000</td><td class="num">2.40</td><td>4800</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+
+    <!-- 2250 RPM -->
+    <tr class="row"><td class="num">2250</td><td class="num">1.80</td><td>4050</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td class="num">2250</td><td class="num">2.00</td><td>4500</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td class="num">2250</td><td class="num">2.20</td><td>4950</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td class="num">2250</td><td class="num">2.40</td><td>5400</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+
+    <!-- Bonus -->
+    <tr class="row"><td class="num">2700</td><td class="num">2.00</td><td>5400</td>
+      <td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+  </table>
+  <p class="tiny" style="margin-top:4pt;"><b>Bonus row</b> (last row): ask your coach first. The hood wheel is at its 5400 RPM limit. If the screen says CAPPED, do not record it.
+  Every other row stays at or under 5400, so none of them should say CAPPED.</p>
+</section>
+
+<!-- ===================== PAGE 4: PART 2 + RESULTS ===================== -->
+<section class="page tight">
+  <h1 style="font-size:17pt;">Part 2 &mdash; Change the distance, then the results</h1>
+
+  <h2 style="margin-top:6pt;">Part 2: second distance</h2>
+  <p>Move the shooter to a <b>new distance</b> and mark it. Ask your coach which 3 flywheel speeds reach the target from there.
+  Use your <b>best ratio from Part 1</b>, and also the ratio <b>0.20 lower</b> and <b>0.20 higher</b> than it.
+  Keep every hood wheel RPM at <b>5400 or less</b>.</p>
+  <div class="names"><span>New distance: </span><span>Best ratio from Part 1: </span><span>Battery volts: </span></div>
+
+  <table class="data" style="margin-top:6pt;">
+    <tr>
+      <th>Flywheel<br>RPM</th><th>Ratio</th><th>Hood<br>RPM</th>
+      <th>Shot<br>1</th><th>Shot<br>2</th><th>Shot<br>3</th><th>Shot<br>4</th><th>Shot<br>5</th>
+      <th>Lowest<br>flywheel<br>RPM</th><th>Lowest<br>hood<br>RPM</th>
+    </tr>
+    <tr class="row"><td></td><td></td><td></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td></td><td></td><td></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td></td><td></td><td></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td></td><td></td><td></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td></td><td></td><td></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td></td><td></td><td></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td></td><td></td><td></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td></td><td></td><td></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+    <tr class="row"><td></td><td></td><td></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="shot"><div class="sp"></div><div class="ld"></div></td><td class="write"></td><td class="write"></td></tr>
+  </table>
+
+  <h2>Results</h2>
+  <table class="data">
+    <tr><th>Flywheel RPM</th><th>Ratio with the <b>least spin</b> (distance 1)</th><th>Spin code there</th><th>Ratio with the least spin (distance 2)</th></tr>
+    <tr class="row short"><td class="num">1500</td><td></td><td></td><td></td></tr>
+    <tr class="row short"><td class="num">2000</td><td></td><td></td><td></td></tr>
+    <tr class="row short"><td class="num">2250</td><td></td><td></td><td></td></tr>
+  </table>
+
+  <h3 style="margin-top:8pt;">Think about it</h3>
+  <p>1. Was the best ratio about the <b>same</b> at every speed? &nbsp; Circle one: &nbsp; <b>YES &nbsp;&nbsp; ALMOST &nbsp;&nbsp; NO</b></p>
+  <p>2. Did the <b>lowest RPM</b> of the hood wheel or the flywheel drop more when the ball went through? Which wheel? <span class="big-blank" style="min-width:2.6in;"></span></p>
+  <p>3. What do you think is the reason? <span class="line"></span></p>
+  <p>4. Did the best ratio change when you changed the <b>distance</b>? <span class="line"></span></p>
+</section>
+
+</body>
+</html>

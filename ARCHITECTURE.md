@@ -34,7 +34,7 @@ org.firstinspires.ftc.teamcode
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `TurretAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 3"). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 3"). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -196,6 +196,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Control:** speed control in RPM (`setTargetRpm()` / `setTargetRpms()`). `setPower()` is open loop, for tests and clearing jams. `stop()` coasts (never commands a speed of 0).
 - **States:** `IDLE`, `OPEN_LOOP`, `SPINNING_UP`, `READY`. `isAtSpeed()` is true only in `READY` and is the shooter's half of the firing gate. The turret's on-target check is the other half.
 - **Test OpMode:** `ShooterRPMAlpha`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
+- **Ratio test OpMode:** `ShooterRatioAlpha` finds the best `HOOD_WHEEL_RATIO` (hood wheel RPM / flywheel RPM) in RPM mode. B/A turn the flywheel RPM dial, D-pad Left/Right turn the ratio dial, Y/X start and stop the shooter, and the screen shows the lowest RPM each wheel hit (the dip when a ball goes through). It warns CAPPED when the hood wheel target is above `MAX_TARGET_RPM` (read from `getMaxTargetRpm()`). The printable student sheet is `TeamCode/docs/hood-wheel-ratio-test-sheet.html` (and a `.pdf` copy of it).
 - **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterRPMAlpha`.
 - **Not in this class:** the distance-to-RPM shot table (a separate class later), feeding, and anything that reads a gamepad.
 

@@ -365,6 +365,12 @@ public class ShooterSubsystem {
         return targetHoodWheelRpm;
     }
 
+    // The highest RPM setTargetRpms() will let EITHER wheel go to. Asking for more is quietly
+    // cut down to this number. Test OpModes use it to warn that a target was cut down.
+    public double getMaxTargetRpm() {
+        return MAX_TARGET_RPM;
+    }
+
     /*
      * Adds the shooter's own data to the telemetry. The SDK sends telemetry to the
      * Driver Station after every loop(), so the OpMode has nothing else to call.
