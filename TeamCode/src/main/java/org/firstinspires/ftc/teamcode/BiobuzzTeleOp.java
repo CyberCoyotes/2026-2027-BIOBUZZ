@@ -27,6 +27,10 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  *   Right Bumper -> INTAKE (pull balls in)      Left Bumper -> REVERSE (push balls out)
  *      (Left Bumper beats Right Bumper, so clearing a jam always works. The intake runs at the
  *       power set in IntakeSubsystem, DEFAULT_INTAKE_POWER.)
+ *   Right Trigger -> HOLD to run the SHOOTER at a fixed shot: flywheel 45% and hood wheel 90%
+ *      power (a ratio of 2.00). While it is held it beats the operator's dials. Let go and the
+ *      shooter goes back to whatever gamepad2 set (ON at the dials, or OFF). Reverse (gamepad2
+ *      bumpers) still beats it, so clearing a jam always works.
  *   A (Cross)    -> TOGGLES the shooter gate between LOADING and SHOOTING (one flip per press)
  *      (The gate positions are LOADING_POSITION and SHOOTING_POSITION in ShooterServoSubsystem.)
  *
@@ -111,6 +115,12 @@ public class BiobuzzTeleOp extends OpMode {
     // goes through. A starting guess. Time it with a stopwatch.
     private static final double SPIN_SETTLE_SECONDS = 3.0;
 
+    // The fixed shot on the driver's Right Trigger, in percent power: flywheel 45% and hood
+    // wheel 90%, which is a ratio of 2.00 (hood / flywheel). Change these two numbers to try a
+    // different fixed shot. A wheel cannot go past 100%.
+    private static final int TRIGGER_SHOT_FLYWHEEL_POWER_PERCENT = 45;
+    private static final int TRIGGER_SHOT_HOOD_WHEEL_POWER_PERCENT = 90;
+
     // Reverse power is NEGATIVE so the motor spins the other way.
     private static final double FLYWHEEL_POWER_REVERSE = -0.60;
     private static final double HOOD_WHEEL_POWER_REVERSE = -0.60;
@@ -142,6 +152,7 @@ public class BiobuzzTeleOp extends OpMode {
     private boolean wasAPressed = false;
     private boolean wasDpadLeftPressed = false;
     private boolean wasDpadRightPressed = false;
+    private boolean wasTriggerShotPressed = false;
 
     /*
      * True only on the loop where a button goes from "not pressed" to "pressed".
@@ -165,6 +176,8 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Stick = drive and strafe   Right Stick = turn");
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
+        telemetry.addLine(String.format("Right Trigger (hold) = SHOOT at %d%% / %d%% (flywheel / hood)",
+                TRIGGER_SHOT_FLYWHEEL_POWER_PERCENT, TRIGGER_SHOT_HOOD_WHEEL_POWER_PERCENT));
         telemetry.addLine("A = TOGGLE shooter gate (loading / shooting)");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
         telemetry.addLine("Y = shooter ON   X = shooter OFF");
@@ -263,6 +276,13 @@ public class BiobuzzTeleOp extends OpMode {
 
         boolean slowMode = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
         boolean gateButtonPressed = gamepad1.a;
+        boolean triggerShotPressed = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+
+        // The wheels change speed when the trigger goes down AND when it comes back up,
+        // so both start the "wheels settled?" count over.
+        if (triggerShotPressed != wasTriggerShotPressed) {
+            restartSpinTimer();
+        }
 
         // ---- Gamepad 2 (operator) ----
         boolean yPressed = gamepad2.y;
@@ -369,6 +389,13 @@ public class BiobuzzTeleOp extends OpMode {
             shooterControl = "Bumper (REVERSE)";
             // The wheels need time to settle again after a reverse.
             restartSpinTimer();
+        } else if (triggerShotPressed) {
+            // The driver's fixed shot beats the operator's dials while the trigger is held.
+            shooterSubsystem.setPower(
+                    TRIGGER_SHOT_FLYWHEEL_POWER_PERCENT / PERCENT_PER_ONE,
+                    TRIGGER_SHOT_HOOD_WHEEL_POWER_PERCENT / PERCENT_PER_ONE);
+            shooterControl = String.format("Right Trigger (%d / %d)",
+                    TRIGGER_SHOT_FLYWHEEL_POWER_PERCENT, TRIGGER_SHOT_HOOD_WHEEL_POWER_PERCENT);
         } else if (shooterOn) {
             shooterSubsystem.setPower(flywheelPower, hoodWheelPower);
             shooterControl = "ON";
@@ -395,6 +422,7 @@ public class BiobuzzTeleOp extends OpMode {
         wasAPressed = aPressed;
         wasDpadLeftPressed = dpadLeftPressed;
         wasDpadRightPressed = dpadRightPressed;
+        wasTriggerShotPressed = triggerShotPressed;
 
         // 4. Show what is happening on the Driver Station, one section at a time.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
@@ -415,7 +443,7 @@ public class BiobuzzTeleOp extends OpMode {
         }
         telemetry.addData("Shooter switch", shooterControl);
         String settledText;
-        if (!shooterOn) {
+        if (!shooterOn && !triggerShotPressed) {
             settledText = "shooter is OFF";
         } else if (spinTimer.seconds() >= SPIN_SETTLE_SECONDS) {
             settledText = "YES - OK to shoot";
