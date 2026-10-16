@@ -34,7 +34,7 @@ org.firstinspires.ftc.teamcode
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing test OpModes (`IntakeAlpha`, `ShooterAlphaPower`, `ShooterAlphaRPM`, `TeleOpAlpha`, `TurretAlpha`) sit at the package root. Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `TeleOpAlpha`, `TurretAlpha`) sit at the package root. Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -75,6 +75,22 @@ Rules:
 - **No button references inside subsystem classes.** Gamepad handling lives only in TeleOp OpModes.
 - **Sensors-only devices** (Limelight, Pinpoint) get plain wrapper classes too, e.g. `VisionSubsystem`, with an `update()` that reads the latest data once per loop.
 
+### Where constants live
+
+In FRC a `Constants` file is common. In FTC we keep each number with the class that owns it, because one file then explains the whole mechanism and a student never has to hunt for it. Ask "what does this number describe?":
+
+| The number describes… | It lives in… | Examples |
+|---|---|---|
+| The **mechanism** | That mechanism's subsystem class, as `private static final` at the top | `DEFAULT_INTAKE_POWER`, motor directions, `MAX_TARGET_RPM`, servo positions, soft limits |
+| How a **test OpMode drives** a mechanism | That test OpMode | Dial step size, the Y/X/B/A preset powers, nudge step |
+| Something **two or more classes** need, or the **field or robot** itself | A shared constants class (see below) | Hive and tag dimensions, camera and turret offsets |
+
+Rules:
+- **Don't copy a number into two files.** When a test OpMode finds a good value (the best intake power, a servo position), copy it into the subsystem's constant. The OpMode does not keep the real value, or the competition TeleOp would never see the tuning.
+- **Hardware names live only in the subsystem that owns the hardware.** OpModes never call `hardwareMap.get`, so each name has exactly one home.
+- **A shared constants class is created only when a second class needs the value.** Do not make a constants file with empty sections "just in case". Name it for what it holds (`FieldConstants`, `RobotConstants`). **Never call it plain `Constants`**: Pedro Pathing's setup puts its own `Constants` class in `pedroPathing/`, and two classes with the same name are confusing to import.
+- **Per-robot values** (practice bot, 11940, 22091 will differ) wait until the build flavors are set up (section 5).
+
 ### Typical TeleOp shape
 
 ```java
@@ -114,7 +130,7 @@ Keep that four-step order in every TeleOp `loop()`.
 | Thing | Convention | Example |
 |---|---|---|
 | Packages | lowercase | `subsystems` |
-| Classes (OpModes and others) | PascalCase | `ShooterAlphaPower` |
+| Classes (OpModes and others) | PascalCase | `ShooterPowerAlpha` |
 | Subsystem classes | PascalCase, ends in `Subsystem` | `TurretSubsystem` |
 | Variables / methods | camelCase | `targetVelocity` |
 | Hardware variables | location first | `leftIntakeServo` |
@@ -160,7 +176,7 @@ Add new names here when you add hardware. Names in code must match the configura
 
 ## 4. Reference code
 
-- **Style models:** `IntakeAlpha.java` and `ShooterAlphaPower.java`. They show the comment style, the constants-at-the-top pattern, and iterative OpMode structure.
+- **Style models:** `IntakeAlpha.java` and `ShooterPowerAlpha.java`. They show the comment style, the constants-at-the-top pattern, and iterative OpMode structure.
 - **Gold-standard subsystem class:** `[CONFIRM]`. The first subsystem class written and approved becomes the template for the rest. `ShooterSubsystem` is the first one planned.
 - **SDK samples most likely to be useful:** `BasicOpMode_Iterative`, `ConceptExternalHardwareClass` + `RobotHardware`, `ConceptAprilTag`, `SensorLimelight3A`, `SensorGoBildaPinpoint`, `RobotAutoDriveToAprilTagOmni`.
 
@@ -179,8 +195,8 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Hardware:** `flywheel_motor` and `backspin_motor`, both goBILDA 5203 series (6000 RPM, believed `[CONFIRM]`) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
 - **Control:** speed control in RPM (`setTargetRpm()` / `setTargetRpms()`). `setPower()` is open loop, for tests and clearing jams. `stop()` coasts (never commands a speed of 0).
 - **States:** `IDLE`, `OPEN_LOOP`, `SPINNING_UP`, `READY`. `isAtSpeed()` is true only in `READY` and is the shooter's half of the firing gate. The turret's on-target check is the other half.
-- **Test OpMode:** `ShooterAlphaRPM`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
-- **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterAlphaRPM`.
+- **Test OpMode:** `ShooterRPMAlpha`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
+- **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterRPMAlpha`.
 - **Not in this class:** the distance-to-RPM shot table (a separate class later), feeding, and anything that reads a gamepad.
 
 ### ShooterServoSubsystem (`subsystems/ShooterServoSubsystem.java`): code written, not yet tested on the robot
@@ -189,7 +205,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Separate from `ShooterSubsystem`** so the flywheel tests still run on a robot where the servo is not configured yet.
 - **States:** `LOADING` and `SHOOTING`. A servo reports no position, so this is only what we commanded. `isAtPosition()` is a **time guess** (`SERVO_TRAVEL_SECONDS` since the last command), and is the gate's half of the future firing gate.
 - **Methods:** `goToLoading()`, `goToShooting()`, `toggle()`, `nudgePosition()` (for finding positions), `getState()`, `isAtPosition()`, `addTelemetry()`. No `update()`, because there is no ongoing work. It starts in `LOADING` when constructed (R103.B allows pre-positioning servos at INIT).
-- **Test OpModes:** both `ShooterAlphaPower` and `ShooterAlphaRPM`. **Left Trigger** toggles the gate (one flip per press). **D-pad Up/Down** nudges the current position by 0.01.
+- **Test OpModes:** both `ShooterPowerAlpha` and `ShooterRPMAlpha`. **Left Trigger** toggles the gate (one flip per press). **D-pad Up/Down** nudges the current position by 0.01.
 - **`[CONFIRM]` positions are TBD:** `LOADING_POSITION` (0.30) and `SHOOTING_POSITION` (0.60) are placeholders. Find the real values with the D-pad nudge, then type them into the constants. Also tune `SERVO_TRAVEL_SECONDS` (0.50 is a guess).
 - **Open:** which end of travel is "closed", and whether the gate needs a different position in Auto.
 
@@ -260,5 +276,6 @@ When reviewing a change, check that:
 - [ ] Only the owning subsystem touches each motor or servo
 - [ ] No gamepad code outside TeleOp OpModes
 - [ ] Tunable numbers are named constants with explanatory comments
+- [ ] Each constant lives with the class it describes (see "Where constants live"), with no duplicate copies and no plain `Constants` class
 - [ ] Hardware config names match this doc
 - [ ] A student could explain every line out loud

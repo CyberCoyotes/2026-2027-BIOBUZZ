@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 /*
  * Alpha-Combined Testing
  * An iterative OpMode that runs the INTAKE, the shooter FLYWHEEL, and the
- * BACKSPIN wheel together. It combines IntakeAlpha and ShooterAlphaPower.
+ * BACKSPIN wheel together. It combines IntakeAlpha and ShooterPowerAlpha.
  *
  * Two controllers are used:
  *   gamepad1 (driver)   -> INTAKE  (driving will be added here later)

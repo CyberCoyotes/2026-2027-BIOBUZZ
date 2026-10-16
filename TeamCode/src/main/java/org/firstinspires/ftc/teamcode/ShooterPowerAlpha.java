@@ -15,7 +15,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  *   ShooterServoSubsystem  -> the shooter GATE servo
  *   IntakeSubsystem        -> the INTAKE (which also runs the transfer)
  * This OpMode owns NO hardware itself. It only reads the gamepads and tells the subsystems
- * what to do. (ShooterAlphaRPM is the speed-control version of the wheel tests.)
+ * what to do. (ShooterRPMAlpha is the speed-control version of the wheel tests.)
  *
  * TWO CONTROLLERS: the shooter and gate are on gamepad1, the intake is on gamepad2.
  * That keeps the buttons from fighting each other, because both jobs want the bumpers and D-pad.

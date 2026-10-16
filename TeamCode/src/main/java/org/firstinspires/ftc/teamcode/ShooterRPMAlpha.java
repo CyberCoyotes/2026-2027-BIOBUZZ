@@ -10,8 +10,8 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 /*
  * Shooter Testing
  * An iterative OpMode that tests the ShooterSubsystem using gamepad1.
- * This is the SPEED-CONTROL version of ShooterAlphaPower: the buttons ask for an RPM
- * instead of a power. (ShooterAlphaPower is still there for plain power tests.)
+ * This is the SPEED-CONTROL version of ShooterPowerAlpha: the buttons ask for an RPM
+ * instead of a power. (ShooterPowerAlpha is still there for plain power tests.)
  *
  * HOLD a button to run BOTH the flywheel and the backspin at a target speed.
  * Each wheel has its OWN RPM for each button, so you can tune them separately.
@@ -58,7 +58,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  *   Servo name: shooter_servo    (goBILDA dual mode servo, set to POSITIONAL mode)
  */
 @TeleOp(name = "Shooter Testing-AlphaRPM", group = "Testing")
-public class ShooterAlphaRPM extends OpMode {
+public class ShooterRPMAlpha extends OpMode {
 
     // Each button sets the FLYWHEEL and the BACKSPIN target speed in RPM.
     // They are separate numbers on purpose, so you can tune each wheel on its own.
