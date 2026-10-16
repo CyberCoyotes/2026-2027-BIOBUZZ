@@ -28,13 +28,13 @@ We still organize the robot into **subsystems**, the same idea as in FRC: one cl
 
 ```
 org.firstinspires.ftc.teamcode
-├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, MecanumDriveSubsystem, VisionSubsystem …
+├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DriveSubsystem, VisionSubsystem …
 ├── testing/        test OpModes (the *Alpha files)   [CONFIRM]
 ├── pedroPathing/   Pedro Pathing constants and tuning (per Pedro's setup guide)
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing test OpModes (`IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `TeleOpAlpha`, `TurretAlpha`) sit at the package root. Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `TurretAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 3"). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -96,11 +96,11 @@ Rules:
 ```java
 @TeleOp(name = "BIOBUZZ TeleOp", group = "Competition")
 public class BiobuzzTeleOp extends OpMode {
-    private MecanumDriveSubsystem mecanumDriveSubsystem;
+    private DriveSubsystem driveSubsystem;
     private ShooterSubsystem shooterSubsystem;
 
     @Override public void init() {
-        mecanumDriveSubsystem = new MecanumDriveSubsystem(hardwareMap);
+        driveSubsystem = new DriveSubsystem(hardwareMap);
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
     }
 
@@ -113,7 +113,7 @@ public class BiobuzzTeleOp extends OpMode {
 
     @Override public void stop() {
         shooterSubsystem.stop();
-        mecanumDriveSubsystem.stop();
+        driveSubsystem.stop();
     }
 }
 ```
@@ -123,7 +123,7 @@ Keep that four-step order in every TeleOp `loop()`.
 ### Autonomous
 
 - **Pedro Pathing** for paths. Follow Pedro's example pattern: an iterative OpMode with `follower.update()` in `loop()` and a `pathState` switch that moves from step to step.
-- Auto uses the **same subsystem classes** as TeleOp, **except the drivetrain**. Pedro's `Follower` drives the four drive motors in Auto, and only one class may control a motor, so `MecanumDriveSubsystem` is for TeleOp and Pedro drives in Auto. Never use both in one OpMode. Pedro's motor names and directions in its `Constants` must match ours. If we later want Pedro path-following inside TeleOp (a lower priority), `MecanumDriveSubsystem` would wrap the `Follower` and keep the same public methods, so TeleOp OpModes would not change.
+- Auto uses the **same subsystem classes** as TeleOp, **except the drivetrain**. Pedro's `Follower` drives the four drive motors in Auto, and only one class may control a motor, so `DriveSubsystem` is for TeleOp and Pedro drives in Auto. Never use both in one OpMode. Pedro's motor names and directions in its `Constants` must match ours. If we later want Pedro path-following inside TeleOp (a lower priority), `DriveSubsystem` would wrap the `Follower` and keep the same public methods, so TeleOp OpModes would not change.
 
 ### Naming
 
@@ -230,7 +230,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Test OpMode:** `TurretAlpha` (manual stick, D-pad preset angles, B to stop). Its header has the safe first-test order.
 - **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.
 
-### MecanumDriveSubsystem (`subsystems/MecanumDriveSubsystem.java`): code written, not yet tested on the robot
+### DriveSubsystem (`subsystems/DriveSubsystem.java`): code written, not yet tested on the robot
 
 - **Hardware:** four drive motors named `left_front`, `left_rear`, `right_front`, `right_rear` (the same wiring on the practice bot, 11940 and 22091). The Driver Station config on each robot must use these names (one-time edit).
 - **Owns the motors directly** for TeleOp, in power mode (`RUN_WITHOUT_ENCODER`). Pedro drives them in Auto (see Autonomous above).

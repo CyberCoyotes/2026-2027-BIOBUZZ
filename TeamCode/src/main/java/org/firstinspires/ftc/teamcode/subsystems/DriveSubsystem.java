@@ -47,7 +47,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *   Motor name: right_front
  *   Motor name: right_rear
  */
-public class MecanumDriveSubsystem {
+public class DriveSubsystem {
 
     // ------------------------------------------------------------------
     // Hardware names. These MUST match the robot configuration exactly.
@@ -115,7 +115,7 @@ public class MecanumDriveSubsystem {
      * Setup. Gets the four motors from the robot configuration and sets them up.
      * The robot starts stopped.
      */
-    public MecanumDriveSubsystem(HardwareMap hardwareMap) {
+    public DriveSubsystem(HardwareMap hardwareMap) {
         // The names MUST match the robot configuration exactly.
         leftFrontMotor = hardwareMap.get(DcMotor.class, LEFT_FRONT_MOTOR_NAME);
         leftRearMotor = hardwareMap.get(DcMotor.class, LEFT_REAR_MOTOR_NAME);

@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
-import org.firstinspires.ftc.teamcode.subsystems.MecanumDriveSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 
 /*
@@ -52,12 +52,12 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
  * On a PS5 controller: the bumpers are L1 and R1, the triggers are L2 and R2.
  *
  * Robot configuration (on the Driver Station). The names live in the subsystem classes:
- *   Motor names: left_front, left_rear, right_front, right_rear   (MecanumDriveSubsystem)
+ *   Motor names: left_front, left_rear, right_front, right_rear   (DriveSubsystem)
  *   Motor name:  intake                                           (IntakeSubsystem)
  *   Servo name:  shooter_servo   (ShooterServoSubsystem, goBILDA dual mode, POSITIONAL mode)
  */
 @TeleOp(name = "TeleOp - Alpha 3", group = "Testing")
-public class TeleOpAlpha extends OpMode {
+public class BiobuzzTeleOp extends OpMode {
 
     // The sticks do not always rest at exactly zero. Anything smaller than this is ignored,
     // so the robot does not creep when you let go.
@@ -68,7 +68,7 @@ public class TeleOpAlpha extends OpMode {
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
-    private MecanumDriveSubsystem mecanumDriveSubsystem;
+    private DriveSubsystem driveSubsystem;
     private IntakeSubsystem intakeSubsystem;
     private ShooterServoSubsystem shooterServoSubsystem;
 
@@ -122,7 +122,7 @@ public class TeleOpAlpha extends OpMode {
     @Override
     public void init() {
         // Each subsystem gets its own motors from the hardware map.
-        mecanumDriveSubsystem = new MecanumDriveSubsystem(hardwareMap);
+        driveSubsystem = new DriveSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
         // The gate servo moves to LOADING here, so it starts from a known place.
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
@@ -141,6 +141,10 @@ public class TeleOpAlpha extends OpMode {
         telemetry.addData("Status", "Ready to start!");
         addRawGamepadTelemetry();
         addControlsTelemetry();
+
+        // Show the gate here too, so you can check before START that it went to LOADING.
+        // (The position shown is the one we COMMANDED. A servo cannot report where it really is.)
+        shooterServoSubsystem.addTelemetry(telemetry);
     }
 
     /*
@@ -172,15 +176,15 @@ public class TeleOpAlpha extends OpMode {
         // 3. Tell the subsystems what to do. (The drive has no update() to call.)
 
         // Drive.
-        // How slow "slow mode" is lives in MecanumDriveSubsystem (SLOW_MODE_POWER_SCALE).
-        mecanumDriveSubsystem.setSlowMode(slowMode);
+        // How slow "slow mode" is lives in DriveSubsystem (SLOW_MODE_POWER_SCALE).
+        driveSubsystem.setSlowMode(slowMode);
         String driveControl;
         if (slowMode) {
             driveControl = "SLOW MODE";
         } else {
             driveControl = "Normal";
         }
-        mecanumDriveSubsystem.drive(forward, strafe, turn);
+        driveSubsystem.drive(forward, strafe, turn);
 
         // Intake. Check REVERSE first, so clearing a jam always works.
         String intakeControl;
@@ -227,7 +231,7 @@ public class TeleOpAlpha extends OpMode {
     public void stop() {
         // Always leave the motors stopped.
         // The gate servo just stays where it is. A servo holds its position by itself.
-        mecanumDriveSubsystem.stop();
+        driveSubsystem.stop();
         intakeSubsystem.stop();
     }
 }
