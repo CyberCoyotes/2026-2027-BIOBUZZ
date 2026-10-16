@@ -6,13 +6,15 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.MecanumDriveSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 
 /*
  * TeleOp Alpha 3
- * An iterative OpMode that DRIVES the robot and runs the INTAKE, both on gamepad1.
- * It is DriveAlpha (driving) and IntakeAlpha (intake) put together, so each part has
- * already been tested on its own. This OpMode owns NO hardware. It only reads the gamepad
- * and tells the subsystems what to do. (Shooter and turret will be added in later alphas.)
+ * An iterative OpMode that DRIVES the robot, runs the INTAKE, and moves the shooter GATE,
+ * all on gamepad1. It is DriveAlpha (driving) and IntakeAlpha (intake) put together, plus
+ * the gate servo from the shooter tests. This OpMode owns NO hardware. It only reads the
+ * gamepad and tells the subsystems what to do. (Shooter wheels and turret will be added in
+ * later alphas.)
  *
  * It starts ROBOT-CENTRIC: "forward" means the way the robot is facing.
  *
@@ -28,6 +30,12 @@ import org.firstinspires.ftc.teamcode.subsystems.MecanumDriveSubsystem;
  *   Left Bumper beats Right Bumper, so clearing a jam always works.
  *   The intake runs at the power set in IntakeSubsystem (DEFAULT_INTAKE_POWER).
  *   To change it, change that number there. (IntakeAlpha has the power dial for testing.)
+ *
+ * SHOOTER GATE
+ *   A (Cross on PS5) -> TOGGLES the gate between LOADING and SHOOTING (one flip per press)
+ *   The gate starts in LOADING when you hit INIT. The two positions are placeholders until we
+ *   measure them. Use ShooterPowerAlpha (D-pad nudge) to find them, then type them into
+ *   ShooterServoSubsystem.
  *
  * THE INTAKE ALSO RUNS THE TRANSFER. One motor spins the front intake AND a hex shaft with
  * grippers in the transfer chute, so balls are carried up the chute while you drive.
@@ -46,6 +54,7 @@ import org.firstinspires.ftc.teamcode.subsystems.MecanumDriveSubsystem;
  * Robot configuration (on the Driver Station). The names live in the subsystem classes:
  *   Motor names: left_front, left_rear, right_front, right_rear   (MecanumDriveSubsystem)
  *   Motor name:  intake                                           (IntakeSubsystem)
+ *   Servo name:  shooter_servo   (ShooterServoSubsystem, goBILDA dual mode, POSITIONAL mode)
  */
 @TeleOp(name = "TeleOp - Alpha 3", group = "Testing")
 public class TeleOpAlpha extends OpMode {
@@ -54,12 +63,6 @@ public class TeleOpAlpha extends OpMode {
     // so the robot does not creep when you let go.
     private static final double STICK_DEADBAND = 0.05;
 
-    // Holding the left trigger switches to this fraction of full speed (0.4 = 40%).
-    private static final double SLOW_MODE_POWER_SCALE = 0.4;
-
-    // The speed scale when slow mode is NOT held. 1.0 is full speed.
-    private static final double NORMAL_POWER_SCALE = 1.0;
-
     // The trigger gives a number from 0.0 to 1.0. Past this much counts as "pressed".
     private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
 
@@ -67,6 +70,12 @@ public class TeleOpAlpha extends OpMode {
     private ElapsedTime runtime = new ElapsedTime();
     private MecanumDriveSubsystem mecanumDriveSubsystem;
     private IntakeSubsystem intakeSubsystem;
+    private ShooterServoSubsystem shooterServoSubsystem;
+
+    // Whether button A was pressed LAST loop. A press lasts many loops (about 50 per second),
+    // but we want it to flip the gate only ONCE. So we only act when it was NOT pressed last
+    // loop and IS pressed now.
+    private boolean wasGateButtonPressed = false;
 
     /*
      * Adds the button map to telemetry so the drivers can read it.
@@ -76,6 +85,7 @@ public class TeleOpAlpha extends OpMode {
         telemetry.addLine("Left Stick = drive and strafe   Right Stick = turn");
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
+        telemetry.addLine("A = TOGGLE shooter gate (loading / shooting)");
     }
 
     /*
@@ -114,6 +124,8 @@ public class TeleOpAlpha extends OpMode {
         // Each subsystem gets its own motors from the hardware map.
         mecanumDriveSubsystem = new MecanumDriveSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
+        // The gate servo moves to LOADING here, so it starts from a known place.
+        shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
 
         telemetry.addData("Status", "Initialized");
         addControlsTelemetry();
@@ -160,12 +172,12 @@ public class TeleOpAlpha extends OpMode {
         // 3. Tell the subsystems what to do. (The drive has no update() to call.)
 
         // Drive.
+        // How slow "slow mode" is lives in MecanumDriveSubsystem (SLOW_MODE_POWER_SCALE).
+        mecanumDriveSubsystem.setSlowMode(slowMode);
         String driveControl;
         if (slowMode) {
-            mecanumDriveSubsystem.setPowerScale(SLOW_MODE_POWER_SCALE);
             driveControl = "SLOW MODE";
         } else {
-            mecanumDriveSubsystem.setPowerScale(NORMAL_POWER_SCALE);
             driveControl = "Normal";
         }
         mecanumDriveSubsystem.drive(forward, strafe, turn);
@@ -184,6 +196,14 @@ public class TeleOpAlpha extends OpMode {
             intakeControl = "None";
         }
 
+        // Shooter gate. A counts as ONE press only on the loop where it goes from "not pressed"
+        // to "pressed". Without this check, holding A would flip the gate every loop.
+        boolean gateButtonPressed = gamepad1.a;
+        if (gateButtonPressed && !wasGateButtonPressed) {
+            shooterServoSubsystem.toggle();
+        }
+        wasGateButtonPressed = gateButtonPressed;
+
         // 4. Show what is happening on the Driver Station, one section at a time.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
 
@@ -195,6 +215,9 @@ public class TeleOpAlpha extends OpMode {
         // The intake prints its own "--- INTAKE ---" heading, so we add our line under it.
         intakeSubsystem.addTelemetry(telemetry);
         telemetry.addData("Intake Control", intakeControl);
+
+        // The gate prints its own "--- SHOOTER GATE ---" heading.
+        shooterServoSubsystem.addTelemetry(telemetry);
     }
 
     /*
@@ -203,6 +226,7 @@ public class TeleOpAlpha extends OpMode {
     @Override
     public void stop() {
         // Always leave the motors stopped.
+        // The gate servo just stays where it is. A servo holds its position by itself.
         mecanumDriveSubsystem.stop();
         intakeSubsystem.stop();
     }

@@ -51,9 +51,6 @@ public class DriveAlpha extends OpMode {
     // so the robot does not creep when you let go.
     private static final double STICK_DEADBAND = 0.05;
 
-    // Holding the right trigger switches to this fraction of full speed (0.4 = 40%).
-    private static final double SLOW_MODE_POWER_SCALE = 0.4;
-
     // The trigger gives a number from 0.0 to 1.0. Past this much counts as "pressed".
     private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
 
@@ -178,11 +175,11 @@ public class DriveAlpha extends OpMode {
                     leftRearPower, rightRearPower);
             driveControl = "WHEEL TEST";
         } else {
+            // How slow "slow mode" is lives in MecanumDriveSubsystem (SLOW_MODE_POWER_SCALE).
+            mecanumDriveSubsystem.setSlowMode(slowMode);
             if (slowMode) {
-                mecanumDriveSubsystem.setPowerScale(SLOW_MODE_POWER_SCALE);
                 driveControl = "Sticks (SLOW MODE)";
             } else {
-                mecanumDriveSubsystem.setPowerScale(1.0);
                 driveControl = "Sticks";
             }
             mecanumDriveSubsystem.drive(forward, strafe, turn);

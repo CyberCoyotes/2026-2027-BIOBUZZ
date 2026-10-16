@@ -236,7 +236,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Owns the motors directly** for TeleOp, in power mode (`RUN_WITHOUT_ENCODER`). Pedro drives them in Auto (see Autonomous above).
 - **Convention (matches Pedro Pathing, Pinpoint and the turret):** `drive(forward, strafe, turn)`. **Forward is positive, strafe LEFT is positive, turn COUNTERCLOCKWISE is positive.** Each input is -1.0 to 1.0. The stick signs are flipped in `DriveAlpha`, with a comment saying why.
 - **Wheel math:** leftFront = forward - strafe - turn, rightFront = forward + strafe + turn, leftRear = forward + strafe - turn, rightRear = forward - strafe + turn. If any wheel would pass 1.0, all four are scaled down together.
-- **Methods:** `drive`, `setPowerScale` (slow mode), `setWheelPowers` (raw, used by `drive` and the wheel tests), `stop`, `addTelemetry`. No `update()`, because there is no ongoing work.
+- **Methods:** `drive`, `setSlowMode(boolean)` (slow mode; the 40% scale is `SLOW_MODE_POWER_SCALE` in the subsystem), `setWheelPowers` (raw, used by `drive` and the wheel tests), `stop`, `addTelemetry`. No `update()`, because there is no ongoing work.
 - **Zero-power behavior:** `BRAKE` (a named constant), for precise stops. The robot is tall, so watch for tipping.
 - **Robot-centric only** in the first version. Field-centric comes later, with a Pinpoint wrapper that supplies the heading.
 - **Test OpMode:** `DriveAlpha` (sticks drive; hold the right trigger for slow mode; X, A, Y and B each spin one wheel for the direction check).
