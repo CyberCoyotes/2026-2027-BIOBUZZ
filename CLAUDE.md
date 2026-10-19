@@ -27,6 +27,8 @@ Claude Code loads this file automatically at the start of every session. It hold
 - **Iterative OpModes** (`extends OpMode`: `init`, `init_loop`, `start`, `loop`, `stop`), like `BasicOpMode_Iterative` and our `IntakeAlpha`.
 - **One subsystem class per mechanism** (`ShooterSubsystem`, `TurretSubsystem`, `IntakeSubsystem`, …) in the `subsystems/` folder. A subsystem is a plain Java class with no base class. It owns its own hardware and methods, and OpModes use the subsystems. Subsystem class names end in `Subsystem`; OpMode names don't. See `ARCHITECTURE.md`.
 
+- **Constants live with the class they describe**, not in a central `Constants` file. Mechanism numbers go in the subsystem, test-only numbers go in the test OpMode, and a shared class is made only when a second class needs a value. See "Where constants live" in `ARCHITECTURE.md`.
+
 ## Stack
 
 - Java, FTC SDK 12.x, **Pedro Pathing** for autonomous. The team does not use RoadRunner or FTCLib.
@@ -38,7 +40,7 @@ Claude Code loads this file automatically at the start of every session. It hold
 | Thing | Convention | Example |
 |---|---|---|
 | Packages | lowercase | `mechanisms` |
-| Classes | PascalCase | `ShooterAlphaPower` |
+| Classes | PascalCase | `ShooterPowerAlpha` |
 | Subsystem classes | PascalCase, ends in `Subsystem` | `TurretSubsystem` |
 | Variables / methods | camelCase | `targetVelocity` |
 | Hardware variables | location first | `leftIntakeServo` |
