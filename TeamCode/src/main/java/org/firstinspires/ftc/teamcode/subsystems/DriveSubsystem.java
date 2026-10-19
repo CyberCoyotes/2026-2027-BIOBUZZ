@@ -47,7 +47,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *   Motor name: right_front
  *   Motor name: right_rear
  */
-public class MecanumDriveSubsystem {
+public class DriveSubsystem {
 
     // ------------------------------------------------------------------
     // Hardware names. These MUST match the robot configuration exactly.
@@ -84,6 +84,13 @@ public class MecanumDriveSubsystem {
     // Lower this for the first tests, or if the robot is too fast for new drivers.
     private static final double MAX_DRIVE_POWER = 1.0;
 
+    // Slow mode makes the robot move at this fraction of full speed (0.4 = 40%), for careful
+    // lining up. Raise it if slow mode feels too slow, lower it if it is still too fast.
+    private static final double SLOW_MODE_POWER_SCALE = 0.4;
+
+    // The speed fraction when slow mode is OFF. 1.0 means full speed.
+    private static final double NORMAL_POWER_SCALE = 1.0;
+
     // ------------------------------------------------------------------
     // Hardware and data. Only this class changes these.
     // ------------------------------------------------------------------
@@ -92,8 +99,8 @@ public class MecanumDriveSubsystem {
     private DcMotor rightFrontMotor;
     private DcMotor rightRearMotor;
 
-    // 1.0 is full speed. Slow mode lowers it (see setPowerScale).
-    private double powerScale = 1.0;
+    // 1.0 is full speed. Slow mode lowers it (see setSlowMode).
+    private double powerScale = NORMAL_POWER_SCALE;
 
     // What we last asked for, kept so telemetry can show it.
     private double forwardInput = 0.0;
@@ -108,7 +115,7 @@ public class MecanumDriveSubsystem {
      * Setup. Gets the four motors from the robot configuration and sets them up.
      * The robot starts stopped.
      */
-    public MecanumDriveSubsystem(HardwareMap hardwareMap) {
+    public DriveSubsystem(HardwareMap hardwareMap) {
         // The names MUST match the robot configuration exactly.
         leftFrontMotor = hardwareMap.get(DcMotor.class, LEFT_FRONT_MOTOR_NAME);
         leftRearMotor = hardwareMap.get(DcMotor.class, LEFT_REAR_MOTOR_NAME);
@@ -188,12 +195,16 @@ public class MecanumDriveSubsystem {
     }
 
     /*
-     * Slow mode. 1.0 is full speed, 0.4 is 40% speed. Use a low number for careful lining up.
-     * It stays set until you change it, so call it every loop (or only when the driver
-     * changes it).
+     * Slow mode. true slows every wheel to SLOW_MODE_POWER_SCALE of full speed, for careful
+     * lining up. false goes back to full speed. It stays set until you change it, so call it
+     * every loop with the driver's button (or only when the driver changes it).
      */
-    public void setPowerScale(double scale) {
-        powerScale = Range.clip(scale, 0.0, 1.0);
+    public void setSlowMode(boolean slowModeOn) {
+        if (slowModeOn) {
+            powerScale = SLOW_MODE_POWER_SCALE;
+        } else {
+            powerScale = NORMAL_POWER_SCALE;
+        }
     }
 
     /*

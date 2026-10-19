@@ -10,7 +10,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 /*
  * Shooter Subsystem
- * Owns the shooter FLYWHEEL and the BACKSPIN wheel (goBILDA 5203 series, 6000 RPM).
+ * Owns the shooter FLYWHEEL and the HOOD WHEEL (goBILDA 5203 series, 6000 RPM).
  * Only this class touches those two motors. OpModes call its methods.
  *
  * It has two ways to run the wheels:
@@ -31,8 +31,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * but the numbers still work because we tune the shot RPMs by measuring on the robot.
  *
  * Robot configuration (on the Driver Station):
- *   Motor name: flywheel_motor   (goBILDA 5203 series, 6000 RPM, encoder plugged in)
- *   Motor name: backspin_motor   (goBILDA 5203 series, 6000 RPM, encoder plugged in)
+ *   Motor name: flywheel   (goBILDA 5203 series, 6000 RPM, encoder plugged in)
+ *   Motor name: hood_wheel   (goBILDA 5203 series, 6000 RPM, encoder plugged in)
  * Set both motors to the matching goBILDA motor type in the configuration. The
  * Control Hub's built-in speed-control numbers depend on the motor type.
  */
@@ -42,24 +42,24 @@ public class ShooterSubsystem {
     // Hardware names. These MUST match the robot configuration exactly.
     // ------------------------------------------------------------------
     private static final String FLYWHEEL_MOTOR_NAME = "flywheel";
-    private static final String BACKSPIN_MOTOR_NAME = "backspin";
+    private static final String HOOD_WHEEL_MOTOR_NAME = "hood_wheel";
 
-    // Each motor has its OWN direction. These are copied from ShooterAlphaPower.
+    // Each motor has its OWN direction. These are copied from ShooterPowerAlpha.
     // We want a POSITIVE RPM to mean "shooting". If a wheel spins the wrong way,
     // flip that motor's line between FORWARD and REVERSE.
-    private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.REVERSE;
-    private static final DcMotor.Direction BACKSPIN_DIRECTION = DcMotor.Direction.FORWARD;
+    private static final DcMotor.Direction FLYWHEEL_DIRECTION = DcMotor.Direction.FORWARD;
+    private static final DcMotor.Direction HOOD_WHEEL_DIRECTION = DcMotor.Direction.FORWARD;
 
     // ------------------------------------------------------------------
     // Encoder and motor numbers
     // ------------------------------------------------------------------
     // Encoder ticks per ONE turn of the motor shaft.
     // [CONFIRM] 28 is goBILDA's spec for a 1:1 (6000 RPM) 5203 motor. Last season's
-    // notes said 112. To check on the robot: run ShooterAlphaRPM, hold the RIGHT TRIGGER
+    // notes said 112. To check on the robot: run ShooterRPMAlpha, hold the RIGHT TRIGGER
     // (full power, wheel clear!), and read "ticks/sec" on the Driver Station.
     //   about 2,800 ticks/sec -> 28 is right.   about 11,200 ticks/sec -> change both to 112.
     private static final double FLYWHEEL_TICKS_PER_REV = 28.0;
-    private static final double BACKSPIN_TICKS_PER_REV = 28.0;
+    private static final double HOOD_WHEEL_TICKS_PER_REV = 28.0;
 
     // The motor's top speed with no load (goBILDA 5203 6000 RPM motor).
     private static final double MOTOR_MAX_RPM = 6000.0;
@@ -74,10 +74,27 @@ public class ShooterSubsystem {
     // ------------------------------------------------------------------
     // Shooting settings
     // ------------------------------------------------------------------
-    // The backspin wheel's target = flywheel target x this number, when you use
-    // setTargetRpm(). 1.0 means they spin at the same speed. Tune it only if testing
-    // shows the backspin matters. (setTargetRpms() ignores this and takes both speeds.)
-    private static final double BACKSPIN_RATIO = 1.0;
+    // HOOD_WHEEL_RATIO = HOOD WHEEL RPM / FLYWHEEL RPM.
+    // When you use setTargetRpm(), the hood wheel's target = flywheel target x this number.
+    // (setTargetRpms() ignores this and takes both speeds.)
+    //
+    // WHAT THE NUMBER DOES TO THE BALL
+    //   Ball spin comes from the DIFFERENCE in how fast the two wheel SURFACES move, and
+    //   surface speed = RPM x wheel diameter. Our flywheel is on the front and about 4 inches.
+    //   Our hood wheel is on the back/top side, in the fixed hood, and about 2 inches.
+    //     1.0         -> same RPM, so the flywheel surface is about TWICE as fast: BACKSPIN.
+    //     about 2.0   -> both surfaces move the same speed: about NO spin.
+    //     more than 2 -> the hood wheel surface is faster: TOPSPIN.
+    //   Our fixed hood may rub the ball and add a little backspin, so the best number for no
+    //   spin could be a bit above 2.0. Test 2.0, then try a little higher or lower.
+    //
+    // WATCH THE SPEED LIMIT
+    //   MAX_TARGET_RPM caps each wheel on its own. At a ratio of 2.0 the flywheel can only go
+    //   up to MAX_TARGET_RPM / 2 (2700 RPM) before the hood wheel hits the cap and the ratio
+    //   quietly gets smaller.
+    //
+    // It stays 1.0 for now because the 2.0 idea has not been tested on the robot yet.
+    private static final double HOOD_WHEEL_RATIO = 1.0;
 
     // A wheel counts as "at speed" when it is within this many RPM of its target.
     // A smaller number means a more precise shot but a longer wait. Starting guess.
@@ -129,7 +146,7 @@ public class ShooterSubsystem {
     // ------------------------------------------------------------------
     // DcMotorEx is a DcMotor with extra features, like reading and setting speed (velocity).
     private DcMotorEx flywheelMotor;
-    private DcMotorEx backspinMotor;
+    private DcMotorEx hoodWheelMotor;
 
     private ShooterState state = ShooterState.IDLE;
 
@@ -139,11 +156,11 @@ public class ShooterSubsystem {
 
     // What we asked for, in RPM. Both are 0 when stopped or in open loop.
     private double targetFlywheelRpm = 0.0;
-    private double targetBackspinRpm = 0.0;
+    private double targetHoodWheelRpm = 0.0;
 
     // What the encoders reported the last time update() ran, in ticks per second.
     private double flywheelTicksPerSecond = 0.0;
-    private double backspinTicksPerSecond = 0.0;
+    private double hoodWheelTicksPerSecond = 0.0;
 
     // Times how long both wheels have been within the tolerance.
     private ElapsedTime atSpeedTimer = new ElapsedTime();
@@ -156,26 +173,26 @@ public class ShooterSubsystem {
     public ShooterSubsystem(HardwareMap hardwareMap) {
         // The names MUST match the robot configuration exactly.
         flywheelMotor = hardwareMap.get(DcMotorEx.class, FLYWHEEL_MOTOR_NAME);
-        backspinMotor = hardwareMap.get(DcMotorEx.class, BACKSPIN_MOTOR_NAME);
+        hoodWheelMotor = hardwareMap.get(DcMotorEx.class, HOOD_WHEEL_MOTOR_NAME);
 
         flywheelMotor.setDirection(FLYWHEEL_DIRECTION);
-        backspinMotor.setDirection(BACKSPIN_DIRECTION);
+        hoodWheelMotor.setDirection(HOOD_WHEEL_DIRECTION);
 
         // FLOAT lets the wheels coast down. Do NOT use BRAKE on a heavy flywheel:
         // stopping it suddenly puts a lot of stress on the motor and gears.
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        backspinMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        hoodWheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         if (USE_CUSTOM_PIDF) {
             flywheelMotor.setVelocityPIDFCoefficients(VELOCITY_P, VELOCITY_I, VELOCITY_D, VELOCITY_F);
-            backspinMotor.setVelocityPIDFCoefficients(VELOCITY_P, VELOCITY_I, VELOCITY_D, VELOCITY_F);
+            hoodWheelMotor.setVelocityPIDFCoefficients(VELOCITY_P, VELOCITY_I, VELOCITY_D, VELOCITY_F);
         }
 
         // Start in open loop at zero power. The encoder still reports speed in this mode.
         flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backspinMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        hoodWheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         flywheelMotor.setPower(0.0);
-        backspinMotor.setPower(0.0);
+        hoodWheelMotor.setPower(0.0);
     }
 
     // ==================================================================
@@ -183,15 +200,15 @@ public class ShooterSubsystem {
     // ==================================================================
 
     /*
-     * Spin the flywheel to a target RPM. The backspin wheel follows at
-     * BACKSPIN_RATIO times that speed. Use this one for most shots.
+     * Spin the flywheel to a target RPM. The hood wheel follows at
+     * HOOD_WHEEL_RATIO times that speed. Use this one for most shots.
      */
     public void setTargetRpm(double flywheelRpm) {
-        setTargetRpms(flywheelRpm, flywheelRpm * BACKSPIN_RATIO);
+        setTargetRpms(flywheelRpm, flywheelRpm * HOOD_WHEEL_RATIO);
     }
 
     /*
-     * Spin the flywheel and the backspin wheel to their OWN target RPMs.
+     * Spin the flywheel and the hood wheel to their OWN target RPMs.
      *
      * Safe to call every loop with the same numbers. A repeat call changes nothing,
      * so a held button will not keep restarting the READY check.
@@ -201,13 +218,13 @@ public class ShooterSubsystem {
      * Asking for 0 on only ONE wheel makes the controller hold that wheel at zero
      * speed, which works like a brake. Use stop() instead if you want it to coast.
      */
-    public void setTargetRpms(double flywheelRpm, double backspinRpm) {
+    public void setTargetRpms(double flywheelRpm, double hoodWheelRpm) {
         double newFlywheelRpm = Range.clip(flywheelRpm, 0.0, MAX_TARGET_RPM);
-        double newBackspinRpm = Range.clip(backspinRpm, 0.0, MAX_TARGET_RPM);
+        double newHoodWheelRpm = Range.clip(hoodWheelRpm, 0.0, MAX_TARGET_RPM);
 
         // Both zero means "stop". Never command a speed of 0 to a heavy flywheel,
         // because the controller would fight the coast-down like a brake.
-        if (newFlywheelRpm == 0.0 && newBackspinRpm == 0.0) {
+        if (newFlywheelRpm == 0.0 && newHoodWheelRpm == 0.0) {
             stop();
             return;
         }
@@ -215,15 +232,15 @@ public class ShooterSubsystem {
         // Same request as last time? Then there is nothing to do.
         if (speedControlOn
                 && newFlywheelRpm == targetFlywheelRpm
-                && newBackspinRpm == targetBackspinRpm) {
+                && newHoodWheelRpm == targetHoodWheelRpm) {
             return;
         }
 
         turnSpeedControlOn();
         targetFlywheelRpm = newFlywheelRpm;
-        targetBackspinRpm = newBackspinRpm;
+        targetHoodWheelRpm = newHoodWheelRpm;
         flywheelMotor.setVelocity(rpmToTicksPerSecond(newFlywheelRpm, FLYWHEEL_TICKS_PER_REV));
-        backspinMotor.setVelocity(rpmToTicksPerSecond(newBackspinRpm, BACKSPIN_TICKS_PER_REV));
+        hoodWheelMotor.setVelocity(rpmToTicksPerSecond(newHoodWheelRpm, HOOD_WHEEL_TICKS_PER_REV));
 
         // New target, so start over: wait for the wheels to get there.
         wasWithinTolerance = false;
@@ -235,18 +252,18 @@ public class ShooterSubsystem {
      * Shooting is POSITIVE. Negative runs the wheel backwards, for clearing a jam.
      * Zero power on BOTH wheels is the same as stop().
      */
-    public void setPower(double flywheelPower, double backspinPower) {
-        if (flywheelPower == 0.0 && backspinPower == 0.0) {
+    public void setPower(double flywheelPower, double hoodWheelPower) {
+        if (flywheelPower == 0.0 && hoodWheelPower == 0.0) {
             stop();
             return;
         }
 
         turnSpeedControlOff();
         flywheelMotor.setPower(Range.clip(flywheelPower, -1.0, 1.0));
-        backspinMotor.setPower(Range.clip(backspinPower, -1.0, 1.0));
+        hoodWheelMotor.setPower(Range.clip(hoodWheelPower, -1.0, 1.0));
 
         targetFlywheelRpm = 0.0;
-        targetBackspinRpm = 0.0;
+        targetHoodWheelRpm = 0.0;
         wasWithinTolerance = false;
         state = ShooterState.OPEN_LOOP;
     }
@@ -259,10 +276,10 @@ public class ShooterSubsystem {
     public void stop() {
         turnSpeedControlOff();
         flywheelMotor.setPower(0.0);
-        backspinMotor.setPower(0.0);
+        hoodWheelMotor.setPower(0.0);
 
         targetFlywheelRpm = 0.0;
-        targetBackspinRpm = 0.0;
+        targetHoodWheelRpm = 0.0;
         wasWithinTolerance = false;
         state = ShooterState.IDLE;
     }
@@ -275,7 +292,7 @@ public class ShooterSubsystem {
     public void update() {
         // Read the speeds once, so everything in this loop uses the same numbers.
         flywheelTicksPerSecond = flywheelMotor.getVelocity();
-        backspinTicksPerSecond = backspinMotor.getVelocity();
+        hoodWheelTicksPerSecond = hoodWheelMotor.getVelocity();
 
         // Only speed control has a target to check against.
         if (state != ShooterState.SPINNING_UP && state != ShooterState.READY) {
@@ -283,9 +300,9 @@ public class ShooterSubsystem {
         }
 
         double flywheelError = Math.abs(getFlywheelRpm() - targetFlywheelRpm);
-        double backspinError = Math.abs(getBackspinRpm() - targetBackspinRpm);
+        double hoodWheelError = Math.abs(getHoodWheelRpm() - targetHoodWheelRpm);
         boolean withinTolerance = flywheelError <= AT_SPEED_TOLERANCE_RPM
-                && backspinError <= AT_SPEED_TOLERANCE_RPM;
+                && hoodWheelError <= AT_SPEED_TOLERANCE_RPM;
 
         if (!withinTolerance) {
             // Too slow or too fast. This also happens right after a shot, when the
@@ -326,8 +343,8 @@ public class ShooterSubsystem {
         return ticksPerSecondToRpm(flywheelTicksPerSecond, FLYWHEEL_TICKS_PER_REV);
     }
 
-    public double getBackspinRpm() {
-        return ticksPerSecondToRpm(backspinTicksPerSecond, BACKSPIN_TICKS_PER_REV);
+    public double getHoodWheelRpm() {
+        return ticksPerSecondToRpm(hoodWheelTicksPerSecond, HOOD_WHEEL_TICKS_PER_REV);
     }
 
     // The raw encoder speed. Use this to check the ticks per rev (see the note near the top).
@@ -335,8 +352,8 @@ public class ShooterSubsystem {
         return flywheelTicksPerSecond;
     }
 
-    public double getBackspinTicksPerSecond() {
-        return backspinTicksPerSecond;
+    public double getHoodWheelTicksPerSecond() {
+        return hoodWheelTicksPerSecond;
     }
 
     // What we asked for. Both are 0 when stopped or in open loop.
@@ -344,8 +361,14 @@ public class ShooterSubsystem {
         return targetFlywheelRpm;
     }
 
-    public double getTargetBackspinRpm() {
-        return targetBackspinRpm;
+    public double getTargetHoodWheelRpm() {
+        return targetHoodWheelRpm;
+    }
+
+    // The highest RPM setTargetRpms() will let EITHER wheel go to. Asking for more is quietly
+    // cut down to this number. Test OpModes use it to warn that a target was cut down.
+    public double getMaxTargetRpm() {
+        return MAX_TARGET_RPM;
     }
 
     /*
@@ -357,9 +380,9 @@ public class ShooterSubsystem {
         telemetry.addData("Shooter State", state);
         telemetry.addData("At Speed?", isAtSpeed());
         telemetry.addData("Flywheel RPM", "%.0f  (target %.0f)", getFlywheelRpm(), targetFlywheelRpm);
-        telemetry.addData("Backspin RPM", "%.0f  (target %.0f)", getBackspinRpm(), targetBackspinRpm);
+        telemetry.addData("Hood Wheel RPM", "%.0f  (target %.0f)", getHoodWheelRpm(), targetHoodWheelRpm);
         telemetry.addData("Flywheel ticks/sec", "%.0f", flywheelTicksPerSecond);
-        telemetry.addData("Backspin ticks/sec", "%.0f", backspinTicksPerSecond);
+        telemetry.addData("Hood Wheel ticks/sec", "%.0f", hoodWheelTicksPerSecond);
     }
 
     // ==================================================================
@@ -373,7 +396,7 @@ public class ShooterSubsystem {
             return;
         }
         flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backspinMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        hoodWheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         speedControlOn = true;
     }
 
@@ -384,7 +407,7 @@ public class ShooterSubsystem {
             return;
         }
         flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backspinMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        hoodWheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         speedControlOn = false;
     }
 

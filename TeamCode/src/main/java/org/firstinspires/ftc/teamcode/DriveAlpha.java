@@ -4,11 +4,11 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.subsystems.MecanumDriveSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 
 /*
  * Drive Alpha
- * An iterative OpMode that drives the robot with the MecanumDriveSubsystem using gamepad1.
+ * An iterative OpMode that drives the robot with the DriveSubsystem using gamepad1.
  * It starts ROBOT-CENTRIC: "forward" means the way the robot is facing.
  *
  * DRIVING
@@ -23,7 +23,7 @@ import org.firstinspires.ftc.teamcode.subsystems.MecanumDriveSubsystem;
  *     Y (Triangle) -> right front
  *     B (Circle)   -> right rear
  *   The wheel test beats the sticks. If a wheel spins backward, flip THAT motor's direction in
- *   MecanumDriveSubsystem.
+ *   DriveSubsystem.
  *
  * SAFE FIRST TEST (do these in order):
  *   1. Robot on blocks, wheels in the air. Do the WHEEL TEST above for all four wheels.
@@ -51,9 +51,6 @@ public class DriveAlpha extends OpMode {
     // so the robot does not creep when you let go.
     private static final double STICK_DEADBAND = 0.05;
 
-    // Holding the right trigger switches to this fraction of full speed (0.4 = 40%).
-    private static final double SLOW_MODE_POWER_SCALE = 0.4;
-
     // The trigger gives a number from 0.0 to 1.0. Past this much counts as "pressed".
     private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
 
@@ -62,7 +59,7 @@ public class DriveAlpha extends OpMode {
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
-    private MecanumDriveSubsystem mecanumDriveSubsystem;
+    private DriveSubsystem driveSubsystem;
 
     /*
      * Adds the button map to telemetry so the drivers can read it.
@@ -110,7 +107,7 @@ public class DriveAlpha extends OpMode {
     @Override
     public void init() {
         // The subsystem gets its own motors from the hardware map.
-        mecanumDriveSubsystem = new MecanumDriveSubsystem(hardwareMap);
+        driveSubsystem = new DriveSubsystem(hardwareMap);
 
         telemetry.addData("Status", "Initialized");
         addControlsTelemetry();
@@ -174,25 +171,25 @@ public class DriveAlpha extends OpMode {
             if (gamepad1.b) {
                 rightRearPower = WHEEL_TEST_POWER;
             }
-            mecanumDriveSubsystem.setWheelPowers(leftFrontPower, rightFrontPower,
+            driveSubsystem.setWheelPowers(leftFrontPower, rightFrontPower,
                     leftRearPower, rightRearPower);
             driveControl = "WHEEL TEST";
         } else {
+            // How slow "slow mode" is lives in DriveSubsystem (SLOW_MODE_POWER_SCALE).
+            driveSubsystem.setSlowMode(slowMode);
             if (slowMode) {
-                mecanumDriveSubsystem.setPowerScale(SLOW_MODE_POWER_SCALE);
                 driveControl = "Sticks (SLOW MODE)";
             } else {
-                mecanumDriveSubsystem.setPowerScale(1.0);
                 driveControl = "Sticks";
             }
-            mecanumDriveSubsystem.drive(forward, strafe, turn);
+            driveSubsystem.drive(forward, strafe, turn);
         }
 
         // 4. Show what is happening on the Driver Station.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
         telemetry.addData("Control", driveControl);
         addRawGamepadTelemetry();
-        mecanumDriveSubsystem.addTelemetry(telemetry);
+        driveSubsystem.addTelemetry(telemetry);
     }
 
     /*
@@ -201,6 +198,6 @@ public class DriveAlpha extends OpMode {
     @Override
     public void stop() {
         // Always leave the motors stopped.
-        mecanumDriveSubsystem.stop();
+        driveSubsystem.stop();
     }
 }

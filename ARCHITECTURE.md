@@ -28,13 +28,13 @@ We still organize the robot into **subsystems**, the same idea as in FRC: one cl
 
 ```
 org.firstinspires.ftc.teamcode
-├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, MecanumDriveSubsystem, VisionSubsystem …
+├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DriveSubsystem, VisionSubsystem …
 ├── testing/        test OpModes (the *Alpha files)   [CONFIRM]
 ├── pedroPathing/   Pedro Pathing constants and tuning (per Pedro's setup guide)
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing test OpModes (`IntakeAlpha`, `ShooterAlphaPower`, `ShooterAlphaRPM`, `TeleOpAlpha`, `TurretAlpha`) sit at the package root. Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 4"). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -75,16 +75,32 @@ Rules:
 - **No button references inside subsystem classes.** Gamepad handling lives only in TeleOp OpModes.
 - **Sensors-only devices** (Limelight, Pinpoint) get plain wrapper classes too, e.g. `VisionSubsystem`, with an `update()` that reads the latest data once per loop.
 
+### Where constants live
+
+In FRC a `Constants` file is common. In FTC we keep each number with the class that owns it, because one file then explains the whole mechanism and a student never has to hunt for it. Ask "what does this number describe?":
+
+| The number describes… | It lives in… | Examples |
+|---|---|---|
+| The **mechanism** | That mechanism's subsystem class, as `private static final` at the top | `DEFAULT_INTAKE_POWER`, motor directions, `MAX_TARGET_RPM`, servo positions, soft limits |
+| How a **test OpMode drives** a mechanism | That test OpMode | Dial step size, the Y/X/B/A preset powers, nudge step |
+| Something **two or more classes** need, or the **field or robot** itself | A shared constants class (see below) | Hive and tag dimensions, camera and turret offsets |
+
+Rules:
+- **Don't copy a number into two files.** When a test OpMode finds a good value (the best intake power, a servo position), copy it into the subsystem's constant. The OpMode does not keep the real value, or the competition TeleOp would never see the tuning.
+- **Hardware names live only in the subsystem that owns the hardware.** OpModes never call `hardwareMap.get`, so each name has exactly one home.
+- **A shared constants class is created only when a second class needs the value.** Do not make a constants file with empty sections "just in case". Name it for what it holds (`FieldConstants`, `RobotConstants`). **Never call it plain `Constants`**: Pedro Pathing's setup puts its own `Constants` class in `pedroPathing/`, and two classes with the same name are confusing to import.
+- **Per-robot values** (practice bot, 11940, 22091 will differ) wait until the build flavors are set up (section 5).
+
 ### Typical TeleOp shape
 
 ```java
 @TeleOp(name = "BIOBUZZ TeleOp", group = "Competition")
 public class BiobuzzTeleOp extends OpMode {
-    private MecanumDriveSubsystem mecanumDriveSubsystem;
+    private DriveSubsystem driveSubsystem;
     private ShooterSubsystem shooterSubsystem;
 
     @Override public void init() {
-        mecanumDriveSubsystem = new MecanumDriveSubsystem(hardwareMap);
+        driveSubsystem = new DriveSubsystem(hardwareMap);
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
     }
 
@@ -97,7 +113,7 @@ public class BiobuzzTeleOp extends OpMode {
 
     @Override public void stop() {
         shooterSubsystem.stop();
-        mecanumDriveSubsystem.stop();
+        driveSubsystem.stop();
     }
 }
 ```
@@ -107,14 +123,14 @@ Keep that four-step order in every TeleOp `loop()`.
 ### Autonomous
 
 - **Pedro Pathing** for paths. Follow Pedro's example pattern: an iterative OpMode with `follower.update()` in `loop()` and a `pathState` switch that moves from step to step.
-- Auto uses the **same subsystem classes** as TeleOp, **except the drivetrain**. Pedro's `Follower` drives the four drive motors in Auto, and only one class may control a motor, so `MecanumDriveSubsystem` is for TeleOp and Pedro drives in Auto. Never use both in one OpMode. Pedro's motor names and directions in its `Constants` must match ours. If we later want Pedro path-following inside TeleOp (a lower priority), `MecanumDriveSubsystem` would wrap the `Follower` and keep the same public methods, so TeleOp OpModes would not change.
+- Auto uses the **same subsystem classes** as TeleOp, **except the drivetrain**. Pedro's `Follower` drives the four drive motors in Auto, and only one class may control a motor, so `DriveSubsystem` is for TeleOp and Pedro drives in Auto. Never use both in one OpMode. Pedro's motor names and directions in its `Constants` must match ours. If we later want Pedro path-following inside TeleOp (a lower priority), `DriveSubsystem` would wrap the `Follower` and keep the same public methods, so TeleOp OpModes would not change.
 
 ### Naming
 
 | Thing | Convention | Example |
 |---|---|---|
 | Packages | lowercase | `subsystems` |
-| Classes (OpModes and others) | PascalCase | `ShooterAlphaPower` |
+| Classes (OpModes and others) | PascalCase | `ShooterPowerAlpha` |
 | Subsystem classes | PascalCase, ends in `Subsystem` | `TurretSubsystem` |
 | Variables / methods | camelCase | `targetVelocity` |
 | Hardware variables | location first | `leftIntakeServo` |
@@ -129,8 +145,8 @@ Names already in use:
 | Name | Device |
 |---|---|
 | `intake_motor` | One motor for intake, index, and transfer (goBILDA 5203, probably 1620 RPM 3.71:1 `[CONFIRM]`) |
-| `flywheel_motor` | Shooter flywheel (goBILDA 5202/3/4) |
-| `backspin_motor` | Backspin wheel (goBILDA 5203 series, believed `[CONFIRM]`) |
+| `flywheel` | Shooter flywheel: goBILDA 5202/3/4, about 4 in, on the front of the ball path |
+| `hood_wheel` | Hood wheel: goBILDA 5203 series (believed `[CONFIRM]`), about 2 in, on the back/top side in the fixed hood. Its RPM relative to the flywheel sets the ball spin. |
 | `left_front` | Drive motor, left front (mecanum) |
 | `left_rear` | Drive motor, left rear (mecanum) |
 | `right_front` | Drive motor, right front (mecanum) |
@@ -138,6 +154,7 @@ Names already in use:
 | `turret_motor` | Turret rotation motor (goBILDA 5203 series, believed `[CONFIRM]`; gearbox ratio TBD) |
 | `turret_encoder` | REV Through Bore Encoder in incremental (quadrature) mode, on the turret ring gear. Plugged into an encoder port with no motor attached. Read only. |
 | `turret_home_switch` | REV magnetic limit switch (active-low) that re-zeros the turret angle (digital port). Name approved. |
+| `shooter_servo` | Shooter gate: goBILDA dual mode 300° torque servo, set to positional mode. Moves about 90° between LOADING and SHOOTING. |
 | `limelight` | Limelight 3A (Ethernet device) |
 
 Add new names here when you add hardware. Names in code must match the configuration exactly.
@@ -159,7 +176,7 @@ Add new names here when you add hardware. Names in code must match the configura
 
 ## 4. Reference code
 
-- **Style models:** `IntakeAlpha.java` and `ShooterAlphaPower.java`. They show the comment style, the constants-at-the-top pattern, and iterative OpMode structure.
+- **Style models:** `IntakeAlpha.java` and `ShooterPowerAlpha.java`. They show the comment style, the constants-at-the-top pattern, and iterative OpMode structure.
 - **Gold-standard subsystem class:** `[CONFIRM]`. The first subsystem class written and approved becomes the template for the rest. `ShooterSubsystem` is the first one planned.
 - **SDK samples most likely to be useful:** `BasicOpMode_Iterative`, `ConceptExternalHardwareClass` + `RobotHardware`, `ConceptAprilTag`, `SensorLimelight3A`, `SensorGoBildaPinpoint`, `RobotAutoDriveToAprilTagOmni`.
 
@@ -171,16 +188,27 @@ Add new names here when you add hardware. Names in code must match the configura
 
 ## 6. Hardware and behavior
 
-The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` for the concept (turret shooter, backspin wheel, Limelight aiming) and its open decisions. Add each subsystem's hardware and behavior to this section once its design is approved.
+The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` for the concept (turret shooter, hood wheel, Limelight aiming) and its open decisions. Add each subsystem's hardware and behavior to this section once its design is approved.
 
 ### ShooterSubsystem (`subsystems/ShooterSubsystem.java`)
 
-- **Hardware:** `flywheel_motor` and `backspin_motor`, both goBILDA 5203 series (6000 RPM, believed `[CONFIRM]`) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
+- **Hardware:** `flywheel` and `hood_wheel`, both goBILDA 5203 series (6000 RPM, believed `[CONFIRM]`) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
 - **Control:** speed control in RPM (`setTargetRpm()` / `setTargetRpms()`). `setPower()` is open loop, for tests and clearing jams. `stop()` coasts (never commands a speed of 0).
 - **States:** `IDLE`, `OPEN_LOOP`, `SPINNING_UP`, `READY`. `isAtSpeed()` is true only in `READY` and is the shooter's half of the firing gate. The turret's on-target check is the other half.
-- **Test OpMode:** `ShooterAlphaRPM`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
-- **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterAlphaRPM`.
+- **Test OpMode:** `ShooterRPMAlpha`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
+- **Ratio test OpMode:** `ShooterRatioAlpha` finds the best `HOOD_WHEEL_RATIO` (hood wheel / flywheel). **It uses plain POWER for now, because the encoder wires are not connected yet.** B/A turn the flywheel power dial (5% steps), D-pad Left/Right turn the ratio dial (0.05 steps), Y/X start and stop the shooter, and hood wheel power = flywheel power x ratio. It warns CAPPED when the hood wheel power would be over 100%, and counts 3 seconds for "wheels settled?" since it cannot read speed. Printable student sheet: `TeamCode/docs/hood-wheel-ratio-test-sheet-power.html` (and a `.pdf` copy). **When the encoders are connected,** the speed-control (RPM) version is saved in git (commit `89c074f`), with its sheet `hood-wheel-ratio-test-sheet.html`. `ShooterSubsystem.getMaxTargetRpm()` is for that RPM version.
+- **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterRPMAlpha`.
 - **Not in this class:** the distance-to-RPM shot table (a separate class later), feeding, and anything that reads a gamepad.
+
+### ShooterServoSubsystem (`subsystems/ShooterServoSubsystem.java`): code written, not yet tested on the robot
+
+- **Hardware:** `shooter_servo`, a goBILDA dual mode 300° torque servo. It acts as a **gate** and moves about 90° between two positions. Set it to **positional** mode with the goBILDA Servo Programmer, and configure it as a plain "Servo" on the Driver Station.
+- **Separate from `ShooterSubsystem`** so the flywheel tests still run on a robot where the servo is not configured yet.
+- **States:** `LOADING` and `SHOOTING`. A servo reports no position, so this is only what we commanded. `isAtPosition()` is a **time guess** (`SERVO_TRAVEL_SECONDS` since the last command), and is the gate's half of the future firing gate.
+- **Methods:** `goToLoading()`, `goToShooting()`, `toggle()`, `nudgePosition()` (for finding positions), `getState()`, `isAtPosition()`, `addTelemetry()`. No `update()`, because there is no ongoing work. It starts in `LOADING` when constructed (R103.B allows pre-positioning servos at INIT).
+- **Test OpModes:** both `ShooterPowerAlpha` and `ShooterRPMAlpha`. **Left Trigger** toggles the gate (one flip per press). **D-pad Up/Down** nudges the current position by 0.01.
+- **`[CONFIRM]` positions are TBD:** `LOADING_POSITION` (0.30) and `SHOOTING_POSITION` (0.60) are placeholders. Find the real values with the D-pad nudge, then type them into the constants. Also tune `SERVO_TRAVEL_SECONDS` (0.50 is a guess).
+- **Open:** which end of travel is "closed", and whether the gate needs a different position in Auto.
 
 ### TurretSubsystem (`subsystems/TurretSubsystem.java`): code written, not yet tested on the robot
 
@@ -203,13 +231,13 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Test OpMode:** `TurretAlpha` (manual stick, D-pad preset angles, B to stop). Its header has the safe first-test order.
 - **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.
 
-### MecanumDriveSubsystem (`subsystems/MecanumDriveSubsystem.java`): code written, not yet tested on the robot
+### DriveSubsystem (`subsystems/DriveSubsystem.java`): code written, not yet tested on the robot
 
 - **Hardware:** four drive motors named `left_front`, `left_rear`, `right_front`, `right_rear` (the same wiring on the practice bot, 11940 and 22091). The Driver Station config on each robot must use these names (one-time edit).
 - **Owns the motors directly** for TeleOp, in power mode (`RUN_WITHOUT_ENCODER`). Pedro drives them in Auto (see Autonomous above).
 - **Convention (matches Pedro Pathing, Pinpoint and the turret):** `drive(forward, strafe, turn)`. **Forward is positive, strafe LEFT is positive, turn COUNTERCLOCKWISE is positive.** Each input is -1.0 to 1.0. The stick signs are flipped in `DriveAlpha`, with a comment saying why.
 - **Wheel math:** leftFront = forward - strafe - turn, rightFront = forward + strafe + turn, leftRear = forward + strafe - turn, rightRear = forward - strafe + turn. If any wheel would pass 1.0, all four are scaled down together.
-- **Methods:** `drive`, `setPowerScale` (slow mode), `setWheelPowers` (raw, used by `drive` and the wheel tests), `stop`, `addTelemetry`. No `update()`, because there is no ongoing work.
+- **Methods:** `drive`, `setSlowMode(boolean)` (slow mode; the 40% scale is `SLOW_MODE_POWER_SCALE` in the subsystem), `setWheelPowers` (raw, used by `drive` and the wheel tests), `stop`, `addTelemetry`. No `update()`, because there is no ongoing work.
 - **Zero-power behavior:** `BRAKE` (a named constant), for precise stops. The robot is tall, so watch for tipping.
 - **Robot-centric only** in the first version. Field-centric comes later, with a Pinpoint wrapper that supplies the heading.
 - **Test OpMode:** `DriveAlpha` (sticks drive; hold the right trigger for slow mode; X, A, Y and B each spin one wheel for the direction check).
@@ -249,5 +277,6 @@ When reviewing a change, check that:
 - [ ] Only the owning subsystem touches each motor or servo
 - [ ] No gamepad code outside TeleOp OpModes
 - [ ] Tunable numbers are named constants with explanatory comments
+- [ ] Each constant lives with the class it describes (see "Where constants live"), with no duplicate copies and no plain `Constants` class
 - [ ] Hardware config names match this doc
 - [ ] A student could explain every line out loud
