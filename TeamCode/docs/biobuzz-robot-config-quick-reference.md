@@ -29,7 +29,9 @@ There is no separate `turret_encoder` entry. The two hubs have exactly 8 motor p
 |---|---|---|---|---|
 | `shooter_servo` | goBILDA dual mode 300° torque servo, configure as plain **Servo** | ShooterServoSubsystem | Set to **positional** mode with the goBILDA Servo Programmer. It is the gate: LOADING / SHOOTING. | ____ |
 
-## Digital sensor
+## Digital sensor: NOT INSTALLED YET (commented out in code, skip it in the config)
+
+Without it, turret 0° is wherever the turret pointed when the hub powered on, so power on with the turret straight ahead. See the `HOME SWITCH OFF` comments in `TurretSubsystem` to turn it back on.
 
 | Config name | Device type | Subsystem | Notes | Port (write in) |
 |---|---|---|---|---|
@@ -57,7 +59,7 @@ There is no separate `turret_encoder` entry. The two hubs have exactly 8 motor p
 - [ ] Names on the Driver Station match this sheet exactly (lowercase, underscores)
 - [ ] Each device is in the port you wrote down
 - [ ] Turret Through Bore Encoder is in the **encoder connector of the `turret_motor` port**, and the goBILDA motor's own encoder cable is unplugged
-- [ ] Home switch is a **Digital Device**, not a Touch Sensor
+- [ ] (Later, once installed) Home switch is a **Digital Device**, not a Touch Sensor
 - [ ] Servo is in positional mode (not continuous rotation)
 - [ ] Limelight appears as an Ethernet device named `limelight`
 - [ ] Wheels off the ground for the first direction test

@@ -23,6 +23,10 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  * The soft limits in TurretSubsystem start small (+/-45 degrees), so a D-pad preset that
  * is further than that is held to the limit. The Target line shows what it really used.
  *
+ * HOME SWITCH IS OFF FOR NOW (not installed). Skip step 1 and the "on the switch" part of
+ * step 3 below. 0 degrees is wherever the turret was when the Control Hub powered on, so
+ * power on with the turret pointing straight ahead.
+ *
  * SAFE FIRST TEST (do these in order, and keep your hand near the Stop button):
  *   1. INIT with the turret placed by hand ON the home switch. Read the Home Switch line.
  *      Move the turret off the switch by hand. The line must change. If it looks backwards,
@@ -44,7 +48,7 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  * Robot configuration (on the Driver Station):
  *   Motor name:           turret_motor        (goBILDA motor; the REV Through Bore Encoder is plugged
  *                                              into the same port's encoder connector)
- *   Digital Device name:  turret_home_switch  (REV magnetic limit switch)
+ *   (Home switch, Digital Device "turret_home_sensor": not installed yet, so not needed.)
  */
 @TeleOp(name = "Turret Testing", group = "Testing")
 public class TurretAlpha extends OpMode {
@@ -99,12 +103,15 @@ public class TurretAlpha extends OpMode {
         // The turret is not driven during INIT. We only read it, so you can turn it by hand.
         turretSubsystem.update();
 
+        // HOME SWITCH OFF: the switch is not installed, so this check would always say
+        // "NOT AT HOME". Put it back when the switch is installed.
+        telemetry.addData("Status", "Home switch not installed. Turret 0 deg = where it was at power-up.");
         // Pre-match check: the turret must start ON the home switch.
-        if (turretSubsystem.isHomeSwitchActive()) {
-            telemetry.addData("Status", "Ready to start! Turret is on the home switch.");
-        } else {
-            telemetry.addData("Status", "TURRET NOT AT HOME! Turn it by hand onto the switch.");
-        }
+        // if (turretSubsystem.isHomeSwitchActive()) {
+        //     telemetry.addData("Status", "Ready to start! Turret is on the home switch.");
+        // } else {
+        //     telemetry.addData("Status", "TURRET NOT AT HOME! Turn it by hand onto the switch.");
+        // }
         addControlsTelemetry();
         turretSubsystem.addTelemetry(telemetry);
     }

@@ -57,7 +57,10 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *                                              SAME port's 4-pin ENCODER connector. Do NOT plug
  *                                              the goBILDA motor's own encoder cable in there.
  *                                              This is one config entry, not two.)
- *   Digital Device name:  turret_home_switch  (REV magnetic limit switch. Configure it as a
+ *   HOME SWITCH IS OFF FOR NOW (not installed, code commented out). Without it, 0 degrees is
+ *   wherever the turret was when the Control Hub powered on, so start with the turret
+ *   straight ahead, and the angle is never re-zeroed during a match.
+ *   When installed: Digital Device name: turret_home_sensor (REV magnetic limit switch. Configure it as a
  *                                              "Digital Device", NOT "REV Touch Sensor",
  *                                              because this class reads it as a DigitalChannel.)
  */
@@ -67,7 +70,10 @@ public class TurretSubsystem {
     // Hardware names. These MUST match the robot configuration exactly.
     // ------------------------------------------------------------------
     private static final String TURRET_MOTOR_NAME = "turret_motor";
-    private static final String HOME_SWITCH_NAME = "turret_home_sensor";
+    // HOME SWITCH IS NOT INSTALLED YET, so it is commented out here and in the other places
+    // marked "HOME SWITCH OFF". To turn it back on, remove the // from each of those lines
+    // and delete the "return false;" line in isHomeSwitchActive().
+    // HOME SWITCH OFF: private static final String HOME_SWITCH_NAME = "turret_home_sensor";
 
     // ------------------------------------------------------------------
     // Directions. These two MUST be right or the turret will run away!
@@ -174,7 +180,7 @@ public class TurretSubsystem {
     // ------------------------------------------------------------------
     // The motor object also reads the Through Bore Encoder, which shares its port.
     private DcMotorEx turretMotor;
-    private DigitalChannel homeSwitch;
+    // HOME SWITCH OFF: private DigitalChannel homeSwitch;
 
     private TurretState state = TurretState.IDLE;
 
@@ -218,7 +224,7 @@ public class TurretSubsystem {
     public TurretSubsystem(HardwareMap hardwareMap) {
         // The names MUST match the robot configuration exactly.
         turretMotor = hardwareMap.get(DcMotorEx.class, TURRET_MOTOR_NAME);
-        homeSwitch = hardwareMap.get(DigitalChannel.class, HOME_SWITCH_NAME);
+        // HOME SWITCH OFF: homeSwitch = hardwareMap.get(DigitalChannel.class, HOME_SWITCH_NAME);
 
         setUpHardware();
     }
@@ -229,7 +235,7 @@ public class TurretSubsystem {
     private void setUpHardware() {
         turretMotor.setDirection(TURRET_MOTOR_DIRECTION);
 
-        homeSwitch.setMode(DigitalChannel.Mode.INPUT);
+        // HOME SWITCH OFF: homeSwitch.setMode(DigitalChannel.Mode.INPUT);
 
         // We control the motor with raw power (RUN_WITHOUT_ENCODER means "no speed control",
         // the hub still counts encoder ticks). The count we read is from the Through Bore
@@ -367,7 +373,10 @@ public class TurretSubsystem {
 
     // True while the turret is sitting on the home switch (a magnet is near the sensor).
     public boolean isHomeSwitchActive() {
-        return homeSwitch.getState() == HOME_SWITCH_ACTIVE_STATE;
+        // HOME SWITCH OFF: with no switch installed, the turret is never "on the switch".
+        // That means the angle is never re-zeroed and isZeroConfirmed() stays false.
+        return false;
+        // HOME SWITCH OFF: return homeSwitch.getState() == HOME_SWITCH_ACTIVE_STATE;
     }
 
     public TurretState getState() {
@@ -400,8 +409,10 @@ public class TurretSubsystem {
                 targetAngleDegrees, targetAngleDegrees - angleDegrees);
         telemetry.addData("On Target?", onTarget);
         telemetry.addData("Zero Confirmed?", zeroConfirmed);
-        telemetry.addData("Home Switch", "%s   (raw state = %b)",
-                isHomeSwitchActive() ? "ON the switch" : "off the switch", homeSwitch.getState());
+        // HOME SWITCH OFF: the real lines are below. Put them back when the switch is installed.
+        telemetry.addData("Home Switch", "NOT INSTALLED (0 deg = where the turret was at power-up)");
+        // telemetry.addData("Home Switch", "%s   (raw state = %b)",
+        //         isHomeSwitchActive() ? "ON the switch" : "off the switch", homeSwitch.getState());
         telemetry.addData("Encoder ticks", encoderTicks);
         telemetry.addData("Soft limits", "%.0f to %.0f deg", MIN_ANGLE_DEGREES, MAX_ANGLE_DEGREES);
         telemetry.addData("Angle reached switch at", "%.1f deg  (before re-zero)", angleWhenReachedSwitch);
