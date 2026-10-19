@@ -151,8 +151,7 @@ Names already in use:
 | `left_rear` | Drive motor, left rear (mecanum) |
 | `right_front` | Drive motor, right front (mecanum) |
 | `right_rear` | Drive motor, right rear (mecanum) |
-| `turret_motor` | Turret rotation motor (goBILDA 5203 series, believed `[CONFIRM]`; gearbox ratio TBD) |
-| `turret_encoder` | REV Through Bore Encoder in incremental (quadrature) mode, on the turret ring gear. Plugged into an encoder port with no motor attached. Read only. |
+| `turret_motor` | Turret rotation motor (goBILDA 5203 series, believed `[CONFIRM]`; gearbox ratio TBD). The REV Through Bore Encoder (incremental/quadrature, on the turret ring gear) is plugged into this same port's encoder connector, so there is no separate encoder entry. |
 | `turret_home_switch` | REV magnetic limit switch (active-low) that re-zeros the turret angle (digital port). Name approved. |
 | `shooter_servo` | Shooter gate: goBILDA dual mode 300° torque servo, set to positional mode. Moves about 90° between LOADING and SHOOTING. |
 | `limelight` | Limelight 3A (Ethernet device) |
@@ -213,8 +212,9 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 ### TurretSubsystem (`subsystems/TurretSubsystem.java`): code written, not yet tested on the robot
 
 - **Hardware:**
-  - `turret_motor`: power only. The turret is not controlled with the motor's own encoder.
-  - `turret_encoder`: REV Through Bore Encoder, incremental (quadrature) mode, **8192 counts per encoder revolution**, on the ring gear. Read only. The Control Hub cannot read this encoder's absolute pulse output.
+  - `turret_motor`: goBILDA motor, power on the port's power connector. The motor's own encoder cable is **not** plugged in.
+  - **The REV Through Bore Encoder is plugged into the same port's encoder connector** (incremental/quadrature mode, **8192 counts per encoder revolution**, on the ring gear). There is **no separate `turret_encoder` config entry**: we have 8 motors and the two hubs have exactly 8 motor ports. The code reads it with `turretMotor.getCurrentPosition()`. The Control Hub cannot read this encoder's absolute pulse output.
+  - **Direction coupling:** because they share a port, `setDirection()` reverses the motor and the encoder count together. `INVERT_ENCODER_READING` fixes the encoder's sign in software.
   - `turret_home_switch`: REV magnetic limit switch. It is **active-low**: it reads LOW when a magnet is near. Confirm on the robot with telemetry. **Configure it as a "Digital Device"** in the Driver Station, not "REV Touch Sensor": the SDK's touch-sensor class is not a `DigitalChannel`, which is what our code reads.
 - **Gearing:** both spur gears (motor pinion and encoder pinion) are 16T. The ring gear is believed to be 48T `[CONFIRM]`. So the encoder turns 3 times per turret revolution, which is `8192 × (ring teeth / 16) / 360` = about 68.3 ticks per turret degree. Cross-check by turning the turret by hand through a marked 90°.
 - **Angle convention:**

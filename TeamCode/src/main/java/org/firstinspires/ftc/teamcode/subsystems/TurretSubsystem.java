@@ -52,10 +52,11 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * The OpMode must call update() ONCE per loop(). Nothing calls it for us.
  *
  * Robot configuration (on the Driver Station):
- *   Motor name:           turret_motor        (goBILDA motor; NO encoder cable needed)
- *   Motor name:           turret_encoder      (REV Through Bore Encoder plugged into a motor
- *                                              port's encoder connector. No motor is attached
- *                                              and we never send it power. Configure it as a motor.)
+ *   Motor name:           turret_motor        (goBILDA motor, power on the port's power connector.
+ *                                              The REV Through Bore Encoder is plugged into the
+ *                                              SAME port's 4-pin ENCODER connector. Do NOT plug
+ *                                              the goBILDA motor's own encoder cable in there.
+ *                                              This is one config entry, not two.)
  *   Digital Device name:  turret_home_switch  (REV magnetic limit switch. Configure it as a
  *                                              "Digital Device", NOT "REV Touch Sensor",
  *                                              because this class reads it as a DigitalChannel.)
@@ -66,7 +67,6 @@ public class TurretSubsystem {
     // Hardware names. These MUST match the robot configuration exactly.
     // ------------------------------------------------------------------
     private static final String TURRET_MOTOR_NAME = "turret_motor";
-    private static final String TURRET_ENCODER_NAME = "turret_encoder";
     private static final String HOME_SWITCH_NAME = "turret_home_sensor";
 
     // ------------------------------------------------------------------
@@ -74,11 +74,16 @@ public class TurretSubsystem {
     // ------------------------------------------------------------------
     // Positive power must turn the turret LEFT (counterclockwise, toward positive angles).
     // If positive power turns it right, flip this between FORWARD and REVERSE.
+    //
+    // WATCH OUT: the Through Bore Encoder is plugged into this same motor port, so this
+    // setting flips the encoder count too. If you flip it, check the angle direction again.
     private static final DcMotor.Direction TURRET_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
 
     // Turning the turret LEFT must make the angle go UP.
-    // If it goes down, flip this between FORWARD and REVERSE.
-    private static final DcMotor.Direction TURRET_ENCODER_DIRECTION = DcMotor.Direction.FORWARD;
+    // Because the encoder shares the motor's port, we cannot fix its sign with setDirection()
+    // without also reversing the motor. If the angle goes DOWN when you turn left (and the
+    // motor direction above is already right), flip this between false and true.
+    private static final boolean INVERT_ENCODER_READING = false;
 
     // ------------------------------------------------------------------
     // Gear and encoder numbers: how encoder ticks turn into turret degrees
@@ -167,8 +172,8 @@ public class TurretSubsystem {
     // ------------------------------------------------------------------
     // Hardware and data. Only this class changes these.
     // ------------------------------------------------------------------
+    // The motor object also reads the Through Bore Encoder, which shares its port.
     private DcMotorEx turretMotor;
-    private DcMotorEx turretEncoder;
     private DigitalChannel homeSwitch;
 
     private TurretState state = TurretState.IDLE;
@@ -206,13 +211,13 @@ public class TurretSubsystem {
     private boolean brakeOn = false;
 
     /*
-     * Setup. Gets the motor, the encoder, and the home switch from the robot configuration.
+     * Setup. Gets the motor and the home switch from the robot configuration.
+     * (The encoder comes along with the motor, because it is plugged into the motor's port.)
      * The turret starts in IDLE, free to turn by hand.
      */
     public TurretSubsystem(HardwareMap hardwareMap) {
         // The names MUST match the robot configuration exactly.
         turretMotor = hardwareMap.get(DcMotorEx.class, TURRET_MOTOR_NAME);
-        turretEncoder = hardwareMap.get(DcMotorEx.class, TURRET_ENCODER_NAME);
         homeSwitch = hardwareMap.get(DigitalChannel.class, HOME_SWITCH_NAME);
 
         setUpHardware();
@@ -223,19 +228,16 @@ public class TurretSubsystem {
      */
     private void setUpHardware() {
         turretMotor.setDirection(TURRET_MOTOR_DIRECTION);
-        turretEncoder.setDirection(TURRET_ENCODER_DIRECTION);
 
         homeSwitch.setMode(DigitalChannel.Mode.INPUT);
 
-        // We control the motor with raw power. The turret's real angle comes from the
-        // external encoder, so the motor's own encoder is not used for position.
+        // We control the motor with raw power (RUN_WITHOUT_ENCODER means "no speed control",
+        // the hub still counts encoder ticks). The count we read is from the Through Bore
+        // Encoder on the turret ring gear, because that is what is plugged into this port.
+        // NOTE: we do NOT reset the count here. The Control Hub keeps its count between Auto
+        // and TeleOp, so the turret keeps its angle when the next OpMode starts.
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         turretMotor.setPower(0.0);
-
-        // The encoder only counts. It is not a motor, so we never give it power.
-        // NOTE: we do NOT reset it here. The Control Hub keeps its count between Auto and
-        // TeleOp, so the turret keeps its angle when the next OpMode starts.
-        turretEncoder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         // FLOAT until someone commands the turret, so it can be turned by hand during INIT
         // to sit on the switch. Once we command it, we switch to BRAKE (see useBrake).
@@ -248,7 +250,7 @@ public class TurretSubsystem {
             zeroAtHome();
         }
 
-        encoderTicks = turretEncoder.getCurrentPosition();
+        encoderTicks = readEncoderTicks();
         angleDegrees = ticksToAngleDegrees(encoderTicks);
         previousAngleDegrees = angleDegrees;
         loopTimer.reset();
@@ -318,7 +320,7 @@ public class TurretSubsystem {
      */
     public void update() {
         // 1. Read the encoder and work out the angle.
-        encoderTicks = turretEncoder.getCurrentPosition();
+        encoderTicks = readEncoderTicks();
         angleDegrees = ticksToAngleDegrees(encoderTicks);
         double secondsSinceLastLoop = loopTimer.seconds();
         loopTimer.reset();
@@ -441,13 +443,28 @@ public class TurretSubsystem {
     }
 
     /*
+     * Reads the Through Bore Encoder (through the turret motor's port) and fixes its sign
+     * if INVERT_ENCODER_READING says so.
+     */
+    private int readEncoderTicks() {
+        int ticks = turretMotor.getCurrentPosition();
+        if (INVERT_ENCODER_READING) {
+            return -ticks;
+        }
+        return ticks;
+    }
+
+    /*
      * Tells the encoder "this spot is the home angle". We reset its count to zero, and the
      * angle is worked out from the count from then on.
      * We use 0 ticks = HOME_ANGLE_DEGREES.
+     *
+     * The reset also makes the motor stop for an instant, because it is the same port. That is
+     * fine: update() sends the motor power again later in the same loop.
      */
     private void zeroAtHome() {
-        turretEncoder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        turretEncoder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         zeroConfirmed = true;
         rearmed = false;
     }

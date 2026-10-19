@@ -28,7 +28,8 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *      Move the turret off the switch by hand. The line must change. If it looks backwards,
  *      flip HOME_SWITCH_ACTIVE_STATE in TurretSubsystem.
  *   2. Turn the turret LEFT by hand. The angle must go UP. If it goes down, flip
- *      TURRET_ENCODER_DIRECTION in TurretSubsystem.
+ *      INVERT_ENCODER_READING in TurretSubsystem. (Do NOT flip TURRET_MOTOR_DIRECTION for this.
+ *      It would also reverse the motor and the encoder together, and change nothing here.)
  *   3. Check ticks per degree: put the turret on the switch, then turn it by hand through a
  *      marked 90 degrees. The angle should read about 90. If not, check the tooth counts.
  *   4. START. Push the stick a LITTLE to the right. The turret must turn RIGHT and the angle
@@ -41,8 +42,8 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
  *
  * Robot configuration (on the Driver Station):
- *   Motor name:           turret_motor        (goBILDA motor)
- *   Motor name:           turret_encoder      (REV Through Bore Encoder, no motor attached)
+ *   Motor name:           turret_motor        (goBILDA motor; the REV Through Bore Encoder is plugged
+ *                                              into the same port's encoder connector)
  *   Digital Device name:  turret_home_switch  (REV magnetic limit switch)
  */
 @TeleOp(name = "Turret Testing", group = "Testing")
