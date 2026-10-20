@@ -16,9 +16,18 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *   D-pad Right       -> HOLD to turn the turret RIGHT
  *   D-pad Up          -> turret POWER up by TURRET_POWER_PERCENT_STEP (one step per press)
  *   D-pad Down        -> turret POWER down by TURRET_POWER_PERCENT_STEP (one step per press)
- *   B (Circle on PS5) -> STOP driving the turret. It floats so you can turn it by hand.
+ *   X (Square on PS5) -> PRESET: turn to FAR LEFT, +PRESET_SIDE_DEGREES (about +90)
+ *   B (Circle on PS5) -> PRESET: turn to FAR RIGHT, -PRESET_SIDE_DEGREES (about -90)
+ *   Y (Triangle)      -> PRESET: turn to CENTER, 0 degrees (0 encoder ticks, straight ahead)
+ *   A (Cross on PS5)  -> STOP driving the turret. It floats so you can turn it by hand.
  *   Letting go of the stick or the D-pad Left / Right holds the turret where it is.
- *   Priority: stick, then D-pad Left / Right, then B.
+ *   A preset runs until the turret gets there, then holds. Press another button to change it.
+ *   Priority: stick, then D-pad Left / Right, then Y, X, B, then A.
+ *
+ *   The presets use the ANGLE, so they only land in the right place if the angle is right.
+ *   Do the "marked 90 degrees" check in the safe first test below BEFORE you use them.
+ *   The presets use their own position-control power (MAX_POWER in TurretSubsystem),
+ *   not the Turret power dial.
  *
  * TURRET POWER is how fast the turret turns. It starts at DEFAULT_TURRET_POWER_PERCENT (50%).
  * A full push on the stick, or holding D-pad Left / Right, turns the turret at this power.
@@ -44,7 +53,9 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *      must go DOWN. If the turret turns the wrong way, flip TURRET_MOTOR_DIRECTION.
  *   4. Hold D-pad Left and Right. The turret must turn only while held, and stop when you let
  *      go. Press D-pad Up and Down and watch the Turret power line change.
- *   5. When all of that works, set SOFT_LIMITS_ON to true in TurretSubsystem and set the
+ *   5. Try the presets from the center: Y should stay put, X should swing LEFT and B should
+ *      swing RIGHT, each stopping at about 90 degrees on the screen. Press A to stop it.
+ *   6. When all of that works, set SOFT_LIMITS_ON to true in TurretSubsystem and set the
  *      limits to about +/-130 degrees.
  *
  * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
@@ -67,6 +78,13 @@ public class TurretAlpha extends OpMode {
     // The turret power stays between these two numbers.
     private static final int MIN_TURRET_POWER_PERCENT = 0;
     private static final int MAX_TURRET_POWER_PERCENT = 100;
+
+    // The preset angles. LEFT is POSITIVE and RIGHT is NEGATIVE, the same as Pinpoint and
+    // Pedro Pathing. Center is 0 degrees, which is 0 encoder ticks.
+    private static final double PRESET_SIDE_DEGREES = 90.0;
+    private static final double PRESET_LEFT_DEGREES = PRESET_SIDE_DEGREES;
+    private static final double PRESET_RIGHT_DEGREES = -PRESET_SIDE_DEGREES;
+    private static final double PRESET_CENTER_DEGREES = 0.0;
 
     // The stick must move more than this before it counts, so a stick that does not
     // quite rest at zero will not turn the turret.
@@ -96,7 +114,9 @@ public class TurretAlpha extends OpMode {
         telemetry.addLine("Left Stick X = MANUAL (right = turn right)");
         telemetry.addLine("D-pad Left / Right = HOLD to turn (let go to stop)");
         telemetry.addLine(String.format("D-pad Up / Down = turret power +/- %d%%", TURRET_POWER_PERCENT_STEP));
-        telemetry.addLine("B = STOP (turret floats)");
+        telemetry.addLine(String.format("Y = center (%.0f)   X = far left (%+.0f)   B = far right (%+.0f) degrees",
+                PRESET_CENTER_DEGREES, PRESET_LEFT_DEGREES, PRESET_RIGHT_DEGREES));
+        telemetry.addLine("A = STOP (turret floats)");
     }
 
     /*
@@ -197,9 +217,18 @@ public class TurretAlpha extends OpMode {
             // The stick or D-pad was just let go, so hold the turret where it stopped.
             turretSubsystem.holdCurrentAngle();
             turretControl = "Released (HOLD)";
+        } else if (gamepad2.y) {
+            turretSubsystem.setTargetAngle(PRESET_CENTER_DEGREES);
+            turretControl = "Y (preset CENTER)";
+        } else if (gamepad2.x) {
+            turretSubsystem.setTargetAngle(PRESET_LEFT_DEGREES);
+            turretControl = "X (preset FAR LEFT)";
         } else if (gamepad2.b) {
+            turretSubsystem.setTargetAngle(PRESET_RIGHT_DEGREES);
+            turretControl = "B (preset FAR RIGHT)";
+        } else if (gamepad2.a) {
             turretSubsystem.stop();
-            turretControl = "B (STOP)";
+            turretControl = "A (STOP)";
         } else {
             // No new command. The turret keeps doing what it was last told to do.
             turretControl = "None (keeps last command)";
