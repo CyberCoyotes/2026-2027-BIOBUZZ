@@ -41,7 +41,7 @@ The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `I
 - **Iterative OpModes** (`extends OpMode`), using `init()`, `init_loop()`, `start()`, `loop()`, and `stop()`.
 - Start from the closest SDK sample (`BasicOpMode_Iterative`, `ConceptAprilTag`, …) and keep its section comments ("Code to run ONCE when the driver hits INIT", etc.).
 - Always stop every motor in `stop()`.
-- Put all tunable numbers at the top as `private static final` constants with a comment explaining how to change them. The Alpha test OpModes are the model.
+- Put all tunable numbers at the top as `private static final` constants with a comment explaining how to change them. The Alpha test OpModes are the model. (Numbers that more than one OpMode uses are the exception: they live in `OpModeConstants`, see "Where constants live".)
 - Annotate with `@TeleOp(name = "…", group = "…")` or `@Autonomous(...)`. Test OpModes use `group = "Testing"`.
 
 ### Subsystem classes (one per mechanism)
@@ -82,13 +82,14 @@ In FRC a `Constants` file is common. In FTC we keep each number with the class t
 | The number describes… | It lives in… | Examples |
 |---|---|---|
 | The **mechanism** | That mechanism's subsystem class, as `private static final` at the top | `DEFAULT_INTAKE_POWER`, motor directions, `MAX_TARGET_RPM`, servo positions, soft limits |
-| How a **test OpMode drives** a mechanism | That test OpMode | Dial step size, the Y/X/B/A preset powers, nudge step |
+| How a **test OpMode drives** a mechanism | That test OpMode, **unless a second OpMode uses it too** (then `OpModeConstants`) | The Y/X/B/A preset powers (one OpMode), dial step size (shared, so `OpModeConstants`) |
 | Something **two or more classes** need, or the **field or robot** itself | A shared constants class (see below) | Hive and tag dimensions, camera and turret offsets |
 
 Rules:
 - **Don't copy a number into two files.** When a test OpMode finds a good value (the best intake power, a servo position), copy it into the subsystem's constant. The OpMode does not keep the real value, or the competition TeleOp would never see the tuning.
 - **Hardware names live only in the subsystem that owns the hardware.** OpModes never call `hardwareMap.get`, so each name has exactly one home.
 - **A shared constants class is created only when a second class needs the value.** Do not make a constants file with empty sections "just in case". Name it for what it holds (`FieldConstants`, `RobotConstants`). **Never call it plain `Constants`**: Pedro Pathing's setup puts its own `Constants` class in `pedroPathing/`, and two classes with the same name are confusing to import.
+- **`OpModeConstants`** (`TeamCode/src/main/java/org/firstinspires/ftc/teamcode/OpModeConstants.java`) holds the numbers that `BiobuzzTeleOp` and the Alpha test OpModes share: the trigger threshold and stick deadbands, the shooter ratio dials, the intake and turret dials, the turret preset angles, the shooter reverse powers, and the gate nudge step. Use them as `OpModeConstants.TRIGGER_PRESSED_THRESHOLD` (class name written out, no static imports). Change a shared number there only. Numbers that only one OpMode uses stay at the top of that OpMode, and a number moves to `OpModeConstants` only when a second OpMode needs it.
 - **Per-robot values** (practice bot, 11940, 22091 will differ) wait until the build flavors are set up (section 5).
 
 ### Typical TeleOp shape

@@ -73,49 +73,10 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 public class ShooterRatioAlpha extends OpMode {
 
     // ------------------------------------------------------------------
-    // The two dials. These are test-only numbers.
+    // The dial settings, reverse powers, trigger threshold and gate nudge step are shared
+    // with BiobuzzTeleOp and the other Alpha OpModes, so they live in OpModeConstants.java.
+    // Change them there, once.
     // ------------------------------------------------------------------
-    // The flywheel power dial is counted in WHOLE PERCENT (30 means 30% power).
-    // Where it starts, how far one press moves it, and how low and high it can go.
-    private static final int FLYWHEEL_POWER_PERCENT_START = 30;
-    private static final int FLYWHEEL_POWER_PERCENT_STEP = 5;
-    private static final int FLYWHEEL_POWER_PERCENT_MIN = 5;
-    private static final int FLYWHEEL_POWER_PERCENT_MAX = 100;
-
-    // The ratio dial is counted in HUNDREDTHS so that adding 5 over and over never drifts to
-    // something like 1.9999999. So 200 means a ratio of 2.00, and a step of 5 means 0.05.
-    private static final int RATIO_HUNDREDTHS_START = 200;
-    private static final int RATIO_HUNDREDTHS_STEP = 5;
-    private static final int RATIO_HUNDREDTHS_MIN = 100;
-    private static final int RATIO_HUNDREDTHS_MAX = 300;
-
-    // How many hundredths make a whole number (200 hundredths = 2.00).
-    private static final double HUNDREDTHS_PER_ONE = 100.0;
-
-    // How many percent make a whole power of 1.0 (100 percent = 1.0 power).
-    private static final double PERCENT_PER_ONE = 100.0;
-
-    // ------------------------------------------------------------------
-    // Other test numbers
-    // ------------------------------------------------------------------
-    // The most power a wheel can be given, in percent. A hood wheel power above this is CAPPED.
-    private static final double MAX_POWER_PERCENT = 100.0;
-
-    // How long the wheels need to settle after the shooter starts, a dial changes, or a ball
-    // goes through. A starting guess. Time it with a stopwatch: how long until the wheels
-    // sound steady?
-    private static final double SPIN_SETTLE_SECONDS = 3.0;
-
-    // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double FLYWHEEL_POWER_REVERSE = -0.60;
-    private static final double HOOD_WHEEL_POWER_REVERSE = -0.60;
-
-    // The triggers give a number from 0.0 to 1.0. Past this much counts as "pressed".
-    private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
-
-    // How far one D-pad press moves the gate servo position (the position runs 0.0 to 1.0).
-    // 0.01 is about 3 degrees on a 300 degree servo (0.01 x 300).
-    private static final double GATE_NUDGE_STEP = 0.01;
 
     // ------------------------------------------------------------------
     // Declare OpMode members.
@@ -126,8 +87,8 @@ public class ShooterRatioAlpha extends OpMode {
     private IntakeSubsystem intakeSubsystem;
 
     // The dials, in whole numbers.
-    private int flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_START;
-    private int ratioHundredths = RATIO_HUNDREDTHS_START;
+    private int flywheelPowerPercent = OpModeConstants.FLYWHEEL_POWER_PERCENT_START;
+    private int ratioHundredths = OpModeConstants.RATIO_HUNDREDTHS_START;
 
     // True after Y, false after X. The shooter keeps spinning between button presses.
     private boolean shooterOn = false;
@@ -229,7 +190,7 @@ public class ShooterRatioAlpha extends OpMode {
         boolean aPressed = gamepad1.a;
         boolean dpadLeftPressed = gamepad1.dpad_left;
         boolean dpadRightPressed = gamepad1.dpad_right;
-        boolean gateTogglePressed = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean gateTogglePressed = gamepad1.left_trigger > OpModeConstants.TRIGGER_PRESSED_THRESHOLD;
         boolean gateNudgeUpPressed = gamepad1.dpad_up;
         boolean gateNudgeDownPressed = gamepad1.dpad_down;
 
@@ -244,46 +205,46 @@ public class ShooterRatioAlpha extends OpMode {
 
         // Turn the dials. Any change makes the wheels change speed, so start the count over.
         if (isNewPress(bPressed, wasBPressed)) {
-            flywheelPowerPercent = flywheelPowerPercent + FLYWHEEL_POWER_PERCENT_STEP;
+            flywheelPowerPercent = flywheelPowerPercent + OpModeConstants.FLYWHEEL_POWER_PERCENT_STEP;
             restartSpinTimer();
         }
         if (isNewPress(aPressed, wasAPressed)) {
-            flywheelPowerPercent = flywheelPowerPercent - FLYWHEEL_POWER_PERCENT_STEP;
+            flywheelPowerPercent = flywheelPowerPercent - OpModeConstants.FLYWHEEL_POWER_PERCENT_STEP;
             restartSpinTimer();
         }
         if (isNewPress(dpadRightPressed, wasDpadRightPressed)) {
-            ratioHundredths = ratioHundredths + RATIO_HUNDREDTHS_STEP;
+            ratioHundredths = ratioHundredths + OpModeConstants.RATIO_HUNDREDTHS_STEP;
             restartSpinTimer();
         }
         if (isNewPress(dpadLeftPressed, wasDpadLeftPressed)) {
-            ratioHundredths = ratioHundredths - RATIO_HUNDREDTHS_STEP;
+            ratioHundredths = ratioHundredths - OpModeConstants.RATIO_HUNDREDTHS_STEP;
             restartSpinTimer();
         }
 
         // Keep the dials between their lowest and highest settings.
-        if (flywheelPowerPercent > FLYWHEEL_POWER_PERCENT_MAX) {
-            flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_MAX;
+        if (flywheelPowerPercent > OpModeConstants.FLYWHEEL_POWER_PERCENT_MAX) {
+            flywheelPowerPercent = OpModeConstants.FLYWHEEL_POWER_PERCENT_MAX;
         }
-        if (flywheelPowerPercent < FLYWHEEL_POWER_PERCENT_MIN) {
-            flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_MIN;
+        if (flywheelPowerPercent < OpModeConstants.FLYWHEEL_POWER_PERCENT_MIN) {
+            flywheelPowerPercent = OpModeConstants.FLYWHEEL_POWER_PERCENT_MIN;
         }
-        if (ratioHundredths > RATIO_HUNDREDTHS_MAX) {
-            ratioHundredths = RATIO_HUNDREDTHS_MAX;
+        if (ratioHundredths > OpModeConstants.RATIO_HUNDREDTHS_MAX) {
+            ratioHundredths = OpModeConstants.RATIO_HUNDREDTHS_MAX;
         }
-        if (ratioHundredths < RATIO_HUNDREDTHS_MIN) {
-            ratioHundredths = RATIO_HUNDREDTHS_MIN;
+        if (ratioHundredths < OpModeConstants.RATIO_HUNDREDTHS_MIN) {
+            ratioHundredths = OpModeConstants.RATIO_HUNDREDTHS_MIN;
         }
 
         // The hood wheel power is the flywheel power times the ratio. A wheel cannot go past
         // 100%, so if the answer is more than that we use 100% and warn that it was CAPPED.
-        double ratio = ratioHundredths / HUNDREDTHS_PER_ONE;
+        double ratio = ratioHundredths / OpModeConstants.HUNDREDTHS_PER_ONE;
         double wantedHoodWheelPercent = flywheelPowerPercent * ratio;
-        boolean hoodWheelCapped = wantedHoodWheelPercent > MAX_POWER_PERCENT;
-        double hoodWheelPercent = Math.min(wantedHoodWheelPercent, MAX_POWER_PERCENT);
+        boolean hoodWheelCapped = wantedHoodWheelPercent > OpModeConstants.MAX_POWER_PERCENT;
+        double hoodWheelPercent = Math.min(wantedHoodWheelPercent, OpModeConstants.MAX_POWER_PERCENT);
 
         // Turn the percents into the 0.0 to 1.0 powers the subsystem wants (30 -> 0.30).
-        double flywheelPower = flywheelPowerPercent / PERCENT_PER_ONE;
-        double hoodWheelPower = hoodWheelPercent / PERCENT_PER_ONE;
+        double flywheelPower = flywheelPowerPercent / OpModeConstants.PERCENT_PER_ONE;
+        double hoodWheelPower = hoodWheelPercent / OpModeConstants.PERCENT_PER_ONE;
 
         // 3. Tell the subsystems what to do, then call their update().
 
@@ -296,10 +257,10 @@ public class ShooterRatioAlpha extends OpMode {
             double reverseFlywheelPower = 0.0;
             double reverseHoodWheelPower = 0.0;
             if (reverseFlywheel) {
-                reverseFlywheelPower = FLYWHEEL_POWER_REVERSE;
+                reverseFlywheelPower = OpModeConstants.FLYWHEEL_POWER_REVERSE;
             }
             if (reverseHoodWheel) {
-                reverseHoodWheelPower = HOOD_WHEEL_POWER_REVERSE;
+                reverseHoodWheelPower = OpModeConstants.HOOD_WHEEL_POWER_REVERSE;
             }
             shooterSubsystem.setPower(reverseFlywheelPower, reverseHoodWheelPower);
             shooterControl = "Bumper (REVERSE)";
@@ -321,10 +282,10 @@ public class ShooterRatioAlpha extends OpMode {
             restartSpinTimer();
         }
         if (isNewPress(gateNudgeUpPressed, wasGateNudgeUpPressed)) {
-            shooterServoSubsystem.nudgePosition(GATE_NUDGE_STEP);
+            shooterServoSubsystem.nudgePosition(OpModeConstants.GATE_NUDGE_STEP);
         }
         if (isNewPress(gateNudgeDownPressed, wasGateNudgeDownPressed)) {
-            shooterServoSubsystem.nudgePosition(-GATE_NUDGE_STEP);
+            shooterServoSubsystem.nudgePosition(-OpModeConstants.GATE_NUDGE_STEP);
         }
 
         // Intake (gamepad2). Check REVERSE first, so clearing a jam always works.
@@ -370,11 +331,11 @@ public class ShooterRatioAlpha extends OpMode {
         String settledText;
         if (!shooterOn) {
             settledText = "shooter is OFF";
-        } else if (spinTimer.seconds() >= SPIN_SETTLE_SECONDS) {
+        } else if (spinTimer.seconds() >= OpModeConstants.SPIN_SETTLE_SECONDS) {
             settledText = "YES - OK to shoot";
         } else {
             settledText = String.format("WAIT (%.1f of %.0f seconds)",
-                    spinTimer.seconds(), SPIN_SETTLE_SECONDS);
+                    spinTimer.seconds(), OpModeConstants.SPIN_SETTLE_SECONDS);
         }
         telemetry.addData("Wheels settled?", settledText);
 

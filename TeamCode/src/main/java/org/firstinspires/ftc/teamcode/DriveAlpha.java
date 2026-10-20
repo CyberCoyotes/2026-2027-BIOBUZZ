@@ -47,12 +47,8 @@ import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 @TeleOp(name = "Drive Alpha", group = "Testing")
 public class DriveAlpha extends OpMode {
 
-    // The sticks do not always rest at exactly zero. Anything smaller than this is ignored,
-    // so the robot does not creep when you let go.
-    private static final double STICK_DEADBAND = 0.05;
-
-    // The trigger gives a number from 0.0 to 1.0. Past this much counts as "pressed".
-    private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
+    // The stick deadband and trigger threshold are shared with BiobuzzTeleOp, so they live
+    // in OpModeConstants.java (DRIVE_STICK_DEADBAND, TRIGGER_PRESSED_THRESHOLD).
 
     // Power for the one-wheel direction test. Keep it low and safe.
     private static final double WHEEL_TEST_POWER = 0.4;
@@ -95,7 +91,7 @@ public class DriveAlpha extends OpMode {
      * Ignores a stick value that is too small to be on purpose.
      */
     private double applyDeadband(double stickValue) {
-        if (Math.abs(stickValue) < STICK_DEADBAND) {
+        if (Math.abs(stickValue) < OpModeConstants.DRIVE_STICK_DEADBAND) {
             return 0.0;
         }
         return stickValue;
@@ -148,7 +144,7 @@ public class DriveAlpha extends OpMode {
         double strafe = applyDeadband(-gamepad1.left_stick_x);
         double turn = applyDeadband(-gamepad1.right_stick_x);
 
-        boolean slowMode = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean slowMode = gamepad1.right_trigger > OpModeConstants.TRIGGER_PRESSED_THRESHOLD;
         boolean testingWheels = gamepad1.x || gamepad1.a || gamepad1.y || gamepad1.b;
 
         // 3. Tell the drivetrain what to do. (There is no update() to call.)

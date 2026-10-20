@@ -46,12 +46,8 @@ import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 @TeleOp(name = "Intake Testing - Alpha", group = "Testing")
 public class IntakeAlpha extends OpMode {
 
-    // How much one D-pad press changes the dial, in percent. 5 means 5%.
-    private static final int DIAL_STEP_PERCENT = 5;
-
-    // The lowest and highest the dial can go, in percent.
-    private static final int DIAL_MIN_PERCENT = 0;
-    private static final int DIAL_MAX_PERCENT = 100;
+    // The power dial settings are shared with ShooterPowerAlpha, so they live in
+    // OpModeConstants.java (INTAKE_DIAL_STEP_PERCENT, MIN, MAX). Change them there.
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
@@ -125,18 +121,18 @@ public class IntakeAlpha extends OpMode {
 
         // Turn the dial only on the loop where the button FIRST goes down.
         if (dpadUpPressed && !dpadUpWasPressed) {
-            dialPercent = dialPercent + DIAL_STEP_PERCENT;
+            dialPercent = dialPercent + OpModeConstants.INTAKE_DIAL_STEP_PERCENT;
         }
         if (dpadDownPressed && !dpadDownWasPressed) {
-            dialPercent = dialPercent - DIAL_STEP_PERCENT;
+            dialPercent = dialPercent - OpModeConstants.INTAKE_DIAL_STEP_PERCENT;
         }
 
         // Keep the dial between its lowest and highest settings.
-        if (dialPercent > DIAL_MAX_PERCENT) {
-            dialPercent = DIAL_MAX_PERCENT;
+        if (dialPercent > OpModeConstants.INTAKE_DIAL_MAX_PERCENT) {
+            dialPercent = OpModeConstants.INTAKE_DIAL_MAX_PERCENT;
         }
-        if (dialPercent < DIAL_MIN_PERCENT) {
-            dialPercent = DIAL_MIN_PERCENT;
+        if (dialPercent < OpModeConstants.INTAKE_DIAL_MIN_PERCENT) {
+            dialPercent = OpModeConstants.INTAKE_DIAL_MIN_PERCENT;
         }
 
         // Remember the D-pad for the next loop.

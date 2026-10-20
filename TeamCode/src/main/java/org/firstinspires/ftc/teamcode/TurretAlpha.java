@@ -68,34 +68,15 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 @TeleOp(name = "Turret Testing", group = "Testing")
 public class TurretAlpha extends OpMode {
 
-    // The turret power at the start. This is the power the turret uses for a full push on
-    // the stick, or while D-pad Left / Right is held. 100 means full power.
-    private static final int DEFAULT_TURRET_POWER_PERCENT = 50;
-
-    // Each press of D-pad Up or Down changes the turret power by this many percent.
-    private static final int TURRET_POWER_PERCENT_STEP = 5;
-
-    // The turret power stays between these two numbers.
-    private static final int MIN_TURRET_POWER_PERCENT = 0;
-    private static final int MAX_TURRET_POWER_PERCENT = 100;
-
-    // The preset angles. LEFT is POSITIVE and RIGHT is NEGATIVE, the same as Pinpoint and
-    // Pedro Pathing. Center is 0 degrees, which is 0 encoder ticks.
-    private static final double PRESET_SIDE_DEGREES = 90.0;
-    private static final double PRESET_LEFT_DEGREES = PRESET_SIDE_DEGREES;
-    private static final double PRESET_RIGHT_DEGREES = -PRESET_SIDE_DEGREES;
-    private static final double PRESET_CENTER_DEGREES = 0.0;
-
-    // The stick must move more than this before it counts, so a stick that does not
-    // quite rest at zero will not turn the turret.
-    private static final double STICK_DEADBAND = 0.1;
+    // The turret power dial, preset angles and stick deadband are shared with BiobuzzTeleOp,
+    // so they live in OpModeConstants.java. Change them there, once.
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
     private TurretSubsystem turretSubsystem;
 
     // The turret power right now, in percent. D-pad Up and Down change it.
-    private int turretPowerPercent = DEFAULT_TURRET_POWER_PERCENT;
+    private int turretPowerPercent = OpModeConstants.TURRET_POWER_PERCENT_START;
 
     // Remember the D-pad Up and Down buttons from last loop. We only want ONE step per press,
     // not a step every loop while the button is held down.
@@ -113,9 +94,9 @@ public class TurretAlpha extends OpMode {
         telemetry.addLine("--- CONTROLS (gamepad2) ---");
         telemetry.addLine("Left Stick X = MANUAL (right = turn right)");
         telemetry.addLine("D-pad Left / Right = HOLD to turn (let go to stop)");
-        telemetry.addLine(String.format("D-pad Up / Down = turret power +/- %d%%", TURRET_POWER_PERCENT_STEP));
+        telemetry.addLine(String.format("D-pad Up / Down = turret power +/- %d%%", OpModeConstants.TURRET_POWER_PERCENT_STEP));
         telemetry.addLine(String.format("Y = center (%.0f)   X = far left (%+.0f)   B = far right (%+.0f) degrees",
-                PRESET_CENTER_DEGREES, PRESET_LEFT_DEGREES, PRESET_RIGHT_DEGREES));
+                OpModeConstants.TURRET_PRESET_CENTER_DEGREES, OpModeConstants.TURRET_PRESET_LEFT_DEGREES, OpModeConstants.TURRET_PRESET_RIGHT_DEGREES));
         telemetry.addLine("A = STOP (turret floats)");
     }
 
@@ -176,13 +157,13 @@ public class TurretAlpha extends OpMode {
         boolean dpadUpPressed = gamepad2.dpad_up;
         boolean dpadDownPressed = gamepad2.dpad_down;
         if (dpadUpPressed && !wasDpadUpPressed) {
-            turretPowerPercent += TURRET_POWER_PERCENT_STEP;
+            turretPowerPercent += OpModeConstants.TURRET_POWER_PERCENT_STEP;
         }
         if (dpadDownPressed && !wasDpadDownPressed) {
-            turretPowerPercent -= TURRET_POWER_PERCENT_STEP;
+            turretPowerPercent -= OpModeConstants.TURRET_POWER_PERCENT_STEP;
         }
-        turretPowerPercent = Math.max(MIN_TURRET_POWER_PERCENT,
-                Math.min(MAX_TURRET_POWER_PERCENT, turretPowerPercent));
+        turretPowerPercent = Math.max(OpModeConstants.TURRET_POWER_PERCENT_MIN,
+                Math.min(OpModeConstants.TURRET_POWER_PERCENT_MAX, turretPowerPercent));
         wasDpadUpPressed = dpadUpPressed;
         wasDpadDownPressed = dpadDownPressed;
 
@@ -192,7 +173,7 @@ public class TurretAlpha extends OpMode {
         // Stick RIGHT is a positive number on the controller. But turning RIGHT means going
         // clockwise, and clockwise is a NEGATIVE angle. So we flip the sign of the stick.
         double stick = -gamepad2.left_stick_x;
-        boolean usingStick = Math.abs(stick) > STICK_DEADBAND;
+        boolean usingStick = Math.abs(stick) > OpModeConstants.TURRET_STICK_DEADBAND;
 
         // The D-pad turns the turret only while it is held. Pressing Left and Right together
         // cancels out, so neither counts.
@@ -218,13 +199,13 @@ public class TurretAlpha extends OpMode {
             turretSubsystem.holdCurrentAngle();
             turretControl = "Released (HOLD)";
         } else if (gamepad2.y) {
-            turretSubsystem.setTargetAngle(PRESET_CENTER_DEGREES);
+            turretSubsystem.setTargetAngle(OpModeConstants.TURRET_PRESET_CENTER_DEGREES);
             turretControl = "Y (preset CENTER)";
         } else if (gamepad2.x) {
-            turretSubsystem.setTargetAngle(PRESET_LEFT_DEGREES);
+            turretSubsystem.setTargetAngle(OpModeConstants.TURRET_PRESET_LEFT_DEGREES);
             turretControl = "X (preset FAR LEFT)";
         } else if (gamepad2.b) {
-            turretSubsystem.setTargetAngle(PRESET_RIGHT_DEGREES);
+            turretSubsystem.setTargetAngle(OpModeConstants.TURRET_PRESET_RIGHT_DEGREES);
             turretControl = "B (preset FAR RIGHT)";
         } else if (gamepad2.a) {
             turretSubsystem.stop();

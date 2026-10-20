@@ -86,20 +86,13 @@ public class ShooterRPMAlpha extends OpMode {
     private static final double HOOD_WHEEL_RPM_Y = 3600.0;
     private static final double HOOD_WHEEL_RPM_X = 3300.0;
 
-    // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double FLYWHEEL_POWER_REVERSE = -0.60;
-    private static final double HOOD_WHEEL_POWER_REVERSE = -0.60;
+    // The reverse powers are shared with other OpModes, so they live in OpModeConstants.java.
 
     // Power for the encoder check (hold the Right Trigger). 1.0 is full power.
     private static final double ENCODER_CHECK_POWER = 1.0;
 
-    // The triggers give a number from 0.0 to 1.0. Past this much counts as "pressed".
-    private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
-
-    // How far one D-pad press moves the gate servo position (the position runs 0.0 to 1.0).
-    // 0.01 is about 3 degrees on a 300 degree servo (0.01 x 300). Make it smaller for
-    // finer adjustment, or bigger to move faster.
-    private static final double GATE_NUDGE_STEP = 0.01;
+    // The trigger threshold and gate nudge step are shared with other OpModes, so they live
+    // in OpModeConstants.java. Change them there.
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
@@ -174,7 +167,7 @@ public class ShooterRPMAlpha extends OpMode {
         String shooterControl;
         boolean reverseFlywheel = gamepad1.right_bumper;
         boolean reverseHoodWheel = gamepad1.left_bumper;
-        boolean encoderCheck = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean encoderCheck = gamepad1.right_trigger > OpModeConstants.TRIGGER_PRESSED_THRESHOLD;
 
         // 3. Tell the shooter what to do, then call update().
         if (reverseFlywheel || reverseHoodWheel) {
@@ -183,10 +176,10 @@ public class ShooterRPMAlpha extends OpMode {
             double flywheelPower = 0.0;
             double hoodWheelPower = 0.0;
             if (reverseFlywheel) {
-                flywheelPower = FLYWHEEL_POWER_REVERSE;
+                flywheelPower = OpModeConstants.FLYWHEEL_POWER_REVERSE;
             }
             if (reverseHoodWheel) {
-                hoodWheelPower = HOOD_WHEEL_POWER_REVERSE;
+                hoodWheelPower = OpModeConstants.HOOD_WHEEL_POWER_REVERSE;
             }
             shooterSubsystem.setPower(flywheelPower, hoodWheelPower);
             shooterControl = "Bumper (REVERSE)";
@@ -209,7 +202,7 @@ public class ShooterRPMAlpha extends OpMode {
         // The gate is separate from the wheels, so it has its own buttons.
         // A button counts as ONE press only on the loop where it goes from "not pressed"
         // to "pressed". Without this check, holding it would flip the gate every loop.
-        boolean gateTogglePressed = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean gateTogglePressed = gamepad1.left_trigger > OpModeConstants.TRIGGER_PRESSED_THRESHOLD;
         boolean nudgeUpPressed = gamepad1.dpad_up;
         boolean nudgeDownPressed = gamepad1.dpad_down;
 
@@ -217,10 +210,10 @@ public class ShooterRPMAlpha extends OpMode {
             shooterServoSubsystem.toggle();
         }
         if (nudgeUpPressed && !wasNudgeUpPressed) {
-            shooterServoSubsystem.nudgePosition(GATE_NUDGE_STEP);
+            shooterServoSubsystem.nudgePosition(OpModeConstants.GATE_NUDGE_STEP);
         }
         if (nudgeDownPressed && !wasNudgeDownPressed) {
-            shooterServoSubsystem.nudgePosition(-GATE_NUDGE_STEP);
+            shooterServoSubsystem.nudgePosition(-OpModeConstants.GATE_NUDGE_STEP);
         }
 
         // Remember this loop's buttons for the next loop.

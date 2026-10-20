@@ -100,30 +100,10 @@ public class ShooterPowerAlpha extends OpMode {
     private static final double HOOD_WHEEL_POWER_Y = 0.60;
     private static final double HOOD_WHEEL_POWER_X = 0.55;
 
-    // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double FLYWHEEL_POWER_REVERSE = -0.60;
-    private static final double HOOD_WHEEL_POWER_REVERSE = -0.60;
-
     // ------------------------------------------------------------------
-    // Gamepad 1: shooter gate
+    // The reverse powers, trigger threshold, gate nudge step and intake dial settings are
+    // shared with other OpModes, so they live in OpModeConstants.java. Change them there.
     // ------------------------------------------------------------------
-    // The triggers give a number from 0.0 to 1.0. Past this much counts as "pressed".
-    private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
-
-    // How far one D-pad press moves the gate servo position (the position runs 0.0 to 1.0).
-    // 0.01 is about 3 degrees on a 300 degree servo (0.01 x 300). Make it smaller for
-    // finer adjustment, or bigger to move faster.
-    private static final double GATE_NUDGE_STEP = 0.01;
-
-    // ------------------------------------------------------------------
-    // Gamepad 2: intake power dial
-    // ------------------------------------------------------------------
-    // How much one D-pad press changes the dial, in percent. 5 means 5%.
-    private static final int DIAL_STEP_PERCENT = 5;
-
-    // The lowest and highest the dial can go, in percent.
-    private static final int DIAL_MIN_PERCENT = 0;
-    private static final int DIAL_MAX_PERCENT = 100;
 
     // ------------------------------------------------------------------
     // Declare OpMode members.
@@ -247,18 +227,18 @@ public class ShooterPowerAlpha extends OpMode {
 
         // REVERSE beats the shooter buttons, so clearing a jam always works.
         if (gamepad1.right_bumper) {
-            flywheelPower = FLYWHEEL_POWER_REVERSE;
+            flywheelPower = OpModeConstants.FLYWHEEL_POWER_REVERSE;
             flywheelControl = "Right Bumper (REVERSE)";
         }
         if (gamepad1.left_bumper) {
-            hoodWheelPower = HOOD_WHEEL_POWER_REVERSE;
+            hoodWheelPower = OpModeConstants.HOOD_WHEEL_POWER_REVERSE;
             hoodWheelControl = "Left Bumper (REVERSE)";
         }
 
         // ---- Gamepad 1: shooter gate ----
         // A button counts as ONE press only on the loop where it goes from "not pressed"
         // to "pressed". Without this check, holding it would flip the gate every loop.
-        boolean gateTogglePressed = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean gateTogglePressed = gamepad1.left_trigger > OpModeConstants.TRIGGER_PRESSED_THRESHOLD;
         boolean gateNudgeUpPressed = gamepad1.dpad_up;
         boolean gateNudgeDownPressed = gamepad1.dpad_down;
 
@@ -268,18 +248,18 @@ public class ShooterPowerAlpha extends OpMode {
 
         // Turn the dial only on the loop where the button FIRST goes down.
         if (dialUpPressed && !wasDialUpPressed) {
-            dialPercent = dialPercent + DIAL_STEP_PERCENT;
+            dialPercent = dialPercent + OpModeConstants.INTAKE_DIAL_STEP_PERCENT;
         }
         if (dialDownPressed && !wasDialDownPressed) {
-            dialPercent = dialPercent - DIAL_STEP_PERCENT;
+            dialPercent = dialPercent - OpModeConstants.INTAKE_DIAL_STEP_PERCENT;
         }
 
         // Keep the dial between its lowest and highest settings.
-        if (dialPercent > DIAL_MAX_PERCENT) {
-            dialPercent = DIAL_MAX_PERCENT;
+        if (dialPercent > OpModeConstants.INTAKE_DIAL_MAX_PERCENT) {
+            dialPercent = OpModeConstants.INTAKE_DIAL_MAX_PERCENT;
         }
-        if (dialPercent < DIAL_MIN_PERCENT) {
-            dialPercent = DIAL_MIN_PERCENT;
+        if (dialPercent < OpModeConstants.INTAKE_DIAL_MIN_PERCENT) {
+            dialPercent = OpModeConstants.INTAKE_DIAL_MIN_PERCENT;
         }
 
         // 3. Tell the subsystems what to do, then call their update().
@@ -294,10 +274,10 @@ public class ShooterPowerAlpha extends OpMode {
             shooterServoSubsystem.toggle();
         }
         if (gateNudgeUpPressed && !wasGateNudgeUpPressed) {
-            shooterServoSubsystem.nudgePosition(GATE_NUDGE_STEP);
+            shooterServoSubsystem.nudgePosition(OpModeConstants.GATE_NUDGE_STEP);
         }
         if (gateNudgeDownPressed && !wasGateNudgeDownPressed) {
-            shooterServoSubsystem.nudgePosition(-GATE_NUDGE_STEP);
+            shooterServoSubsystem.nudgePosition(-OpModeConstants.GATE_NUDGE_STEP);
         }
 
         // Intake. Turn the percent into the 0.0 to 1.0 number the subsystem wants (50 -> 0.50).

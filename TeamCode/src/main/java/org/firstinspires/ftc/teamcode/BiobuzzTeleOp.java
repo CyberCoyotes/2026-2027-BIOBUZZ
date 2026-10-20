@@ -95,74 +95,17 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 public class BiobuzzTeleOp extends OpMode {
 
     // ------------------------------------------------------------------
-    // Driving
+    // The stick deadbands, trigger threshold, shooter and turret dials, reverse powers
+    // and turret presets are shared with the Alpha test OpModes, so they live in
+    // OpModeConstants.java. Change them there, once. Only numbers that belong to THIS
+    // OpMode stay here.
     // ------------------------------------------------------------------
-    // The sticks do not always rest at exactly zero. Anything smaller than this is ignored,
-    // so the robot does not creep when you let go.
-    private static final double STICK_DEADBAND = 0.05;
-
-    // The trigger gives a number from 0.0 to 1.0. Past this much counts as "pressed".
-    private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
-
-    // ------------------------------------------------------------------
-    // Shooter dials (gamepad2). These are test-only numbers.
-    // ------------------------------------------------------------------
-    // The flywheel power dial is counted in WHOLE PERCENT (30 means 30% power).
-    // Where it starts, how far one press moves it, and how low and high it can go.
-    private static final int FLYWHEEL_POWER_PERCENT_START = 30;
-    private static final int FLYWHEEL_POWER_PERCENT_STEP = 5;
-    private static final int FLYWHEEL_POWER_PERCENT_MIN = 5;
-    private static final int FLYWHEEL_POWER_PERCENT_MAX = 100;
-
-    // The ratio dial is counted in HUNDREDTHS so that adding 5 over and over never drifts to
-    // something like 1.9999999. So 200 means a ratio of 2.00, and a step of 5 means 0.05.
-    private static final int RATIO_HUNDREDTHS_START = 200;
-    private static final int RATIO_HUNDREDTHS_STEP = 5;
-    private static final int RATIO_HUNDREDTHS_MIN = 100;
-    private static final int RATIO_HUNDREDTHS_MAX = 300;
-
-    // How many hundredths make a whole number (200 hundredths = 2.00).
-    private static final double HUNDREDTHS_PER_ONE = 100.0;
-
-    // How many percent make a whole power of 1.0 (100 percent = 1.0 power).
-    private static final double PERCENT_PER_ONE = 100.0;
-
-    // The most power a wheel can be given, in percent. A hood wheel power above this is CAPPED.
-    private static final double MAX_POWER_PERCENT = 100.0;
-
-    // How long the wheels need to settle after the shooter starts, a dial changes, or a ball
-    // goes through. A starting guess. Time it with a stopwatch.
-    private static final double SPIN_SETTLE_SECONDS = 3.0;
 
     // The fixed shot on the driver's Right Trigger, in percent power: flywheel 45% and hood
     // wheel 90%, which is a ratio of 2.00 (hood / flywheel). Change these two numbers to try a
     // different fixed shot. A wheel cannot go past 100%.
     private static final int TRIGGER_SHOT_FLYWHEEL_POWER_PERCENT = 45;
     private static final int TRIGGER_SHOT_HOOD_WHEEL_POWER_PERCENT = 90;
-
-    // Reverse power is NEGATIVE so the motor spins the other way.
-    private static final double FLYWHEEL_POWER_REVERSE = -0.60;
-    private static final double HOOD_WHEEL_POWER_REVERSE = -0.60;
-
-    // ------------------------------------------------------------------
-    // Turret (gamepad2). These are test-only numbers, the same as in TurretAlpha.
-    // ------------------------------------------------------------------
-    // The turret power at the start, in percent. A full push on the stick, or holding D-pad
-    // Left / Right, turns the turret at this power. D-pad Up / Down change it.
-    private static final int TURRET_POWER_PERCENT_START = 50;
-    private static final int TURRET_POWER_PERCENT_STEP = 5;
-    private static final int TURRET_POWER_PERCENT_MIN = 0;
-    private static final int TURRET_POWER_PERCENT_MAX = 100;
-
-    // The turret preset angles. LEFT is POSITIVE and RIGHT is NEGATIVE, the same as Pinpoint
-    // and Pedro Pathing. Center is 0 degrees, which is 0 encoder ticks.
-    private static final double TURRET_PRESET_SIDE_DEGREES = 90.0;
-    private static final double TURRET_PRESET_LEFT_DEGREES = TURRET_PRESET_SIDE_DEGREES;
-    private static final double TURRET_PRESET_RIGHT_DEGREES = -TURRET_PRESET_SIDE_DEGREES;
-    private static final double TURRET_PRESET_CENTER_DEGREES = 0.0;
-
-    // The turret stick must move more than this before it counts.
-    private static final double TURRET_STICK_DEADBAND = 0.1;
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
@@ -173,11 +116,11 @@ public class BiobuzzTeleOp extends OpMode {
     private TurretSubsystem turretSubsystem;
 
     // The turret power right now, in percent. D-pad Up and Down (gamepad2) change it.
-    private int turretPowerPercent = TURRET_POWER_PERCENT_START;
+    private int turretPowerPercent = OpModeConstants.TURRET_POWER_PERCENT_START;
 
     // The shooter dials, in whole numbers.
-    private int flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_START;
-    private int ratioHundredths = RATIO_HUNDREDTHS_START;
+    private int flywheelPowerPercent = OpModeConstants.FLYWHEEL_POWER_PERCENT_START;
+    private int ratioHundredths = OpModeConstants.RATIO_HUNDREDTHS_START;
 
     // True after Y, false after X. The shooter keeps spinning between button presses.
     private boolean shooterOn = false;
@@ -237,7 +180,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Stick X = turn turret   D-pad Up / Down = turret power +/-");
         telemetry.addLine("--- GAMEPAD 2 TURRET LAYER (HOLD Left Trigger) ---");
         telemetry.addLine(String.format("Y = center (%.0f)  X = far left (%+.0f)  B = far right (%+.0f) degrees",
-                TURRET_PRESET_CENTER_DEGREES, TURRET_PRESET_LEFT_DEGREES, TURRET_PRESET_RIGHT_DEGREES));
+                OpModeConstants.TURRET_PRESET_CENTER_DEGREES, OpModeConstants.TURRET_PRESET_LEFT_DEGREES, OpModeConstants.TURRET_PRESET_RIGHT_DEGREES));
         telemetry.addLine("A = STOP turret   D-pad Left / Right = hold to turn");
         telemetry.addLine("(The shooter ignores Y, X, B, A and D-pad Left / Right while the trigger is held)");
     }
@@ -264,7 +207,7 @@ public class BiobuzzTeleOp extends OpMode {
      * Ignores a stick value that is too small to be on purpose.
      */
     private double applyDeadband(double stickValue) {
-        if (Math.abs(stickValue) < STICK_DEADBAND) {
+        if (Math.abs(stickValue) < OpModeConstants.DRIVE_STICK_DEADBAND) {
             return 0.0;
         }
         return stickValue;
@@ -337,9 +280,9 @@ public class BiobuzzTeleOp extends OpMode {
         double strafe = applyDeadband(-gamepad1.left_stick_x);
         double turn = applyDeadband(-gamepad1.right_stick_x);
 
-        boolean slowMode = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean slowMode = gamepad1.left_trigger > OpModeConstants.TRIGGER_PRESSED_THRESHOLD;
         boolean gateButtonPressed = gamepad1.a;
-        boolean triggerShotPressed = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean triggerShotPressed = gamepad1.right_trigger > OpModeConstants.TRIGGER_PRESSED_THRESHOLD;
 
         // The wheels change speed when the trigger goes down AND when it comes back up,
         // so both start the "wheels settled?" count over.
@@ -359,7 +302,7 @@ public class BiobuzzTeleOp extends OpMode {
         // buttons belong to the turret, so the shooter must ignore them. (We still remember
         // them at the bottom of loop(), so letting go of the trigger while a button is still
         // held does not count as a new press.)
-        boolean turretLayer = gamepad2.left_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean turretLayer = gamepad2.left_trigger > OpModeConstants.TRIGGER_PRESSED_THRESHOLD;
 
         // Shooter on and off. If both are pressed at once, OFF wins (the safer choice).
         if (!turretLayer && isNewPress(yPressed, wasYPressed)) {
@@ -372,46 +315,46 @@ public class BiobuzzTeleOp extends OpMode {
 
         // Turn the dials. Any change makes the wheels change speed, so start the count over.
         if (!turretLayer && isNewPress(bPressed, wasBPressed)) {
-            flywheelPowerPercent = flywheelPowerPercent + FLYWHEEL_POWER_PERCENT_STEP;
+            flywheelPowerPercent = flywheelPowerPercent + OpModeConstants.FLYWHEEL_POWER_PERCENT_STEP;
             restartSpinTimer();
         }
         if (!turretLayer && isNewPress(aPressed, wasAPressed)) {
-            flywheelPowerPercent = flywheelPowerPercent - FLYWHEEL_POWER_PERCENT_STEP;
+            flywheelPowerPercent = flywheelPowerPercent - OpModeConstants.FLYWHEEL_POWER_PERCENT_STEP;
             restartSpinTimer();
         }
         if (!turretLayer && isNewPress(dpadRightPressed, wasDpadRightPressed)) {
-            ratioHundredths = ratioHundredths + RATIO_HUNDREDTHS_STEP;
+            ratioHundredths = ratioHundredths + OpModeConstants.RATIO_HUNDREDTHS_STEP;
             restartSpinTimer();
         }
         if (!turretLayer && isNewPress(dpadLeftPressed, wasDpadLeftPressed)) {
-            ratioHundredths = ratioHundredths - RATIO_HUNDREDTHS_STEP;
+            ratioHundredths = ratioHundredths - OpModeConstants.RATIO_HUNDREDTHS_STEP;
             restartSpinTimer();
         }
 
         // Keep the dials between their lowest and highest settings.
-        if (flywheelPowerPercent > FLYWHEEL_POWER_PERCENT_MAX) {
-            flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_MAX;
+        if (flywheelPowerPercent > OpModeConstants.FLYWHEEL_POWER_PERCENT_MAX) {
+            flywheelPowerPercent = OpModeConstants.FLYWHEEL_POWER_PERCENT_MAX;
         }
-        if (flywheelPowerPercent < FLYWHEEL_POWER_PERCENT_MIN) {
-            flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_MIN;
+        if (flywheelPowerPercent < OpModeConstants.FLYWHEEL_POWER_PERCENT_MIN) {
+            flywheelPowerPercent = OpModeConstants.FLYWHEEL_POWER_PERCENT_MIN;
         }
-        if (ratioHundredths > RATIO_HUNDREDTHS_MAX) {
-            ratioHundredths = RATIO_HUNDREDTHS_MAX;
+        if (ratioHundredths > OpModeConstants.RATIO_HUNDREDTHS_MAX) {
+            ratioHundredths = OpModeConstants.RATIO_HUNDREDTHS_MAX;
         }
-        if (ratioHundredths < RATIO_HUNDREDTHS_MIN) {
-            ratioHundredths = RATIO_HUNDREDTHS_MIN;
+        if (ratioHundredths < OpModeConstants.RATIO_HUNDREDTHS_MIN) {
+            ratioHundredths = OpModeConstants.RATIO_HUNDREDTHS_MIN;
         }
 
         // The hood wheel power is the flywheel power times the ratio. A wheel cannot go past
         // 100%, so if the answer is more than that we use 100% and warn that it was CAPPED.
-        double ratio = ratioHundredths / HUNDREDTHS_PER_ONE;
+        double ratio = ratioHundredths / OpModeConstants.HUNDREDTHS_PER_ONE;
         double wantedHoodWheelPercent = flywheelPowerPercent * ratio;
-        boolean hoodWheelCapped = wantedHoodWheelPercent > MAX_POWER_PERCENT;
-        double hoodWheelPercent = Math.min(wantedHoodWheelPercent, MAX_POWER_PERCENT);
+        boolean hoodWheelCapped = wantedHoodWheelPercent > OpModeConstants.MAX_POWER_PERCENT;
+        double hoodWheelPercent = Math.min(wantedHoodWheelPercent, OpModeConstants.MAX_POWER_PERCENT);
 
         // Turn the percents into the 0.0 to 1.0 powers the subsystem wants (30 -> 0.30).
-        double flywheelPower = flywheelPowerPercent / PERCENT_PER_ONE;
-        double hoodWheelPower = hoodWheelPercent / PERCENT_PER_ONE;
+        double flywheelPower = flywheelPowerPercent / OpModeConstants.PERCENT_PER_ONE;
+        double hoodWheelPower = hoodWheelPercent / OpModeConstants.PERCENT_PER_ONE;
 
         // 3. Tell the subsystems what to do. (The drive has no update() to call.)
 
@@ -449,10 +392,10 @@ public class BiobuzzTeleOp extends OpMode {
             double reverseFlywheelPower = 0.0;
             double reverseHoodWheelPower = 0.0;
             if (reverseFlywheel) {
-                reverseFlywheelPower = FLYWHEEL_POWER_REVERSE;
+                reverseFlywheelPower = OpModeConstants.FLYWHEEL_POWER_REVERSE;
             }
             if (reverseHoodWheel) {
-                reverseHoodWheelPower = HOOD_WHEEL_POWER_REVERSE;
+                reverseHoodWheelPower = OpModeConstants.HOOD_WHEEL_POWER_REVERSE;
             }
             shooterSubsystem.setPower(reverseFlywheelPower, reverseHoodWheelPower);
             shooterControl = "Bumper (REVERSE)";
@@ -461,8 +404,8 @@ public class BiobuzzTeleOp extends OpMode {
         } else if (triggerShotPressed) {
             // The driver's fixed shot beats the operator's dials while the trigger is held.
             shooterSubsystem.setPower(
-                    TRIGGER_SHOT_FLYWHEEL_POWER_PERCENT / PERCENT_PER_ONE,
-                    TRIGGER_SHOT_HOOD_WHEEL_POWER_PERCENT / PERCENT_PER_ONE);
+                    TRIGGER_SHOT_FLYWHEEL_POWER_PERCENT / OpModeConstants.PERCENT_PER_ONE,
+                    TRIGGER_SHOT_HOOD_WHEEL_POWER_PERCENT / OpModeConstants.PERCENT_PER_ONE);
             shooterControl = String.format("Right Trigger (%d / %d)",
                     TRIGGER_SHOT_FLYWHEEL_POWER_PERCENT, TRIGGER_SHOT_HOOD_WHEEL_POWER_PERCENT);
         } else if (shooterOn) {
@@ -491,25 +434,25 @@ public class BiobuzzTeleOp extends OpMode {
         boolean dpadUpPressed = gamepad2.dpad_up;
         boolean dpadDownPressed = gamepad2.dpad_down;
         if (isNewPress(dpadUpPressed, wasDpadUpPressed)) {
-            turretPowerPercent = turretPowerPercent + TURRET_POWER_PERCENT_STEP;
+            turretPowerPercent = turretPowerPercent + OpModeConstants.TURRET_POWER_PERCENT_STEP;
         }
         if (isNewPress(dpadDownPressed, wasDpadDownPressed)) {
-            turretPowerPercent = turretPowerPercent - TURRET_POWER_PERCENT_STEP;
+            turretPowerPercent = turretPowerPercent - OpModeConstants.TURRET_POWER_PERCENT_STEP;
         }
-        if (turretPowerPercent > TURRET_POWER_PERCENT_MAX) {
-            turretPowerPercent = TURRET_POWER_PERCENT_MAX;
+        if (turretPowerPercent > OpModeConstants.TURRET_POWER_PERCENT_MAX) {
+            turretPowerPercent = OpModeConstants.TURRET_POWER_PERCENT_MAX;
         }
-        if (turretPowerPercent < TURRET_POWER_PERCENT_MIN) {
-            turretPowerPercent = TURRET_POWER_PERCENT_MIN;
+        if (turretPowerPercent < OpModeConstants.TURRET_POWER_PERCENT_MIN) {
+            turretPowerPercent = OpModeConstants.TURRET_POWER_PERCENT_MIN;
         }
 
         // Turn the percent into a number from 0.0 to 1.0.
-        double turretPower = turretPowerPercent / PERCENT_PER_ONE;
+        double turretPower = turretPowerPercent / OpModeConstants.PERCENT_PER_ONE;
 
         // Stick RIGHT is a positive number on the controller. But turning RIGHT means going
         // clockwise, and clockwise is a NEGATIVE angle. So we flip the sign of the stick.
         double turretStick = -gamepad2.left_stick_x;
-        boolean usingTurretStick = Math.abs(turretStick) > TURRET_STICK_DEADBAND;
+        boolean usingTurretStick = Math.abs(turretStick) > OpModeConstants.TURRET_STICK_DEADBAND;
 
         // The D-pad turns the turret only while it is held, and only in the turret layer.
         // Pressing Left and Right together cancels out, so neither counts.
@@ -536,13 +479,13 @@ public class BiobuzzTeleOp extends OpMode {
             turretSubsystem.holdCurrentAngle();
             turretControl = "Released (HOLD)";
         } else if (turretLayer && yPressed) {
-            turretSubsystem.setTargetAngle(TURRET_PRESET_CENTER_DEGREES);
+            turretSubsystem.setTargetAngle(OpModeConstants.TURRET_PRESET_CENTER_DEGREES);
             turretControl = "Y (preset CENTER)";
         } else if (turretLayer && xPressed) {
-            turretSubsystem.setTargetAngle(TURRET_PRESET_LEFT_DEGREES);
+            turretSubsystem.setTargetAngle(OpModeConstants.TURRET_PRESET_LEFT_DEGREES);
             turretControl = "X (preset FAR LEFT)";
         } else if (turretLayer && bPressed) {
-            turretSubsystem.setTargetAngle(TURRET_PRESET_RIGHT_DEGREES);
+            turretSubsystem.setTargetAngle(OpModeConstants.TURRET_PRESET_RIGHT_DEGREES);
             turretControl = "B (preset FAR RIGHT)";
         } else if (turretLayer && aPressed) {
             turretSubsystem.stop();
@@ -587,11 +530,11 @@ public class BiobuzzTeleOp extends OpMode {
         String settledText;
         if (!shooterOn && !triggerShotPressed) {
             settledText = "shooter is OFF";
-        } else if (spinTimer.seconds() >= SPIN_SETTLE_SECONDS) {
+        } else if (spinTimer.seconds() >= OpModeConstants.SPIN_SETTLE_SECONDS) {
             settledText = "YES - OK to shoot";
         } else {
             settledText = String.format("WAIT (%.1f of %.0f seconds)",
-                    spinTimer.seconds(), SPIN_SETTLE_SECONDS);
+                    spinTimer.seconds(), OpModeConstants.SPIN_SETTLE_SECONDS);
         }
         telemetry.addData("Wheels settled?", settledText);
 
