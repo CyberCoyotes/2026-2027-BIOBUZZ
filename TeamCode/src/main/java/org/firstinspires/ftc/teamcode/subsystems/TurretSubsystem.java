@@ -46,7 +46,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * TWO WAYS TO MOVE THE TURRET
  *   1. POSITION: setTargetAngle(degrees). A small controller turns the turret there.
  *   2. MANUAL: setManualPower(power). The driver steers it with a stick.
- *   Either way the turret will not be driven past its soft limits.
+ *   Either way the turret will not be driven past its soft limits (they are OFF for now,
+ *   see SOFT_LIMITS_ON).
  *
  * STATE (what we told it to do) is IDLE, MANUAL, or POSITION.
  * STATUS (what the sensors say) is getAngleDegrees(), isHomeSwitchActive(), isOnTarget().
@@ -145,6 +146,11 @@ public class TurretSubsystem {
     // so a mistake in the first tests cannot hurt the cables or the frame.
     // After the encoder direction and the switch both check out, widen them to about +/-130
     // (a few degrees inside the real hard stops).
+    //
+    // THE SOFT LIMITS ARE OFF FOR NOW. With this false, nothing stops the turret at an angle,
+    // so it can run into the cables or the frame. Keep a hand on the Stop button, and set
+    // this back to true (and check the two angles below) before real use.
+    private static final boolean SOFT_LIMITS_ON = false;
     private static final double MIN_ANGLE_DEGREES = -45.0;
     private static final double MAX_ANGLE_DEGREES = 45.0;
 
@@ -166,8 +172,9 @@ public class TurretSubsystem {
     // The most power position control will use. Start low. Raise it once everything checks out.
     private static final double MAX_POWER = 0.5;
 
-    // The most power the driver's stick can ask for in MANUAL mode.
-    private static final double MAX_MANUAL_POWER = 0.4;
+    // The most power MANUAL mode can use. setManualPower(1.0) means this much. It is 1.0 now
+    // because the test OpMode (TurretAlpha) lets the operator pick the speed with a dial.
+    private static final double MAX_MANUAL_POWER = 1.0;
 
     // The turret counts as "on target" when it is within this many degrees of the target...
     // The hive window forgives about +/-5 to 13 degrees, so this can be fairly loose.
@@ -279,12 +286,16 @@ public class TurretSubsystem {
 
     /*
      * Turn the turret to an angle and hold it there. Positive is LEFT, negative is RIGHT,
-     * 0 is straight ahead (the intake direction). The angle is held inside the soft limits.
+     * 0 is straight ahead (the intake direction). The angle is held inside the soft limits
+     * (when SOFT_LIMITS_ON is true).
      *
      * Safe to call every loop with the same angle. A repeat call changes nothing.
      */
     public void setTargetAngle(double degrees) {
-        double newTargetAngle = Range.clip(degrees, MIN_ANGLE_DEGREES, MAX_ANGLE_DEGREES);
+        double newTargetAngle = degrees;
+        if (SOFT_LIMITS_ON) {
+            newTargetAngle = Range.clip(degrees, MIN_ANGLE_DEGREES, MAX_ANGLE_DEGREES);
+        }
 
         // Same request as last time? Then there is nothing to do.
         if (state == TurretState.POSITION && newTargetAngle == targetAngleDegrees) {
@@ -308,7 +319,7 @@ public class TurretSubsystem {
     /*
      * Drive the turret at a power. Use -1.0 to 1.0, where 1.0 means MAX_MANUAL_POWER.
      * Positive turns the turret LEFT (toward positive angles). Negative turns it RIGHT.
-     * The soft limits still stop it.
+     * The soft limits still stop it (when SOFT_LIMITS_ON is true).
      */
     public void setManualPower(double power) {
         useBrake();
@@ -425,7 +436,11 @@ public class TurretSubsystem {
         // telemetry.addData("Home Switch", "%s   (raw state = %b)",
         //         isHomeSwitchActive() ? "ON the switch" : "off the switch", homeSwitch.getState());
         telemetry.addData("Encoder ticks", encoderTicks);
-        telemetry.addData("Soft limits", "%.0f to %.0f deg", MIN_ANGLE_DEGREES, MAX_ANGLE_DEGREES);
+        if (SOFT_LIMITS_ON) {
+            telemetry.addData("Soft limits", "%.0f to %.0f deg", MIN_ANGLE_DEGREES, MAX_ANGLE_DEGREES);
+        } else {
+            telemetry.addData("Soft limits", "OFF (nothing stops the turret!)");
+        }
         telemetry.addData("Angle reached switch at", "%.1f deg  (before re-zero)", angleWhenReachedSwitch);
         telemetry.addData("Angle left switch at", "%.1f deg", angleWhenLeftSwitch);
     }
@@ -518,6 +533,10 @@ public class TurretSubsystem {
      * cut to zero. Power that pulls back toward the middle is still allowed.
      */
     private double applySoftLimits(double power) {
+        // The soft limits are switched off for now (see SOFT_LIMITS_ON).
+        if (!SOFT_LIMITS_ON) {
+            return power;
+        }
         if (angleDegrees >= MAX_ANGLE_DEGREES && power > 0.0) {
             return 0.0;
         }
