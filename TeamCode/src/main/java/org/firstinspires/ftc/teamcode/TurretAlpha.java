@@ -12,16 +12,16 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *
  * CONTROLS
  *   Left Stick X      -> MANUAL turning. Push the stick RIGHT and the turret turns RIGHT.
+ *   D-pad Left        -> HOLD to turn the turret LEFT, slowly (DPAD_TURN_POWER)
+ *   D-pad Right       -> HOLD to turn the turret RIGHT, slowly (DPAD_TURN_POWER)
  *   D-pad Up          -> turn to 0 degrees (straight ahead, the intake direction)
- *   D-pad Left        -> turn to +PRESET_SIDE_DEGREES (left)
- *   D-pad Right       -> turn to -PRESET_SIDE_DEGREES (right)
  *   B (Circle on PS5) -> STOP driving the turret. It floats so you can turn it by hand.
- *   Letting go of the stick holds the turret where it is.
- *   Priority: stick, then D-pad, then B.
+ *   Letting go of the stick or the D-pad Left / Right holds the turret where it is.
+ *   Priority: stick, then D-pad Left / Right, then D-pad Up, then B.
  *
  * ANGLES: left (counterclockwise) is POSITIVE, right is NEGATIVE, 0 is straight ahead.
- * The soft limits in TurretSubsystem start small (+/-45 degrees), so a D-pad preset that
- * is further than that is held to the limit. The Target line shows what it really used.
+ * D-pad Up goes to an ANGLE, so it only works if the angle on screen is right. Check the
+ * ticks per degree (step 3 below) before you trust it.
  *
  * HOME SWITCH IS OFF FOR NOW (not installed). Skip step 1 and the "on the switch" part of
  * step 3 below. 0 degrees is wherever the turret was when the Control Hub powered on, so
@@ -38,10 +38,11 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *      marked 90 degrees. The angle should read about 90. If not, check the tooth counts.
  *   4. START. Push the stick a LITTLE to the right. The turret must turn RIGHT and the angle
  *      must go DOWN. If the turret turns the wrong way, flip TURRET_MOTOR_DIRECTION.
- *   5. Try the D-pad. Then roll the turret across the switch and watch "Angle reached switch at".
- *      That number is how far the angle had drifted before it was re-zeroed.
- *   6. When all of that works, widen the soft limits in TurretSubsystem to about +/-130
- *      and raise PRESET_SIDE_DEGREES below to 90.
+ *   5. Hold D-pad Left and Right. The turret must turn only while held, and stop when you let
+ *      go. Then try D-pad Up. (With the home switch installed, also roll the turret across the
+ *      switch and watch "Angle reached switch at". That number is how far the angle had
+ *      drifted before it was re-zeroed.)
+ *   6. When all of that works, widen the soft limits in TurretSubsystem to about +/-130.
  *
  * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
  *
@@ -53,9 +54,10 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 @TeleOp(name = "Turret Testing", group = "Testing")
 public class TurretAlpha extends OpMode {
 
-    // The D-pad Left and Right presets turn this many degrees to each side.
-    // Start small. Raise it to 90 after the soft limits are widened.
-    private static final double PRESET_SIDE_DEGREES = 30.0;
+    // How fast D-pad Left and Right turn the turret while they are held. This is a fraction
+    // of the turret's manual power limit (MAX_MANUAL_POWER in TurretSubsystem): 1.0 is the
+    // fastest manual speed, 0.5 is gentle. If the turret will not move, raise it a little.
+    private static final double DPAD_TURN_POWER = 0.5;
 
     // The straight-ahead preset (the intake direction).
     private static final double PRESET_FORWARD_DEGREES = 0.0;
@@ -68,8 +70,9 @@ public class TurretAlpha extends OpMode {
     private ElapsedTime runtime = new ElapsedTime();
     private TurretSubsystem turretSubsystem;
 
-    // Remembers whether the stick was in use last loop, so we can hold the angle when it is released.
-    private boolean wasUsingStick = false;
+    // Remembers whether the stick or the D-pad was turning the turret last loop, so we can
+    // hold the angle when it is released.
+    private boolean wasTurningManually = false;
 
     /*
      * Adds the button map to telemetry so the drivers can read it.
@@ -77,8 +80,8 @@ public class TurretAlpha extends OpMode {
     private void addControlsTelemetry() {
         telemetry.addLine("--- CONTROLS ---");
         telemetry.addLine("Left Stick X = MANUAL (right = turn right)");
-        telemetry.addLine(String.format("D-pad Up = %.0f   Left = +%.0f   Right = -%.0f degrees",
-                PRESET_FORWARD_DEGREES, PRESET_SIDE_DEGREES, PRESET_SIDE_DEGREES));
+        telemetry.addLine("D-pad Left / Right = HOLD to turn (let go to stop)");
+        telemetry.addLine(String.format("D-pad Up = go to %.0f degrees", PRESET_FORWARD_DEGREES));
         telemetry.addLine("B = STOP (turret floats)");
     }
 
@@ -139,23 +142,30 @@ public class TurretAlpha extends OpMode {
         double manualPower = -gamepad1.left_stick_x;
         boolean usingStick = Math.abs(manualPower) > STICK_DEADBAND;
 
+        // The D-pad turns the turret only while it is held. Pressing Left and Right together
+        // cancels out, so neither counts.
+        boolean dpadLeftOnly = gamepad1.dpad_left && !gamepad1.dpad_right;
+        boolean dpadRightOnly = gamepad1.dpad_right && !gamepad1.dpad_left;
+        boolean turningManually = usingStick || dpadLeftOnly || dpadRightOnly;
+
         // 3. Tell the turret what to do, then call update().
         if (usingStick) {
             turretSubsystem.setManualPower(manualPower);
             turretControl = "Left Stick (MANUAL)";
-        } else if (wasUsingStick) {
-            // The stick was just let go, so hold the turret where it stopped.
+        } else if (dpadLeftOnly) {
+            // Left is a POSITIVE angle, so positive power.
+            turretSubsystem.setManualPower(DPAD_TURN_POWER);
+            turretControl = "D-pad Left (MANUAL)";
+        } else if (dpadRightOnly) {
+            turretSubsystem.setManualPower(-DPAD_TURN_POWER);
+            turretControl = "D-pad Right (MANUAL)";
+        } else if (wasTurningManually) {
+            // The stick or D-pad was just let go, so hold the turret where it stopped.
             turretSubsystem.holdCurrentAngle();
-            turretControl = "Stick released (HOLD)";
+            turretControl = "Released (HOLD)";
         } else if (gamepad1.dpad_up) {
             turretSubsystem.setTargetAngle(PRESET_FORWARD_DEGREES);
             turretControl = "D-pad Up";
-        } else if (gamepad1.dpad_left) {
-            turretSubsystem.setTargetAngle(PRESET_SIDE_DEGREES);
-            turretControl = "D-pad Left";
-        } else if (gamepad1.dpad_right) {
-            turretSubsystem.setTargetAngle(-PRESET_SIDE_DEGREES);
-            turretControl = "D-pad Right";
         } else if (gamepad1.b) {
             turretSubsystem.stop();
             turretControl = "B (STOP)";
@@ -163,7 +173,7 @@ public class TurretAlpha extends OpMode {
             // No new command. The turret keeps doing what it was last told to do.
             turretControl = "None (keeps last command)";
         }
-        wasUsingStick = usingStick;
+        wasTurningManually = turningManually;
         turretSubsystem.update();
 
         // 4. Show what is happening on the Driver Station.
