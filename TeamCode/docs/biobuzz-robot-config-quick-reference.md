@@ -19,7 +19,7 @@ Fill in the **Port** column in pen when you wire each robot. The ports are not r
 | `intake` | goBILDA 5203 (intake + transfer, one motor) | IntakeSubsystem | REVERSE | ____ |
 | `flywheel` | goBILDA 5202/3/4, about 4 in wheel | ShooterSubsystem | FORWARD | ____ |
 | `hood_wheel` | goBILDA 5203 series, about 2 in wheel | ShooterSubsystem | FORWARD | ____ |
-| `turret_motor` | goBILDA 5203 series (turret rotation). **Power** on the power connector. The **REV Through Bore Encoder** (quadrature mode, on the turret ring gear) goes in the **same port's encoder connector**. Leave the goBILDA motor's own encoder cable unplugged. | TurretSubsystem | FORWARD (also flips the encoder count) | ____ |
+| `turret_motor` | goBILDA 5203, 435 RPM (turret rotation). **Power** on the power connector. **For now** the motor's own encoder cable goes in the **same port's encoder connector**. Later the **REV Through Bore Encoder** can go there instead (then change `ENCODER_TICKS_PER_REV` in `TurretSubsystem`). | TurretSubsystem | FORWARD (also flips the encoder count) | ____ |
 
 There is no separate `turret_encoder` entry. The two hubs have exactly 8 motor ports, and we use all 8.
 
@@ -58,7 +58,7 @@ Without it, turret 0° is wherever the turret pointed when the hub powered on, s
 
 - [ ] Names on the Driver Station match this sheet exactly (lowercase, underscores)
 - [ ] Each device is in the port you wrote down
-- [ ] Turret Through Bore Encoder is in the **encoder connector of the `turret_motor` port**, and the goBILDA motor's own encoder cable is unplugged
+- [ ] Turret motor's own encoder cable is in the **encoder connector of the `turret_motor` port** (for now; the Through Bore replaces it later)
 - [ ] (Later, once installed) Home switch is a **Digital Device**, not a Touch Sensor
 - [ ] Servo is in positional mode (not continuous rotation)
 - [ ] Limelight appears as an Ethernet device named `limelight`

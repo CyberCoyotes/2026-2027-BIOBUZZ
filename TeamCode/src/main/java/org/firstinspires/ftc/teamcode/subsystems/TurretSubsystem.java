@@ -26,8 +26,10 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *   - POSITIVE motor power must turn the turret toward POSITIVE angles (left).
  *
  * HOW THE TURRET KNOWS WHERE IT IS
- *   A REV Through Bore Encoder rides on a pinion that meshes with the turret's ring gear.
- *   It only counts movement, so it needs a reference. The REV magnetic limit switch is
+ *   FOR NOW the turret motor's built-in encoder counts the turret's movement (the motor's
+ *   16T pinion meshes with the turret's ring gear). Later, a REV Through Bore Encoder on its
+ *   own pinion can replace it (see ENCODER_TICKS_PER_REV below).
+ *   An encoder only counts movement, so it needs a reference. The REV magnetic limit switch is
  *   that reference:
  *     1. Before the match, place the turret by hand ON the switch (0 degrees).
  *        If it starts on the switch, we zero right away (see setUpHardware).
@@ -52,11 +54,11 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * The OpMode must call update() ONCE per loop(). Nothing calls it for us.
  *
  * Robot configuration (on the Driver Station):
- *   Motor name:           turret_motor        (goBILDA motor, power on the port's power connector.
- *                                              The REV Through Bore Encoder is plugged into the
- *                                              SAME port's 4-pin ENCODER connector. Do NOT plug
- *                                              the goBILDA motor's own encoder cable in there.
- *                                              This is one config entry, not two.)
+ *   Motor name:           turret_motor        (goBILDA 5203, 435 RPM, power on the port's power
+ *                                              connector. FOR NOW its own encoder cable is plugged
+ *                                              into the SAME port's 4-pin ENCODER connector.
+ *                                              Later the REV Through Bore Encoder can go in that
+ *                                              connector instead. One config entry either way.)
  *   HOME SWITCH IS OFF FOR NOW (not installed, code commented out). Without it, 0 degrees is
  *   wherever the turret was when the Control Hub powered on, so start with the turret
  *   straight ahead, and the angle is never re-zeroed during a match.
@@ -94,18 +96,27 @@ public class TurretSubsystem {
     // ------------------------------------------------------------------
     // Gear and encoder numbers: how encoder ticks turn into turret degrees
     // ------------------------------------------------------------------
-    // The REV Through Bore Encoder makes 2048 cycles per turn. The Control Hub counts all
-    // four edges of each cycle, so we see 8192 ticks per encoder turn.
-    private static final double ENCODER_TICKS_PER_REV = 8192.0;
+    // FOR NOW we use the turret motor's BUILT-IN encoder (the goBILDA 5203, 435 RPM, 13.7:1
+    // gearbox). goBILDA lists it at 384.5 ticks per turn of the motor's output shaft.
+    // [CONFIRM] Our notes disagree about 28 vs 112 counts per motor revolution (see CLAUDE.md).
+    // 384.5 is goBILDA's published number for this motor and is what the 28 gives. The hand
+    // test below settles it: if the angle is off by exactly 4x, the number is wrong.
+    //
+    // TO GO BACK to the REV Through Bore Encoder: use 8192.0 here (2048 cycles x 4 edges), and
+    // ENCODER_PINION_TEETH stays 16 because the encoder pinion is also a 16T gear.
+    private static final double ENCODER_TICKS_PER_REV = 384.5;
 
-    // The encoder pinion and the ring gear mesh, so the encoder turns more than the turret does.
+    // The gear on the encoder's shaft and the ring gear mesh, so the encoder turns more than
+    // the turret does. Here that gear is the MOTOR'S 16T pinion, because the motor's encoder
+    // is on the motor shaft: 3 motor turns make 1 turret turn.
     // [CONFIRM] The ring gear is believed to be 48 teeth. Count it in Onshape. Both pinions are 16.
     private static final double RING_GEAR_TEETH = 48.0;
     private static final double ENCODER_PINION_TEETH = 16.0;
 
     private static final double DEGREES_PER_REV = 360.0;
 
-    // Encoder ticks for ONE degree of turret turn. With 48 and 16 teeth this is about 68.3.
+    // Encoder ticks for ONE degree of turret turn. With the motor encoder and 48 / 16 teeth this
+    // is about 3.2. (The Through Bore Encoder would give about 68.3.)
     // Check it on the robot: turn the turret by hand through a marked 90 degrees and see
     // that the angle on screen reads 90. If not, check the tooth counts above.
     private static final double TICKS_PER_TURRET_DEGREE =
