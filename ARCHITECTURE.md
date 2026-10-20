@@ -34,7 +34,7 @@ org.firstinspires.ftc.teamcode
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 4"). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 5"; gamepad1 is the driver, gamepad2 is the operator: shooter buttons normally, and the turret buttons while the Left Trigger is held, see its header). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -151,8 +151,7 @@ Names already in use:
 | `left_rear` | Drive motor, left rear (mecanum) |
 | `right_front` | Drive motor, right front (mecanum) |
 | `right_rear` | Drive motor, right rear (mecanum) |
-| `turret_motor` | Turret rotation motor (goBILDA 5203 series, believed `[CONFIRM]`; gearbox ratio TBD) |
-| `turret_encoder` | REV Through Bore Encoder in incremental (quadrature) mode, on the turret ring gear. Plugged into an encoder port with no motor attached. Read only. |
+| `turret_motor` | Turret rotation motor (goBILDA 5203 series, believed `[CONFIRM]`; gearbox ratio TBD). The REV Through Bore Encoder (incremental/quadrature, on the turret ring gear) is plugged into this same port's encoder connector, so there is no separate encoder entry. |
 | `turret_home_switch` | REV magnetic limit switch (active-low) that re-zeros the turret angle (digital port). Name approved. |
 | `shooter_servo` | Shooter gate: goBILDA dual mode 300° torque servo, set to positional mode. Moves about 90° between LOADING and SHOOTING. |
 | `limelight` | Limelight 3A (Ethernet device) |
@@ -213,10 +212,11 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 ### TurretSubsystem (`subsystems/TurretSubsystem.java`): code written, not yet tested on the robot
 
 - **Hardware:**
-  - `turret_motor`: power only. The turret is not controlled with the motor's own encoder.
-  - `turret_encoder`: REV Through Bore Encoder, incremental (quadrature) mode, **8192 counts per encoder revolution**, on the ring gear. Read only. The Control Hub cannot read this encoder's absolute pulse output.
+  - `turret_motor`: goBILDA 5203, **435 RPM (13.7:1)**, power on the port's power connector.
+  - **For now the turret uses the motor's built-in encoder** (**384.5 counts per output-shaft revolution** per goBILDA, which is 28 × 13.7 `[CONFIRM]`), plugged into the port's encoder connector. **Later** the REV Through Bore Encoder (incremental/quadrature, **8192 counts per revolution**, on its own 16T pinion on the ring gear) can go in that same connector instead; change `ENCODER_TICKS_PER_REV` in `TurretSubsystem` when it does. There is **no separate `turret_encoder` config entry**: we have 8 motors and the two hubs have exactly 8 motor ports. The code reads it with `turretMotor.getCurrentPosition()`. The Control Hub cannot read the Through Bore's absolute pulse output.
+  - **Direction coupling:** because they share a port, `setDirection()` reverses the motor and the encoder count together. `INVERT_ENCODER_READING` fixes the encoder's sign in software.
   - `turret_home_switch`: REV magnetic limit switch. It is **active-low**: it reads LOW when a magnet is near. Confirm on the robot with telemetry. **Configure it as a "Digital Device"** in the Driver Station, not "REV Touch Sensor": the SDK's touch-sensor class is not a `DigitalChannel`, which is what our code reads.
-- **Gearing:** both spur gears (motor pinion and encoder pinion) are 16T. The ring gear is believed to be 48T `[CONFIRM]`. So the encoder turns 3 times per turret revolution, which is `8192 × (ring teeth / 16) / 360` = about 68.3 ticks per turret degree. Cross-check by turning the turret by hand through a marked 90°.
+- **Gearing:** both spur gears (motor pinion and encoder pinion) are 16T. The ring gear is believed to be 48T `[CONFIRM]`. So the encoder shaft turns 3 times per turret revolution, which is `ticks per rev × (ring teeth / 16) / 360`. With the motor's built-in encoder (384.5) that is about **3.2 ticks per turret degree** (0.31° per tick). With the Through Bore (8192) it would be about 68.3. Cross-check by turning the turret by hand through a marked 90°.
 - **Angle convention:**
   - **0° is the home switch, and it points at the intake direction** (straight ahead).
   - Angles are **signed**, and the travel is about 270° (±135°). The 90° dead zone is directly behind, opposite the intake.
@@ -227,8 +227,9 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
   - During a match, the switch turning on resets the encoder count to zero (0°). To avoid repeated re-zeroing while hovering at the magnet's edge, it re-arms only after the turret has moved about 10° away.
   - The hub keeps encoder counts between Auto and TeleOp, so nothing is stored in a static field. `isZeroConfirmed()` is false until the switch has been crossed once.
 - **Control:** our own P controller (D added only if it oscillates) on the angle error, with a small friction kick, a max power clamp, and soft limits that cut power pushing past a limit. The motor `FLOAT`s until the first command (so the turret can be placed on the switch by hand during INIT), then uses `BRAKE` to hold position. `stop()` floats again.
-- **Starting values:** soft limits start at ±45° and `TurretAlpha` presets at ±30°, so a wrong sign cannot hurt the cables. Widen them (about ±130°, presets 90°) after the encoder direction, switch polarity and ticks per degree check out. Stick right = turn right, which is a *negative* angle, so `TurretAlpha` flips the stick sign.
-- **Test OpMode:** `TurretAlpha` (manual stick, D-pad preset angles, B to stop). Its header has the safe first-test order.
+- **Soft limits are OFF for now** (`SOFT_LIMITS_ON = false` in `TurretSubsystem`). Nothing stops the turret at an angle, so keep a hand on Stop. Before real use, set it to `true` and set the limits (they are written as ±45° and should be widened to about ±130° after the encoder direction and ticks per degree check out).
+- **Test controls:** `TurretAlpha` uses **gamepad2**: left stick and D-pad Left/Right turn the turret (hold to move, let go to hold the angle), D-pad Up/Down change the turret power by 5% per press (default 50%), **Y / X / B** go to the center / far left (+90°) / far right (−90°) presets, **A** stops. Stick right = turn right, which is a *negative* angle, so `TurretAlpha` flips the stick sign. `MAX_MANUAL_POWER` in the subsystem is 1.0, so the OpMode's power dial is the real motor power.
+- **Test OpMode:** `TurretAlpha` (gamepad2: manual stick, hold-to-turn D-pad, power dial, Y/X/B presets, A to stop). Its header has the safe first-test order.
 - **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.
 
 ### DriveSubsystem (`subsystems/DriveSubsystem.java`): code written, not yet tested on the robot
