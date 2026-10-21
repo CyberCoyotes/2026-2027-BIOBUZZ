@@ -13,8 +13,8 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 /*
  * TeleOp Alpha 5
  * An iterative OpMode with TWO controllers:
- *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and flips the shooter GATE.
- *   gamepad2 = the OPERATOR: runs the shooter FLYWHEEL and HOOD WHEEL, and aims the TURRET.
+ *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to SHOOT.
+ *   gamepad2 = the OPERATOR: sets the shooter powers, aims the TURRET, and moves the GATE.
  * It is DriveAlpha, IntakeAlpha, ShooterRatioAlpha and TurretAlpha put together, so each part
  * has already been tested on its own. This OpMode owns NO hardware. It only reads the gamepads
  * and tells the subsystems what to do.
@@ -26,6 +26,10 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *   D-pad Up / Down  -> flywheel POWER +/- 5%
  *   D-pad Right / Left -> ratio (hood wheel / flywheel) +/- 0.05
  *   Bumpers          -> reverse the shooter wheels (clearing a jam)
+ *   Right Trigger    -> shooter GATE to SHOOTING (lets the ball through)
+ *   Left Trigger     -> shooter GATE to LOADING (holds the ball back)
+ *      (One move per press. The gate positions are LOADING_POSITION and SHOOTING_POSITION
+ *       in ShooterServoSubsystem. If both triggers are pressed at once, LOADING wins.)
  *   Letting go of the stick holds the turret where it is. A preset goes to its angle and
  *   holds. The turret angle limits are OFF for now (see TurretSubsystem), so keep a hand near
  *   the Stop button. 0 degrees is where the turret pointed when the Control Hub powered on,
@@ -44,8 +48,6 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *      GAMEPAD 2 below). At the start that is flywheel 45% and hood wheel 90% (a ratio of
  *      2.00). Let go and both wheels go to 0 power and coast down.
  *      Reverse (gamepad2 bumpers) still beats it, so clearing a jam always works.
- *   A (Cross)    -> TOGGLES the shooter gate between LOADING and SHOOTING (one flip per press)
- *      (The gate positions are LOADING_POSITION and SHOOTING_POSITION in ShooterServoSubsystem.)
  *
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (plain POWER because the encoders are not connected yet)
  *   D-pad Up / Down    -> flywheel power UP / DOWN by FLYWHEEL_POWER_PERCENT_STEP
@@ -168,7 +170,8 @@ public class BiobuzzTeleOp extends OpMode {
     // What the buttons were doing LAST loop. A press lasts many loops (about 50 per second),
     // but we want it to count only ONCE. So we only act when it was NOT pressed last loop
     // and IS pressed now.
-    private boolean wasGateButtonPressed = false;
+    private boolean wasGateShootTriggerPressed = false;
+    private boolean wasGateLoadTriggerPressed = false;
     private boolean wasDpadLeftPressed = false;
     private boolean wasDpadRightPressed = false;
     private boolean wasTriggerShotPressed = false;
@@ -202,7 +205,6 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
         telemetry.addLine("Right Trigger (hold) = SHOOT at the dialed powers");
-        telemetry.addLine("A = TOGGLE shooter gate (loading / shooting)");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
         telemetry.addLine("D-pad Up / Down = flywheel power up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
@@ -211,6 +213,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine(String.format("Y = center (%.0f)  X = far left (%+.0f)  B = far right (%+.0f) degrees",
                 TURRET_PRESET_CENTER_DEGREES, TURRET_PRESET_LEFT_DEGREES, TURRET_PRESET_RIGHT_DEGREES));
         telemetry.addLine("A = STOP turret");
+        telemetry.addLine("Right Trigger = gate SHOOTING   Left Trigger = gate LOADING");
     }
 
     /*
@@ -309,7 +312,6 @@ public class BiobuzzTeleOp extends OpMode {
         double turn = applyDeadband(-gamepad1.right_stick_x);
 
         boolean slowMode = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
-        boolean gateButtonPressed = gamepad1.a;
         boolean triggerShotPressed = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
 
         // The wheels change speed when the trigger goes down AND when it comes back up,
@@ -327,6 +329,8 @@ public class BiobuzzTeleOp extends OpMode {
         boolean dpadDownPressed = gamepad2.dpad_down;
         boolean dpadLeftPressed = gamepad2.dpad_left;
         boolean dpadRightPressed = gamepad2.dpad_right;
+        boolean gateShootTriggerPressed = gamepad2.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean gateLoadTriggerPressed = gamepad2.left_trigger > TRIGGER_PRESSED_THRESHOLD;
 
         // Turn the dials. Only a NEW press counts, so holding a button moves it one step.
         // Any change makes the wheels change speed, so start the count over.
@@ -428,12 +432,16 @@ public class BiobuzzTeleOp extends OpMode {
         }
         shooterSubsystem.update();
 
-        // Shooter gate (driver). A counts as ONE press only on the loop where it goes from
-        // "not pressed" to "pressed". Without this check, holding A would flip the gate every
-        // loop. Flipping it lets a ball through, which slows the wheels, so every flip also
-        // starts the "wheels settled?" count over.
-        if (isNewPress(gateButtonPressed, wasGateButtonPressed)) {
-            shooterServoSubsystem.toggle();
+        // Shooter gate (operator). A trigger counts as ONE press only on the loop where it goes
+        // from "not pressed" to "pressed", so holding it does not keep re-sending the move.
+        // Moving the gate lets a ball through or holds it back, which changes how fast the
+        // wheels spin, so every move also starts the "wheels settled?" count over.
+        // Left Trigger is checked first, so if both are pressed at once the gate goes to LOADING.
+        if (isNewPress(gateLoadTriggerPressed, wasGateLoadTriggerPressed)) {
+            shooterServoSubsystem.goToLoading();
+            restartSpinTimer();
+        } else if (isNewPress(gateShootTriggerPressed, wasGateShootTriggerPressed)) {
+            shooterServoSubsystem.goToShooting();
             restartSpinTimer();
         }
 
@@ -480,7 +488,8 @@ public class BiobuzzTeleOp extends OpMode {
         wasDpadUpPressed = dpadUpPressed;
         wasDpadDownPressed = dpadDownPressed;
         wasTurningTurretManually = usingTurretStick;
-        wasGateButtonPressed = gateButtonPressed;
+        wasGateShootTriggerPressed = gateShootTriggerPressed;
+        wasGateLoadTriggerPressed = gateLoadTriggerPressed;
         wasDpadLeftPressed = dpadLeftPressed;
         wasDpadRightPressed = dpadRightPressed;
         wasTriggerShotPressed = triggerShotPressed;
