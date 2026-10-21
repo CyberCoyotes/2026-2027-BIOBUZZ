@@ -18,7 +18,7 @@ The driver drives, runs the intake, flips the shooter gate, and can fire a fixed
 | **Left Trigger** (hold) | **SLOW MODE** (40% speed) for careful lining up |
 | **Right Bumper** | **INTAKE**: pull balls in (also carries them up the transfer chute) |
 | **Left Bumper** | **REVERSE** the intake: push balls out. Beats the Right Bumper, so clearing a jam always works |
-| **Right Trigger** (hold) | **FIXED SHOT**: flywheel 45%, hood wheel 90%. Beats the operator's dials while held. **Let go and the shooter turns OFF** (both wheels to 0 power, they coast down). The operator presses Y to turn it back on |
+| **Right Trigger** (hold) | **FIXED SHOT**: flywheel 45%, hood wheel 90%. **Let go and both wheels go to 0 power** (they coast down) |
 | **A** | **TOGGLE the shooter gate** between LOADING and SHOOTING (one flip per press) |
 
 ### Driver tips
@@ -40,19 +40,15 @@ The operator runs the shooter wheels and aims the turret. **Gamepad 2 has two la
 
 | Control | What it does |
 |---|---|
-| **Y** | Shooter **ON** (spins at the dialed powers and keeps spinning) |
-| **X** | Shooter **OFF** (the wheels coast down). If Y and X are pressed together, OFF wins |
-| **B** | Flywheel power **UP** 5% |
-| **A** | Flywheel power **DOWN** 5% |
+| **Y, X, B, A** | **No shooter job.** They only run the turret, in the turret layer below |
 | **D-pad Right** | Ratio **UP** 0.05 |
 | **D-pad Left** | Ratio **DOWN** 0.05 |
 
-Starting dials: flywheel **30%** (lowest 5%, highest 100%), ratio **2.00** (lowest 1.00, highest 3.00).
-Hood wheel power = flywheel power x ratio. A wheel can't go past 100%, so if the hood wheel would, the screen says **CAPPED**.
+The shooter wheels now run **only** from the driver's Right Trigger shot (or the bumpers, which reverse them).
 
 ### Turret layer (HOLD Left Trigger)
 
-In this layer the shooter **ignores** Y, X, B, A and D-pad Left / Right.
+In this layer the ratio dial (D-pad Left / Right) is ignored, because D-pad Left / Right turns the turret instead.
 
 | Control | What it does |
 |---|---|

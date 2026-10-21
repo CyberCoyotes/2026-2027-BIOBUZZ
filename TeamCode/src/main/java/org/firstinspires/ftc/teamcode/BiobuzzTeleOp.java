@@ -20,9 +20,10 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  * and tells the subsystems what to do.
  *
  * GAMEPAD 2 HAS TWO LAYERS, because the shooter and the turret both want its buttons:
- *   NORMAL (Left Trigger NOT held): the shooter buttons below.
+ *   NORMAL (Left Trigger NOT held): the ratio dial (D-pad Left / Right) is the only shooter
+ *   button left on gamepad2.
  *   TURRET LAYER (HOLD Left Trigger): Y, X, B, A and the D-pad Left / Right run the turret
- *   instead, and the shooter ignores them. Let go of the trigger to go back to the shooter.
+ *   instead. Let go of the trigger to go back to the shooter layer.
  *   These turret controls work in BOTH layers, so you can aim while you tune the shooter:
  *     Left Stick X     -> turn the turret (push RIGHT and the turret turns RIGHT)
  *     D-pad Up / Down  -> turret POWER +/- 5% (starts at 50%)
@@ -46,17 +47,13 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *      (Left Bumper beats Right Bumper, so clearing a jam always works. The intake runs at the
  *       power set in IntakeSubsystem, DEFAULT_INTAKE_POWER.)
  *   Right Trigger -> HOLD to run the SHOOTER at a fixed shot: flywheel 45% and hood wheel 90%
- *      power (a ratio of 2.00). While it is held it beats the operator's dials. Let go and the
- *      shooter turns OFF (both wheels go to 0 power and coast down). The operator presses Y to
- *      turn it back on at the dials. Reverse (gamepad2 bumpers) still beats it, so clearing a
- *      jam always works.
+ *      power (a ratio of 2.00). Let go and both wheels go to 0 power and coast down.
+ *      Reverse (gamepad2 bumpers) still beats it, so clearing a jam always works.
  *   A (Cross)    -> TOGGLES the shooter gate between LOADING and SHOOTING (one flip per press)
  *      (The gate positions are LOADING_POSITION and SHOOTING_POSITION in ShooterServoSubsystem.)
  *
  * GAMEPAD 2 - OPERATOR (shooter, plain POWER because the encoders are not connected yet)
- *   Y            -> shooter ON (spins at the dialed powers and keeps spinning)
- *   X            -> shooter OFF (the wheels coast down)
- *   B / A        -> flywheel power UP / DOWN by FLYWHEEL_POWER_PERCENT_STEP
+ *   Y, X, B, A   -> NO shooter job any more (they only run the turret, in the turret layer)
  *   D-pad Right / Left -> ratio UP / DOWN by 0.05
  *   Right Bumper -> HOLD to reverse the flywheel only (clearing a jam)
  *   Left Bumper  -> HOLD to reverse the hood wheel only (clearing a jam)
@@ -111,7 +108,6 @@ public class BiobuzzTeleOp extends OpMode {
     // The flywheel power dial is counted in WHOLE PERCENT (30 means 30% power).
     // Where it starts, how far one press moves it, and how low and high it can go.
     private static final int FLYWHEEL_POWER_PERCENT_START = 30;
-    private static final int FLYWHEEL_POWER_PERCENT_STEP = 5;
     private static final int FLYWHEEL_POWER_PERCENT_MIN = 5;
     private static final int FLYWHEEL_POWER_PERCENT_MAX = 100;
 
@@ -190,10 +186,6 @@ public class BiobuzzTeleOp extends OpMode {
     // but we want it to count only ONCE. So we only act when it was NOT pressed last loop
     // and IS pressed now.
     private boolean wasGateButtonPressed = false;
-    private boolean wasYPressed = false;
-    private boolean wasXPressed = false;
-    private boolean wasBPressed = false;
-    private boolean wasAPressed = false;
     private boolean wasDpadLeftPressed = false;
     private boolean wasDpadRightPressed = false;
     private boolean wasTriggerShotPressed = false;
@@ -230,8 +222,6 @@ public class BiobuzzTeleOp extends OpMode {
                 TRIGGER_SHOT_FLYWHEEL_POWER_PERCENT, TRIGGER_SHOT_HOOD_WHEEL_POWER_PERCENT));
         telemetry.addLine("A = TOGGLE shooter gate (loading / shooting)");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
-        telemetry.addLine("Y = shooter ON   X = shooter OFF");
-        telemetry.addLine("B / A = flywheel power up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
         telemetry.addLine("Right / Left Bumper = reverse flywheel / hood wheel");
         telemetry.addLine("--- GAMEPAD 2 TURRET (works in any layer) ---");
@@ -240,7 +230,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine(String.format("Y = center (%.0f)  X = far left (%+.0f)  B = far right (%+.0f) degrees",
                 TURRET_PRESET_CENTER_DEGREES, TURRET_PRESET_LEFT_DEGREES, TURRET_PRESET_RIGHT_DEGREES));
         telemetry.addLine("A = STOP turret   D-pad Left / Right = hold to turn");
-        telemetry.addLine("(The shooter ignores Y, X, B, A and D-pad Left / Right while the trigger is held)");
+        telemetry.addLine("(The ratio dial, D-pad Left / Right, is ignored while the trigger is held)");
     }
 
     /*
@@ -348,13 +338,6 @@ public class BiobuzzTeleOp extends OpMode {
             restartSpinTimer();
         }
 
-        // When the driver LETS GO of the Right Trigger, the shot is over, so turn the shooter
-        // OFF. That sends both wheels to 0 power instead of back to the operator's dials. The
-        // operator can press Y to turn it back on. (Gamepad 2's X does the same OFF.)
-        if (wasTriggerShotPressed && !triggerShotPressed) {
-            shooterOn = false;
-        }
-
         // ---- Gamepad 2 (operator) ----
         boolean yPressed = gamepad2.y;
         boolean xPressed = gamepad2.x;
@@ -369,24 +352,9 @@ public class BiobuzzTeleOp extends OpMode {
         // held does not count as a new press.)
         boolean turretLayer = gamepad2.left_trigger > TRIGGER_PRESSED_THRESHOLD;
 
-        // Shooter on and off. If both are pressed at once, OFF wins (the safer choice).
-        if (!turretLayer && isNewPress(yPressed, wasYPressed)) {
-            shooterOn = true;
-            restartSpinTimer();
-        }
-        if (!turretLayer && isNewPress(xPressed, wasXPressed)) {
-            shooterOn = false;
-        }
-
-        // Turn the dials. Any change makes the wheels change speed, so start the count over.
-        if (!turretLayer && isNewPress(bPressed, wasBPressed)) {
-            flywheelPowerPercent = flywheelPowerPercent + FLYWHEEL_POWER_PERCENT_STEP;
-            restartSpinTimer();
-        }
-        if (!turretLayer && isNewPress(aPressed, wasAPressed)) {
-            flywheelPowerPercent = flywheelPowerPercent - FLYWHEEL_POWER_PERCENT_STEP;
-            restartSpinTimer();
-        }
+        // The operator's face buttons (Y, X, B, A) no longer run the shooter. They only work
+        // in the turret layer, below. Only the ratio dial is left on the shooter layer.
+        // Any change makes the wheels change speed, so start the count over.
         if (!turretLayer && isNewPress(dpadRightPressed, wasDpadRightPressed)) {
             ratioHundredths = ratioHundredths + RATIO_HUNDREDTHS_STEP;
             restartSpinTimer();
@@ -566,10 +534,6 @@ public class BiobuzzTeleOp extends OpMode {
         wasDpadDownPressed = dpadDownPressed;
         wasTurningTurretManually = turningTurretManually;
         wasGateButtonPressed = gateButtonPressed;
-        wasYPressed = yPressed;
-        wasXPressed = xPressed;
-        wasBPressed = bPressed;
-        wasAPressed = aPressed;
         wasDpadLeftPressed = dpadLeftPressed;
         wasDpadRightPressed = dpadRightPressed;
         wasTriggerShotPressed = triggerShotPressed;
