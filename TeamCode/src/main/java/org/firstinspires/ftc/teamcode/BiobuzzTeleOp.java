@@ -47,8 +47,9 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *       power set in IntakeSubsystem, DEFAULT_INTAKE_POWER.)
  *   Right Trigger -> HOLD to run the SHOOTER at a fixed shot: flywheel 45% and hood wheel 90%
  *      power (a ratio of 2.00). While it is held it beats the operator's dials. Let go and the
- *      shooter goes back to whatever gamepad2 set (ON at the dials, or OFF). Reverse (gamepad2
- *      bumpers) still beats it, so clearing a jam always works.
+ *      shooter turns OFF (both wheels go to 0 power and coast down). The operator presses Y to
+ *      turn it back on at the dials. Reverse (gamepad2 bumpers) still beats it, so clearing a
+ *      jam always works.
  *   A (Cross)    -> TOGGLES the shooter gate between LOADING and SHOOTING (one flip per press)
  *      (The gate positions are LOADING_POSITION and SHOOTING_POSITION in ShooterServoSubsystem.)
  *
@@ -345,6 +346,13 @@ public class BiobuzzTeleOp extends OpMode {
         // so both start the "wheels settled?" count over.
         if (triggerShotPressed != wasTriggerShotPressed) {
             restartSpinTimer();
+        }
+
+        // When the driver LETS GO of the Right Trigger, the shot is over, so turn the shooter
+        // OFF. That sends both wheels to 0 power instead of back to the operator's dials. The
+        // operator can press Y to turn it back on. (Gamepad 2's X does the same OFF.)
+        if (wasTriggerShotPressed && !triggerShotPressed) {
+            shooterOn = false;
         }
 
         // ---- Gamepad 2 (operator) ----

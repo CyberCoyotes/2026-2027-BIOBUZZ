@@ -18,7 +18,7 @@ The driver drives, runs the intake, flips the shooter gate, and can fire a fixed
 | **Left Trigger** (hold) | **SLOW MODE** (40% speed) for careful lining up |
 | **Right Bumper** | **INTAKE**: pull balls in (also carries them up the transfer chute) |
 | **Left Bumper** | **REVERSE** the intake: push balls out. Beats the Right Bumper, so clearing a jam always works |
-| **Right Trigger** (hold) | **FIXED SHOT**: flywheel 45%, hood wheel 90%. Beats the operator's dials while held. Let go and the shooter goes back to what the operator set |
+| **Right Trigger** (hold) | **FIXED SHOT**: flywheel 45%, hood wheel 90%. Beats the operator's dials while held. **Let go and the shooter turns OFF** (both wheels to 0 power, they coast down). The operator presses Y to turn it back on |
 | **A** | **TOGGLE the shooter gate** between LOADING and SHOOTING (one flip per press) |
 
 ### Driver tips
