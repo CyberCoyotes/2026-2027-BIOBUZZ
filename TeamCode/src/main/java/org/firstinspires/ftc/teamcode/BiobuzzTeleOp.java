@@ -25,7 +25,8 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *   A -> STOP the turret (it floats, so you can turn it by hand)
  *   D-pad Up / Down  -> flywheel POWER +/- 5%
  *   D-pad Right / Left -> ratio (hood wheel / flywheel) +/- 0.05
- *   Bumpers          -> reverse the shooter wheels (clearing a jam)
+ *   Left Bumper      -> HOLD to reverse BOTH shooter wheels (clearing a jam)
+ *   Right Bumper     -> HOLD to reverse the flywheel only
  *   Right Trigger    -> shooter GATE to SHOOTING (lets the ball through)
  *   Left Trigger     -> shooter GATE to LOADING (holds the ball back)
  *      (One move per press. The gate positions are LOADING_POSITION and SHOOTING_POSITION
@@ -52,8 +53,8 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (plain POWER because the encoders are not connected yet)
  *   D-pad Up / Down    -> flywheel power UP / DOWN by FLYWHEEL_POWER_PERCENT_STEP
  *   D-pad Right / Left -> ratio UP / DOWN by 0.05
- *   Right Bumper -> HOLD to reverse the flywheel only (clearing a jam)
- *   Left Bumper  -> HOLD to reverse the hood wheel only (clearing a jam)
+ *   Left Bumper  -> HOLD to reverse BOTH the flywheel and the hood wheel (clearing a jam)
+ *   Right Bumper -> HOLD to reverse the flywheel only
  *   The hood wheel power is flywheel power x ratio (RATIO = HOOD WHEEL / FLYWHEEL). A wheel
  *   cannot go past 100%, so if the hood wheel would be over 100% the screen says CAPPED.
  *   The screen counts 3 seconds for "Wheels settled?" because we cannot read wheel speed yet.
@@ -208,7 +209,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
         telemetry.addLine("D-pad Up / Down = flywheel power up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
-        telemetry.addLine("Right / Left Bumper = reverse flywheel / hood wheel");
+        telemetry.addLine("Left Bumper = reverse BOTH wheels   Right Bumper = reverse flywheel only");
         telemetry.addLine("Left Stick X = turn turret");
         telemetry.addLine(String.format("Y = center (%.0f)  X = far left (%+.0f)  B = far right (%+.0f) degrees",
                 TURRET_PRESET_CENTER_DEGREES, TURRET_PRESET_LEFT_DEGREES, TURRET_PRESET_RIGHT_DEGREES));
@@ -405,7 +406,8 @@ public class BiobuzzTeleOp extends OpMode {
 
         // Shooter wheels (operator). Reverse beats everything, so clearing a jam always works.
         String shooterControl;
-        boolean reverseFlywheel = gamepad2.right_bumper;
+        // Left Bumper reverses BOTH wheels. Right Bumper reverses only the flywheel.
+        boolean reverseFlywheel = gamepad2.left_bumper || gamepad2.right_bumper;
         boolean reverseHoodWheel = gamepad2.left_bumper;
         if (reverseFlywheel || reverseHoodWheel) {
             // A wheel that is NOT being reversed gets 0 power.

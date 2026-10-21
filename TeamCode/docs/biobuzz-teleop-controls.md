@@ -62,8 +62,8 @@ These set the powers the driver's **Right Trigger** shot uses. The wheels only s
 | **D-pad Down** | Flywheel power **DOWN** 5% |
 | **D-pad Right** | Ratio (hood wheel / flywheel) **UP** 0.05 |
 | **D-pad Left** | Ratio **DOWN** 0.05 |
-| **Right Bumper** (hold) | **Reverse the flywheel** only (clearing a jam) |
-| **Left Bumper** (hold) | **Reverse the hood wheel** only (clearing a jam) |
+| **Left Bumper** (hold) | **Reverse BOTH wheels** (flywheel and hood wheel) to clear a jam |
+| **Right Bumper** (hold) | Reverse the **flywheel** only |
 
 Starting dials: flywheel **45%** (lowest 5%, highest 100%), ratio **2.00** (lowest 1.00, highest 3.00), so the hood wheel starts at **90%**.
 Hood wheel power = flywheel power x ratio. A wheel can't go past 100%, so if the hood wheel would, the screen says **CAPPED**.
