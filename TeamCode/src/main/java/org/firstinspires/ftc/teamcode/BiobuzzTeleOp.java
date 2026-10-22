@@ -14,8 +14,8 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  * TeleOp Alpha 5
  * An iterative OpMode with TWO controllers:
  *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to SHOOT.
- *   gamepad2 = the OPERATOR: sets the shooter powers, aims the TURRET, and moves the GATE.
- * It is DriveAlpha, IntakeAlpha, ShooterRatioAlpha and TurretAlpha put together, so each part
+ *   gamepad2 = the OPERATOR: sets the shooter speeds (RPM), aims the TURRET, and moves the GATE.
+ * It is DriveAlpha, IntakeAlpha, ShooterRPMAlpha and TurretAlpha put together, so each part
  * has already been tested on its own. This OpMode owns NO hardware. It only reads the gamepads
  * and tells the subsystems what to do.
  *
@@ -23,7 +23,7 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *   Left Stick X     -> turn the turret (push RIGHT and the turret turns RIGHT)
  *   Y -> turret CENTER (0 degrees)   X -> FAR LEFT (+90)   B -> FAR RIGHT (-90)
  *   A -> STOP the turret (it floats, so you can turn it by hand)
- *   D-pad Up / Down  -> flywheel POWER +/- 5%
+ *   D-pad Up / Down  -> flywheel target RPM +/- FLYWHEEL_RPM_STEP
  *   D-pad Right / Left -> ratio (hood wheel / flywheel) +/- 0.05
  *   Left Bumper      -> HOLD to reverse BOTH shooter wheels (clearing a jam)
  *   Right Bumper     -> HOLD to reverse the flywheel only
@@ -45,22 +45,24 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *   Right Bumper -> INTAKE (pull balls in)      Left Bumper -> REVERSE (push balls out)
  *      (Left Bumper beats Right Bumper, so clearing a jam always works. The intake runs at the
  *       power set in IntakeSubsystem, DEFAULT_INTAKE_POWER.)
- *   Right Trigger -> HOLD to run the SHOOTER at the powers the operator has dialed in (see
- *      GAMEPAD 2 below). At the start that is flywheel 45% and hood wheel 90% (a ratio of
- *      2.00). Let go and both wheels go to 0 power and coast down.
+ *   Right Trigger -> HOLD to run the SHOOTER at the speeds the operator has dialed in (see
+ *      GAMEPAD 2 below). At the start that is flywheel 2700 RPM and hood wheel 5400 RPM (a
+ *      ratio of 2.00). Let go and both wheels go to 0 power and coast down.
  *      Reverse (gamepad2 bumpers) still beats it, so clearing a jam always works.
  *
- * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (plain POWER because the encoders are not connected yet)
- *   D-pad Up / Down    -> flywheel power UP / DOWN by FLYWHEEL_POWER_PERCENT_STEP
+ * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (SPEED CONTROL in RPM, read from the wheel encoders)
+ *   D-pad Up / Down    -> flywheel target RPM UP / DOWN by FLYWHEEL_RPM_STEP
  *   D-pad Right / Left -> ratio UP / DOWN by 0.05
  *   Left Bumper  -> HOLD to reverse BOTH the flywheel and the hood wheel (clearing a jam)
  *   Right Bumper -> HOLD to reverse the flywheel only
- *   The hood wheel power is flywheel power x ratio (RATIO = HOOD WHEEL / FLYWHEEL). A wheel
- *   cannot go past 100%, so if the hood wheel would be over 100% the screen says CAPPED.
- *   The screen counts 3 seconds for "Wheels settled?" because we cannot read wheel speed yet.
- *   It starts over after the trigger goes down or up, a dial change, a reverse, and every
- *   gate flip.
- *   ShooterRatioAlpha has the same shooter controls on their own, for testing.
+ *   The hood wheel target RPM is flywheel RPM x ratio (RATIO = HOOD WHEEL / FLYWHEEL). The
+ *   shooter will not go past its MAX_TARGET_RPM, so if the hood wheel would be over that, the
+ *   screen says CAPPED and the real ratio is lower than the dial says.
+ *   Jam clearing (the bumpers) still uses plain negative POWER, because speed control only
+ *   works forward.
+ *   The screen shows "OK to shoot" only when BOTH wheels are really at their target RPM
+ *   (the shooter's isAtSpeed()). It drops back to WAIT after a ball slows the wheels.
+ *   ShooterRPMAlpha has the same wheel speed control on its own, for testing.
  *
  * THE INTAKE ALSO RUNS THE TRANSFER. One motor spins the front intake AND a hex shaft with
  * grippers in the transfer chute, so balls are carried up the chute while you drive.
@@ -104,13 +106,15 @@ public class BiobuzzTeleOp extends OpMode {
     // ------------------------------------------------------------------
     // Shooter dials (gamepad2). These are test-only numbers.
     // ------------------------------------------------------------------
-    // The flywheel power dial is counted in WHOLE PERCENT (45 means 45% power).
+    // The flywheel dial is counted in WHOLE RPM (2700 means 2700 RPM).
     // Where it starts, how far one press moves it, and how low and high it can go.
-    // It starts at 45% and the ratio starts at 2.00, so the hood wheel starts at 90%.
-    private static final int FLYWHEEL_POWER_PERCENT_START = 45;
-    private static final int FLYWHEEL_POWER_PERCENT_STEP = 5;
-    private static final int FLYWHEEL_POWER_PERCENT_MIN = 5;
-    private static final int FLYWHEEL_POWER_PERCENT_MAX = 100;
+    // It starts at 2700 RPM and the ratio starts at 2.00, so the hood wheel starts at 5400 RPM.
+    // 2700 is only an ESTIMATE: it is the old 45% power start x 6000 RPM (the motor's top speed
+    // with no load). Tune it on the robot, then type the best numbers in here.
+    private static final int FLYWHEEL_RPM_START = 2700;
+    private static final int FLYWHEEL_RPM_STEP = 100;
+    private static final int FLYWHEEL_RPM_MIN = 500;
+    private static final int FLYWHEEL_RPM_MAX = 3600;
 
     // The ratio dial is counted in HUNDREDTHS so that adding 5 over and over never drifts to
     // something like 1.9999999. So 200 means a ratio of 2.00, and a step of 5 means 0.05.
@@ -123,16 +127,19 @@ public class BiobuzzTeleOp extends OpMode {
     private static final double HUNDREDTHS_PER_ONE = 100.0;
 
     // How many percent make a whole power of 1.0 (100 percent = 1.0 power).
+    // The turret power below is still counted in percent.
     private static final double PERCENT_PER_ONE = 100.0;
 
-    // The most power a wheel can be given, in percent. A hood wheel power above this is CAPPED.
-    private static final double MAX_POWER_PERCENT = 100.0;
+    // A hood wheel target counts as CAPPED when it is higher than the shooter's maximum by more
+    // than this many RPM. (A little room, so a tiny rounding error does not cry wolf.)
+    private static final double CAPPED_TOLERANCE_RPM = 1.0;
 
-    // How long the wheels need to settle after the shooter starts, a dial changes, or a ball
-    // goes through. A starting guess. Time it with a stopwatch.
-    private static final double SPIN_SETTLE_SECONDS = 3.0;
+    // The measured ratio (hood RPM / flywheel RPM) is only worth showing when the flywheel is
+    // spinning faster than this. Below it the division gives silly numbers.
+    private static final double MIN_RPM_FOR_MEASURED_RATIO = 300.0;
 
-    // Reverse power is NEGATIVE so the motor spins the other way.
+    // Reverse power is NEGATIVE so the motor spins the other way. Jam clearing is plain power,
+    // not RPM, because speed control in ShooterSubsystem only goes forward.
     private static final double FLYWHEEL_POWER_REVERSE = -0.60;
     private static final double HOOD_WHEEL_POWER_REVERSE = -0.60;
 
@@ -140,7 +147,7 @@ public class BiobuzzTeleOp extends OpMode {
     // Turret (gamepad2). These are test-only numbers, the same as in TurretAlpha.
     // ------------------------------------------------------------------
     // The turret power, in percent. A full push on the stick turns the turret at this power.
-    // (D-pad Up / Down used to change it. They now change the flywheel power instead.)
+    // (D-pad Up / Down used to change it. They now change the flywheel RPM instead.)
     private static final int TURRET_POWER_PERCENT = 50;
 
     // The turret preset angles. LEFT is POSITIVE and RIGHT is NEGATIVE, the same as Pinpoint
@@ -162,11 +169,8 @@ public class BiobuzzTeleOp extends OpMode {
     private TurretSubsystem turretSubsystem;
 
     // The shooter dials, in whole numbers.
-    private int flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_START;
+    private int flywheelRpmDial = FLYWHEEL_RPM_START;
     private int ratioHundredths = RATIO_HUNDREDTHS_START;
-
-    // Times how long since the wheels last had a reason to change speed.
-    private ElapsedTime spinTimer = new ElapsedTime();
 
     // What the buttons were doing LAST loop. A press lasts many loops (about 50 per second),
     // but we want it to count only ONCE. So we only act when it was NOT pressed last loop
@@ -175,7 +179,6 @@ public class BiobuzzTeleOp extends OpMode {
     private boolean wasGateLoadTriggerPressed = false;
     private boolean wasDpadLeftPressed = false;
     private boolean wasDpadRightPressed = false;
-    private boolean wasTriggerShotPressed = false;
     private boolean wasDpadUpPressed = false;
     private boolean wasDpadDownPressed = false;
 
@@ -191,13 +194,6 @@ public class BiobuzzTeleOp extends OpMode {
     }
 
     /*
-     * Start the "wheels settled?" count over.
-     */
-    private void restartSpinTimer() {
-        spinTimer.reset();
-    }
-
-    /*
      * Adds the button map to telemetry so the drivers can read it.
      */
     private void addControlsTelemetry() {
@@ -205,9 +201,9 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Stick = drive and strafe   Right Stick = turn");
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
-        telemetry.addLine("Right Trigger (hold) = SHOOT at the dialed powers");
+        telemetry.addLine("Right Trigger (hold) = SHOOT at the dialed RPMs");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
-        telemetry.addLine("D-pad Up / Down = flywheel power up / down");
+        telemetry.addLine("D-pad Up / Down = flywheel RPM up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
         telemetry.addLine("Left Bumper = reverse BOTH wheels   Right Bumper = reverse flywheel only");
         telemetry.addLine("Left Stick X = turn turret");
@@ -290,7 +286,6 @@ public class BiobuzzTeleOp extends OpMode {
     @Override
     public void start() {
         runtime.reset();
-        restartSpinTimer();
     }
 
     /*
@@ -299,7 +294,7 @@ public class BiobuzzTeleOp extends OpMode {
     @Override
     public void loop() {
         // 1. Read sensors. (The drive has none. The intake reads its own encoder in update().
-        //    The shooter has no working encoders yet.)
+        //    The shooter reads its wheel encoders in its own update(), in step 3 below.)
         intakeSubsystem.update();
 
         // 2. Read the gamepads and decide what to do.
@@ -315,12 +310,6 @@ public class BiobuzzTeleOp extends OpMode {
         boolean slowMode = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
         boolean triggerShotPressed = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
 
-        // The wheels change speed when the trigger goes down AND when it comes back up,
-        // so both start the "wheels settled?" count over.
-        if (triggerShotPressed != wasTriggerShotPressed) {
-            restartSpinTimer();
-        }
-
         // ---- Gamepad 2 (operator) ----
         boolean yPressed = gamepad2.y;
         boolean xPressed = gamepad2.x;
@@ -334,30 +323,25 @@ public class BiobuzzTeleOp extends OpMode {
         boolean gateLoadTriggerPressed = gamepad2.left_trigger > TRIGGER_PRESSED_THRESHOLD;
 
         // Turn the dials. Only a NEW press counts, so holding a button moves it one step.
-        // Any change makes the wheels change speed, so start the count over.
         if (isNewPress(dpadUpPressed, wasDpadUpPressed)) {
-            flywheelPowerPercent = flywheelPowerPercent + FLYWHEEL_POWER_PERCENT_STEP;
-            restartSpinTimer();
+            flywheelRpmDial = flywheelRpmDial + FLYWHEEL_RPM_STEP;
         }
         if (isNewPress(dpadDownPressed, wasDpadDownPressed)) {
-            flywheelPowerPercent = flywheelPowerPercent - FLYWHEEL_POWER_PERCENT_STEP;
-            restartSpinTimer();
+            flywheelRpmDial = flywheelRpmDial - FLYWHEEL_RPM_STEP;
         }
         if (isNewPress(dpadRightPressed, wasDpadRightPressed)) {
             ratioHundredths = ratioHundredths + RATIO_HUNDREDTHS_STEP;
-            restartSpinTimer();
         }
         if (isNewPress(dpadLeftPressed, wasDpadLeftPressed)) {
             ratioHundredths = ratioHundredths - RATIO_HUNDREDTHS_STEP;
-            restartSpinTimer();
         }
 
         // Keep the dials between their lowest and highest settings.
-        if (flywheelPowerPercent > FLYWHEEL_POWER_PERCENT_MAX) {
-            flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_MAX;
+        if (flywheelRpmDial > FLYWHEEL_RPM_MAX) {
+            flywheelRpmDial = FLYWHEEL_RPM_MAX;
         }
-        if (flywheelPowerPercent < FLYWHEEL_POWER_PERCENT_MIN) {
-            flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_MIN;
+        if (flywheelRpmDial < FLYWHEEL_RPM_MIN) {
+            flywheelRpmDial = FLYWHEEL_RPM_MIN;
         }
         if (ratioHundredths > RATIO_HUNDREDTHS_MAX) {
             ratioHundredths = RATIO_HUNDREDTHS_MAX;
@@ -366,16 +350,15 @@ public class BiobuzzTeleOp extends OpMode {
             ratioHundredths = RATIO_HUNDREDTHS_MIN;
         }
 
-        // The hood wheel power is the flywheel power times the ratio. A wheel cannot go past
-        // 100%, so if the answer is more than that we use 100% and warn that it was CAPPED.
+        // The hood wheel target is the flywheel target times the ratio. The shooter will not go
+        // past its maximum RPM, so if the answer is more than that we show the maximum and warn
+        // that it was CAPPED. (The shooter cuts it down by itself, we only warn about it.)
         double ratio = ratioHundredths / HUNDREDTHS_PER_ONE;
-        double wantedHoodWheelPercent = flywheelPowerPercent * ratio;
-        boolean hoodWheelCapped = wantedHoodWheelPercent > MAX_POWER_PERCENT;
-        double hoodWheelPercent = Math.min(wantedHoodWheelPercent, MAX_POWER_PERCENT);
-
-        // Turn the percents into the 0.0 to 1.0 powers the subsystem wants (45 -> 0.45).
-        double flywheelPower = flywheelPowerPercent / PERCENT_PER_ONE;
-        double hoodWheelPower = hoodWheelPercent / PERCENT_PER_ONE;
+        double flywheelTargetRpm = flywheelRpmDial;
+        double wantedHoodWheelRpm = flywheelTargetRpm * ratio;
+        double maxTargetRpm = shooterSubsystem.getMaxTargetRpm();
+        boolean hoodWheelCapped = wantedHoodWheelRpm > maxTargetRpm + CAPPED_TOLERANCE_RPM;
+        double hoodWheelTargetRpm = Math.min(wantedHoodWheelRpm, maxTargetRpm);
 
         // 3. Tell the subsystems what to do. (The drive has no update() to call.)
 
@@ -421,11 +404,11 @@ public class BiobuzzTeleOp extends OpMode {
             }
             shooterSubsystem.setPower(reverseFlywheelPower, reverseHoodWheelPower);
             shooterControl = "Bumper (REVERSE)";
-            // The wheels need time to settle again after a reverse.
-            restartSpinTimer();
         } else if (triggerShotPressed) {
-            // The driver holds the Right Trigger to shoot, at the powers the operator dialed in.
-            shooterSubsystem.setPower(flywheelPower, hoodWheelPower);
+            // The driver holds the Right Trigger to shoot, at the RPMs the operator dialed in.
+            // The shooter's speed control holds each wheel at its target, even when a ball
+            // slows it down or the battery drains.
+            shooterSubsystem.setTargetRpms(flywheelTargetRpm, hoodWheelTargetRpm);
             shooterControl = "Right Trigger (SHOOT)";
         } else {
             // Trigger not held, so both wheels get 0 power and coast down.
@@ -436,15 +419,11 @@ public class BiobuzzTeleOp extends OpMode {
 
         // Shooter gate (operator). A trigger counts as ONE press only on the loop where it goes
         // from "not pressed" to "pressed", so holding it does not keep re-sending the move.
-        // Moving the gate lets a ball through or holds it back, which changes how fast the
-        // wheels spin, so every move also starts the "wheels settled?" count over.
         // Left Trigger is checked first, so if both are pressed at once the gate goes to LOADING.
         if (isNewPress(gateLoadTriggerPressed, wasGateLoadTriggerPressed)) {
             shooterServoSubsystem.goToLoading();
-            restartSpinTimer();
         } else if (isNewPress(gateShootTriggerPressed, wasGateShootTriggerPressed)) {
             shooterServoSubsystem.goToShooting();
-            restartSpinTimer();
         }
 
         // Turret (operator, gamepad2). The same controls as TurretAlpha. The first one that is
@@ -494,7 +473,6 @@ public class BiobuzzTeleOp extends OpMode {
         wasGateLoadTriggerPressed = gateLoadTriggerPressed;
         wasDpadLeftPressed = dpadLeftPressed;
         wasDpadRightPressed = dpadRightPressed;
-        wasTriggerShotPressed = triggerShotPressed;
 
         // 4. Show what is happening on the Driver Station, one section at a time.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
@@ -504,26 +482,43 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addData("Drive inputs", "forward %.2f   strafe %.2f   turn %.2f",
                 forward, strafe, turn);
 
-        telemetry.addLine("--- SHOOTER (power) ---");
-        telemetry.addData("Flywheel power", "%d%%", flywheelPowerPercent);
+        // The dials: what the operator has asked for. (They only take effect while the driver
+        // holds the Right Trigger.)
+        telemetry.addLine("--- SHOOTER DIALS (RPM) ---");
+        telemetry.addData("Flywheel target RPM", "%d", flywheelRpmDial);
         telemetry.addData("Ratio (hood / flywheel)", "%.2f", ratio);
         if (hoodWheelCapped) {
-            telemetry.addData("Hood wheel power", "%.0f%%  CAPPED (you asked for %.0f%%)",
-                    hoodWheelPercent, wantedHoodWheelPercent);
+            telemetry.addData("Hood wheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
+                    hoodWheelTargetRpm, maxTargetRpm, wantedHoodWheelRpm);
         } else {
-            telemetry.addData("Hood wheel power", "%.0f%%", hoodWheelPercent);
+            telemetry.addData("Hood wheel target RPM", "%.0f", hoodWheelTargetRpm);
         }
         telemetry.addData("Shooter switch", shooterControl);
-        String settledText;
-        if (!triggerShotPressed) {
-            settledText = "shooter is OFF (hold the Right Trigger to shoot)";
-        } else if (spinTimer.seconds() >= SPIN_SETTLE_SECONDS) {
-            settledText = "YES - OK to shoot";
+
+        // The shooter prints its own "--- SHOOTER ---" heading, with its state, "At Speed?",
+        // and each wheel's real RPM next to its target. This is the data from the encoders.
+        shooterSubsystem.addTelemetry(telemetry);
+
+        // Is it OK to shoot? This comes from the real wheel speeds, not from a timer.
+        ShooterSubsystem.ShooterState shooterState = shooterSubsystem.getState();
+        String readyText;
+        if (shooterState == ShooterSubsystem.ShooterState.READY) {
+            readyText = "YES - OK to shoot";
+        } else if (shooterState == ShooterSubsystem.ShooterState.SPINNING_UP) {
+            readyText = "WAIT - wheels are not at their target RPM yet";
+        } else if (shooterState == ShooterSubsystem.ShooterState.OPEN_LOOP) {
+            readyText = "NO - reversing (clearing a jam)";
         } else {
-            settledText = String.format("WAIT (%.1f of %.0f seconds)",
-                    spinTimer.seconds(), SPIN_SETTLE_SECONDS);
+            readyText = "shooter is OFF (hold the Right Trigger to shoot)";
         }
-        telemetry.addData("Wheels settled?", settledText);
+        telemetry.addData("OK to shoot?", readyText);
+
+        // The hood wheel RPM / flywheel RPM we really have right now. It should match the ratio
+        // dial once the wheels are at speed. If it does not, the hood wheel may be CAPPED.
+        if (shooterSubsystem.getFlywheelRpm() > MIN_RPM_FOR_MEASURED_RATIO) {
+            telemetry.addData("Ratio measured now", "%.2f",
+                    shooterSubsystem.getHoodWheelRpm() / shooterSubsystem.getFlywheelRpm());
+        }
 
         // The gate prints its own "--- SHOOTER GATE ---" heading.
         shooterServoSubsystem.addTelemetry(telemetry);

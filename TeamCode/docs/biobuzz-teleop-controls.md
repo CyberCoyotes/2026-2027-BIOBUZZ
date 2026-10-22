@@ -18,18 +18,18 @@ The driver drives, runs the intake, and holds the Right Trigger to shoot.
 | **Left Trigger** (hold) | **SLOW MODE** (40% speed) for careful lining up |
 | **Right Bumper** | **INTAKE**: pull balls in (also carries them up the transfer chute) |
 | **Left Bumper** | **REVERSE** the intake: push balls out. Beats the Right Bumper, so clearing a jam always works |
-| **Right Trigger** (hold) | **SHOOT** at the powers the operator dialed in (starts at flywheel 45%, hood wheel 90%). **Let go and both wheels go to 0 power** (they coast down) |
+| **Right Trigger** (hold) | **SHOOT** at the RPMs the operator dialed in (starts at flywheel 2700 RPM, hood wheel 5400 RPM). **Let go and both wheels go to 0 power** (they coast down) |
 
 ### Driver tips
 - The robot is **robot-centric**: "forward" is the way the robot is facing.
 - The operator's bumpers (jam clearing) beat your Right Trigger shot, so don't be surprised if the shot stops.
-- Wait for **"Wheels settled? YES - OK to shoot"** on the screen before the operator opens the gate. After the trigger goes down or up, a dial change, a reverse, or any gate flip, the screen counts 3 seconds again.
+- Wait for **"OK to shoot? YES"** on the screen before the operator opens the gate. It turns YES only when **both wheels are at their target RPM** (the screen shows each wheel's real RPM next to its target). After a ball slows the wheels, it goes back to WAIT until they recover.
 
 <div style="page-break-after: always"></div>
 
 ## Gamepad 2: OPERATOR
 
-The operator sets the shooter powers, aims the turret, and moves the shooter gate. **Every button always does the same thing** (no layers).
+The operator sets the shooter speeds (RPM), aims the turret, and moves the shooter gate. **Every button always does the same thing** (no layers).
 
 ### Turret
 
@@ -52,22 +52,22 @@ A preset goes to its angle and holds there. Letting go of the stick **holds the 
 
 One move per press. If both are pressed at once, LOADING wins.
 
-### Shooter powers (the dials)
+### Shooter speeds (the dials)
 
-These set the powers the driver's **Right Trigger** shot uses. The wheels only spin while the driver holds the trigger.
+These set the RPMs the driver's **Right Trigger** shot uses. The wheels only spin while the driver holds the trigger, and the shooter's speed control holds each wheel at its target RPM.
 
 | Control | What it does |
 |---|---|
-| **D-pad Up** | Flywheel power **UP** 5% |
-| **D-pad Down** | Flywheel power **DOWN** 5% |
+| **D-pad Up** | Flywheel target **UP** 100 RPM |
+| **D-pad Down** | Flywheel target **DOWN** 100 RPM |
 | **D-pad Right** | Ratio (hood wheel / flywheel) **UP** 0.05 |
 | **D-pad Left** | Ratio **DOWN** 0.05 |
 | **Left Bumper** (hold) | **Reverse BOTH wheels** (flywheel and hood wheel) to clear a jam |
 | **Right Bumper** (hold) | Reverse the **flywheel** only |
 
-Starting dials: flywheel **45%** (lowest 5%, highest 100%), ratio **2.00** (lowest 1.00, highest 3.00), so the hood wheel starts at **90%**.
-Hood wheel power = flywheel power x ratio. A wheel can't go past 100%, so if the hood wheel would, the screen says **CAPPED**.
-Bumpers beat everything else on the shooter, including the driver's Right Trigger shot.
+Starting dials: flywheel **2700 RPM** (lowest 500, highest 3600), ratio **2.00** (lowest 1.00, highest 3.00), so the hood wheel starts at **5400 RPM**. These starting numbers are estimates (the old 45% power x 6000 RPM). Tune them on the robot.
+Hood wheel target RPM = flywheel RPM x ratio. The shooter will not go past 5400 RPM on a wheel (`MAX_TARGET_RPM` in `ShooterSubsystem`), so if the hood wheel would, the screen says **CAPPED** and the real ratio is lower than the dial says. At ratio 2.00 that means the flywheel can't go above 2700 RPM.
+Jam clearing (the bumpers) is plain reverse power, not RPM. Bumpers beat everything else on the shooter, including the driver's Right Trigger shot.
 Holding a D-pad button moves the dial **one step**. Press it again for the next step.
 
 ### Operator tips
