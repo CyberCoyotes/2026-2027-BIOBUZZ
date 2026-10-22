@@ -54,7 +54,8 @@ public class ShooterServoSubsystem {
     //
     // They start close together on purpose, so the first test cannot slam the gate.
     private static final double LOADING_POSITION = 0.30;
-    private static final double SHOOTING_POSITION = -0.60;
+    // 0.0 is the end of the servo's travel. A servo cannot go below it.
+    private static final double SHOOTING_POSITION = 0.0;
 
     // The servo does not tell us when it arrives. This is how long we assume a 90 degree
     // move takes. Too short and isAtPosition() lies. Too long and we wait for nothing.
