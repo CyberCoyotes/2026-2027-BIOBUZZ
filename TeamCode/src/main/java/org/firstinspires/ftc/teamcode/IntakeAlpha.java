@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -42,7 +43,13 @@ import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
  * Robot configuration (on the Driver Station):
  *   Motor name: intake_motor
  *   Motor type: goBILDA 5202/3/4 series
+ *
+ * HIDDEN FROM THE DRIVER STATION LIST
+ *   The intake is well tested, so this OpMode is @Disabled to keep the list short.
+ *   The code is all still here. To bring it back (for example to re-tune the power dial), put
+ *   // in front of the @Disabled line below and redeploy.
  */
+@Disabled
 @TeleOp(name = "Intake Testing - Alpha", group = "Testing")
 public class IntakeAlpha extends OpMode {
 

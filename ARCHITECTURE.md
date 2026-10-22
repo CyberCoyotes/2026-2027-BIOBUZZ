@@ -43,6 +43,7 @@ The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `I
 - Always stop every motor in `stop()`.
 - Put all tunable numbers at the top as `private static final` constants with a comment explaining how to change them. The Alpha test OpModes are the model.
 - Annotate with `@TeleOp(name = "…", group = "…")` or `@Autonomous(...)`. Test OpModes use `group = "Testing"`.
+- **Keep the Driver Station list short.** Once a subsystem is well tested, add `@Disabled` above its Alpha's `@TeleOp` line. Never delete the file. To bring it back, comment out the `@Disabled` line and redeploy. Currently hidden: `DriveAlpha`, `IntakeAlpha`. The shooter and turret Alphas stay visible while those subsystems are being worked on.
 
 ### Subsystem classes (one per mechanism)
 

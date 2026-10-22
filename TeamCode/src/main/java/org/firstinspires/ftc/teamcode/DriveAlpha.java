@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -43,7 +44,13 @@ import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
  *
  * Robot configuration (on the Driver Station):
  *   Motor names: left_front, left_rear, right_front, right_rear
+ *
+ * HIDDEN FROM THE DRIVER STATION LIST
+ *   The drive wheels are well tested, so this OpMode is @Disabled to keep the list short.
+ *   The code is all still here. To bring it back (for example after changing a motor or the
+ *   wiring), put // in front of the @Disabled line below and redeploy.
  */
+@Disabled
 @TeleOp(name = "Drive Alpha", group = "Testing")
 public class DriveAlpha extends OpMode {
 
