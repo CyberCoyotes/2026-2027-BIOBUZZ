@@ -148,7 +148,7 @@ public class BiobuzzTeleOp extends OpMode {
     // ------------------------------------------------------------------
     // The turret power, in percent. A full push on the stick turns the turret at this power.
     // (D-pad Up / Down used to change it. They now change the flywheel RPM instead.)
-    private static final int TURRET_POWER_PERCENT = 75;
+    private static final int TURRET_POWER_PERCENT = 100;
 
     // The turret preset angles. LEFT is POSITIVE and RIGHT is NEGATIVE, the same as Pinpoint
     // and Pedro Pathing. Center is 0 degrees, which is 0 encoder ticks.

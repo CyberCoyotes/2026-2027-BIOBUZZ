@@ -66,7 +66,7 @@ public class VisionAlpha extends OpMode {
     // Test-only numbers
     // ------------------------------------------------------------------
     // The turret power, in percent, for the manual stick. A full push turns at this power.
-    private static final int TURRET_POWER_PERCENT = 75;
+    private static final int TURRET_POWER_PERCENT = 100;
     private static final double PERCENT_PER_ONE = 100.0;
 
     // The turret stick must move more than this before it counts.
