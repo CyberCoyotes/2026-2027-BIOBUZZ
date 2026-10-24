@@ -57,11 +57,11 @@ Build this first, and keep it working all season:
 
 - It goes **on the turret**, facing the same way as the shooter, **as low as practical**.
 - **Tilt it up about 40°** as a starting point. Recalculate once the lens height is known (see the geometry doc).
-- Plan the cable routing and turret rotation limits so the Ethernet and power cables can't wrap or snag.
+- It connects to the Control Hub's **USB 3.0 port** with one USB-C to USB-A cable (power and data). The Control Hub sees it as an Ethernet device. Plan the cable routing and turret rotation limits so that cable can't wrap or snag.
 
 ## Open decisions `[CONFIRM]`
 
-- [ ] **Vision source:** Limelight 3A, or a webcam with the SDK `VisionPortal`? SDK 12.0 clusters put the origin at the cell opening, which makes aiming simpler. The Limelight is faster and already in our code. Decide before writing turret aiming code.
+- [x] **Vision source:** **Limelight 3A is final.** (A webcam with `VisionPortal` would have given SDK 12.0 clusters with the origin at the cell opening, but we are not using it, so we apply the opening offset ourselves.)
 - [ ] **Intake motor ratio:** goBILDA 5203 at 1620 RPM (3.71:1) is the likely choice, not final. Confirm it before writing `Intake` constants.
 - [ ] **One motor for intake and transfer:** the firing gate says "only feed when the flywheel is ready." With one shared motor, feeding a ball means the intake runs too. Decide how the driver handles that (for example, intake runs only while the shooter is ready, or the driver holds a button to feed).
 - [ ] Turret range of motion and homing method (limit switch versus absolute encoder)

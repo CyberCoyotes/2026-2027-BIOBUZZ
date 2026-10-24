@@ -269,7 +269,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - [ ] Turret ring gear tooth count (believed 48T; both pinions are 16T). Count it in Onshape.
 - [ ] Evaluate a 360° turret (cables and slip ring, wrap-around logic). Finish the 270° version first.
 - [ ] Main branch: `main` or `master`?
-- [ ] Vision source: Limelight 3A or a webcam with `VisionPortal` (see the robot design doc)
+- [x] Vision source: **Limelight 3A** (final, no webcam or `VisionPortal`). It plugs into the Control Hub's USB 3.0 port with a USB-C to USB-A cable (one cable for power and data).
 
 ## 9. Mentor checklist (anti-drift)
 
