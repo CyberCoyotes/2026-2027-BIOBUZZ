@@ -46,7 +46,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * TWO WAYS TO MOVE THE TURRET
  *   1. POSITION: setTargetAngle(degrees). A small controller turns the turret there.
  *   2. MANUAL: setManualPower(power). The driver steers it with a stick.
- *   Either way the turret will not be driven past its soft limits (they are OFF for now,
+ *   Either way the turret will not be driven past its soft limits (+/-120 degrees,
  *   see SOFT_LIMITS_ON).
  *
  * STATE (what we told it to do) is IDLE, MANUAL, or POSITION.
@@ -142,17 +142,19 @@ public class TurretSubsystem {
     // ------------------------------------------------------------------
     // Soft limits: the turret will not be driven past these angles.
     // ------------------------------------------------------------------
-    // The full travel is about 270 degrees, which is +/-135. These start SMALL on purpose,
-    // so a mistake in the first tests cannot hurt the cables or the frame.
-    // After the encoder direction and the switch both check out, widen them to about +/-130
-    // (a few degrees inside the real hard stops).
+    // The full travel is about 270 degrees, which is +/-135. These sit 15 degrees inside that,
+    // at +/-120, so there is room for the turret to coast a little past the limit before it
+    // could reach the cables or the frame.
     //
-    // THE SOFT LIMITS ARE OFF FOR NOW. With this false, nothing stops the turret at an angle,
-    // so it can run into the cables or the frame. Keep a hand on the Stop button, and set
-    // this back to true (and check the two angles below) before real use.
-    private static final boolean SOFT_LIMITS_ON = false;
-    private static final double MIN_ANGLE_DEGREES = -45.0;
-    private static final double MAX_ANGLE_DEGREES = 45.0;
+    // THE LIMITS ARE ONLY AS GOOD AS THE ANGLE. Without the home switch, 0 degrees is wherever
+    // the turret pointed when the Control Hub powered on. Power on with the turret pointing
+    // straight ahead, or +/-120 will be measured from the wrong place.
+    //
+    // To turn the limits off for a test, set SOFT_LIMITS_ON to false. Then nothing stops the
+    // turret at an angle, so keep a hand on the Stop button.
+    private static final boolean SOFT_LIMITS_ON = true;
+    private static final double MIN_ANGLE_DEGREES = -120.0;
+    private static final double MAX_ANGLE_DEGREES = 120.0;
 
     // ------------------------------------------------------------------
     // Position control settings. All of these are starting guesses to tune on the robot.
@@ -533,7 +535,7 @@ public class TurretSubsystem {
      * cut to zero. Power that pulls back toward the middle is still allowed.
      */
     private double applySoftLimits(double power) {
-        // The soft limits are switched off for now (see SOFT_LIMITS_ON).
+        // The soft limits can be switched off (see SOFT_LIMITS_ON).
         if (!SOFT_LIMITS_ON) {
             return power;
         }

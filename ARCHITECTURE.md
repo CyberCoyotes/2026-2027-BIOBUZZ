@@ -222,13 +222,13 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
   - **0° is the home switch, and it points at the intake direction** (straight ahead).
   - Angles are **signed**, and the travel is about 270° (±135°). The 90° dead zone is directly behind, opposite the intake.
   - **Positive is counterclockwise viewed from above** (turning left). This matches Pinpoint and Pedro Pathing heading, so `shooterFieldHeading = robotHeading + turretAngle`.
-  - Soft limits sit about 5° inside the range (about ±130°).
+  - Soft limits are **±120°**, 15° inside the range, so the turret has room to coast before the cables or frame.
 - **Zeroing:**
   - At power-up the turret is placed by hand **on the switch**. INIT telemetry warns if the switch is not active. There is no motion at INIT (G304, G403).
   - During a match, the switch turning on resets the encoder count to zero (0°). To avoid repeated re-zeroing while hovering at the magnet's edge, it re-arms only after the turret has moved about 10° away.
   - The hub keeps encoder counts between Auto and TeleOp, so nothing is stored in a static field. `isZeroConfirmed()` is false until the switch has been crossed once.
 - **Control:** our own P controller (D added only if it oscillates) on the angle error, with a small friction kick, a max power clamp, and soft limits that cut power pushing past a limit. The motor `FLOAT`s until the first command (so the turret can be placed on the switch by hand during INIT), then uses `BRAKE` to hold position. `stop()` floats again.
-- **Soft limits are OFF for now** (`SOFT_LIMITS_ON = false` in `TurretSubsystem`). Nothing stops the turret at an angle, so keep a hand on Stop. Before real use, set it to `true` and set the limits (they are written as ±45° and should be widened to about ±130° after the encoder direction and ticks per degree check out).
+- **Soft limits are ON at ±120°** (`SOFT_LIMITS_ON = true`, `MIN_ANGLE_DEGREES` / `MAX_ANGLE_DEGREES` in `TurretSubsystem`). They cut power that pushes past a limit and clip `setTargetAngle()`. They are only as good as the angle: with no home switch, 0° is where the turret pointed at power-up, so power on pointing straight ahead. Still check the encoder direction and ticks per degree on the robot first (step 1 and 2 in `TurretAlpha`).
 - **Test controls:** `TurretAlpha` uses **gamepad2**: left stick and D-pad Left/Right turn the turret (hold to move, let go to hold the angle), D-pad Up/Down change the turret power by 5% per press (default 50%), **Y / X / B** go to the center / far left (+90°) / far right (−90°) presets, **A** stops. Stick right = turn right, which is a *negative* angle, so `TurretAlpha` flips the stick sign. `MAX_MANUAL_POWER` in the subsystem is 1.0, so the OpMode's power dial is the real motor power.
 - **Test OpMode:** `TurretAlpha` (gamepad2: manual stick, hold-to-turn D-pad, power dial, Y/X/B presets, A to stop). Its header has the safe first-test order.
 - **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.

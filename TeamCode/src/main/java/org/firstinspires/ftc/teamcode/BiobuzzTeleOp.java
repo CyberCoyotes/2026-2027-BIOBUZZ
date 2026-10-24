@@ -32,9 +32,9 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *      (One move per press. The gate positions are LOADING_POSITION and SHOOTING_POSITION
  *       in ShooterServoSubsystem. If both triggers are pressed at once, LOADING wins.)
  *   Letting go of the stick holds the turret where it is. A preset goes to its angle and
- *   holds. The turret angle limits are OFF for now (see TurretSubsystem), so keep a hand near
- *   the Stop button. 0 degrees is where the turret pointed when the Control Hub powered on,
- *   because the home switch is not installed yet.
+ *   holds. The turret will not go past +/-120 degrees (see TurretSubsystem). 0 degrees is where
+ *   the turret pointed when the Control Hub powered on, because the home switch is not
+ *   installed yet, so power on with the turret pointing straight ahead.
  *
  * It starts ROBOT-CENTRIC: "forward" means the way the robot is facing.
  *

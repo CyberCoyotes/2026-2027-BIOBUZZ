@@ -5,7 +5,7 @@ Print this and keep it at the driver station. It matches **`TeleOp - Alpha 5`** 
 **Pairing:** on the Driver Station, press **Start + A** on the driver's controller (gamepad 1) and **Start + B** on the operator's controller (gamepad 2).
 **Logitech controller (F310 / F710):** set the switch on the back to **X** (XInput mode), not D. The buttons are then labeled A, B, X, Y like the code. Bumpers are **LB / RB** and triggers are **LT / RT**. Left Trigger = LT, Right Trigger = RT.
 
-**Safety:** keep hands, hair, and loose clothing away from the shooter wheels, and keep everyone out of the path of the ball. Keep a hand near the **Stop** button while the turret limits are off.
+**Safety:** keep hands, hair, and loose clothing away from the shooter wheels, and keep everyone out of the path of the ball. Keep a hand near the **Stop** button when testing the turret.
 
 ## Gamepad 1: DRIVER
 
@@ -71,6 +71,6 @@ Jam clearing (the bumpers) is plain reverse power, not RPM. Bumpers beat everyth
 Holding a D-pad button moves the dial **one step**. Press it again for the next step.
 
 ### Operator tips
-- **Turret limits are OFF for now** (see `TurretSubsystem`). Keep a hand near the Stop button.
-- **0 degrees** is where the turret pointed when the Control Hub powered on, because the home switch is not installed yet. Power on with the turret pointing straight ahead.
+- **The turret will not go past +/-120 degrees** (see `TurretSubsystem`). At a limit it stops, and you can still turn it back toward the middle.
+- **0 degrees** is where the turret pointed when the Control Hub powered on, because the home switch is not installed yet. Power on with the turret pointing straight ahead, or the limits will be measured from the wrong place.
 - The turret power is fixed at 50% now. It no longer has a dial.
