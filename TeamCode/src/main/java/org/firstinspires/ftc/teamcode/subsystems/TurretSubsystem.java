@@ -171,8 +171,11 @@ public class TurretSubsystem {
     // If the turret stops short of the target, raise it. If it jerks, lower it.
     private static final double FRICTION_POWER = 0.05;
 
-    // The most power position control will use. Start low. Raise it once everything checks out.
-    private static final double MAX_POWER = 0.5;
+    // The most power position control will use (auto-align and the presets). It was 0.5 for the
+    // first tests, and is 0.75 now that auto-align and the limits have been tested on the robot.
+    // A faster turret overshoots more. If it starts to swing past the target, lower this, or
+    // try a small KD.
+    private static final double MAX_POWER = 0.75;
 
     // The most power MANUAL mode can use. setManualPower(1.0) means this much. It is 1.0 now
     // because the test OpMode (TurretAlpha) lets the operator pick the speed with a dial.

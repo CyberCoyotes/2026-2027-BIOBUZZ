@@ -29,7 +29,7 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *   The presets use their own position-control power (MAX_POWER in TurretSubsystem),
  *   not the Turret power dial.
  *
- * TURRET POWER is how fast the turret turns. It starts at DEFAULT_TURRET_POWER_PERCENT (50%).
+ * TURRET POWER is how fast the turret turns. It starts at DEFAULT_TURRET_POWER_PERCENT (75%).
  * A full push on the stick, or holding D-pad Left / Right, turns the turret at this power.
  * A half push on the stick turns it at half of this power.
  *
@@ -72,7 +72,7 @@ public class TurretAlpha extends OpMode {
 
     // The turret power at the start. This is the power the turret uses for a full push on
     // the stick, or while D-pad Left / Right is held. 100 means full power.
-    private static final int DEFAULT_TURRET_POWER_PERCENT = 50;
+    private static final int DEFAULT_TURRET_POWER_PERCENT = 75;
 
     // Each press of D-pad Up or Down changes the turret power by this many percent.
     private static final int TURRET_POWER_PERCENT_STEP = 5;

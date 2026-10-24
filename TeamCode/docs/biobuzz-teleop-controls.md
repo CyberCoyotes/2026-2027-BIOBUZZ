@@ -35,7 +35,7 @@ The operator sets the shooter speeds (RPM), aims the turret, and moves the shoot
 
 | Control | What it does |
 |---|---|
-| **Left Stick X** | Turn the turret (push right and it turns right). A full push is 50% turret power |
+| **Left Stick X** | Turn the turret (push right and it turns right). A full push is 75% turret power |
 | **Y** | Turret **CENTER** (0 degrees) |
 | **X** | Turret **FAR LEFT** (+90 degrees) |
 | **B** | Turret **FAR RIGHT** (-90 degrees) |
@@ -73,4 +73,4 @@ Holding a D-pad button moves the dial **one step**. Press it again for the next 
 ### Operator tips
 - **The turret will not go past +/-120 degrees** (see `TurretSubsystem`). At a limit it stops, and you can still turn it back toward the middle.
 - **0 degrees** is where the turret pointed when the Control Hub powered on, because the home switch is not installed yet. Power on with the turret pointing straight ahead, or the limits will be measured from the wrong place.
-- The turret power is fixed at 50% now. It no longer has a dial.
+- The turret stick power is fixed at 75% now. It no longer has a dial.
