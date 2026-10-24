@@ -245,9 +245,11 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **States:** `NO_TARGET`, `TARGET_VISIBLE`. A result older than `MAX_RESULT_AGE_MS` counts as no target.
 - **Methods:** `setAlliance()`, `getAlliance()`, `update()` (once per loop), `hasTarget()`, `getTxDegrees()`, `getTyDegrees()`, `getTagCount()`, `getTargetCell()`, `getResultAgeMs()`, `isCameraConnected()`, `stop()`, `addTelemetry()`.
 - **Test OpMode:** `VisionAlpha` ("Vision - Alpha"). Step 1 is camera only (watch the numbers in INIT). Step 2 is auto-align: gamepad2 Right Bumper held turns the turret to cancel `tx`, Left Stick X is manual and wins, A stops. Gamepad1 **START** switches the alliance (starts **BLUE**). It picks a new turret target only when `|tx|` is over 1 degree, so the turret's on-target check can settle. If the target is lost it holds; it does not search.
-- **Starting values to check on the robot:** `APRILTAG_PIPELINE_INDEX` (0, must be an AprilTag pipeline in the Limelight web page), `MAX_RESULT_AGE_MS`, and the two thresholds in `VisionAlpha`.
+- **Aim offset (the fudge factor):** `AIM_OFFSET_DEGREES` (starts at 0.0) is added to the camera's tx inside `update()`, so `getTxDegrees()`, the "aimed" check, and auto-align all get it. **Positive = the turret aims a little more to the RIGHT, negative = more to the LEFT.** Tune it by shooting from one fixed spot: shots landing right of the hole means a more negative number, left means more positive. Change it by about 0.5° at a time (1° is about 1 inch of miss per 5 ft). It is not applied when there is no target. Telemetry shows the raw camera tx next to it.
+- **Starting values to check on the robot:** `APRILTAG_PIPELINE_INDEX` (0, must be an AprilTag pipeline in the Limelight web page), `MAX_RESULT_AGE_MS`, `AIM_OFFSET_DEGREES`, and the two thresholds in `VisionAlpha`.
+- **Tested on the robot:** the camera reads tags (pipeline 0, cell 2, 3 tags used, 5 ms old), and `tx` falls toward 0 when the turret turns toward the target, and Right Bumper auto-align works.
 - **`[CONFIRM]`:** the arm can hide a pair of tags. If it hides only the left or right pair, the average shifts toward the visible side. Measure how big that error is on the real hive. Camera latency (a few frames) can also make fast turret moves overshoot a little.
-- **Not in this class:** distance and the shot table (next), the offset from the tags to the cell opening, and searching for a lost target.
+- **Not in this class:** distance and the shot table (next), the vertical offset from the tags to the cell opening, and searching for a lost target.
 
 ### DriveSubsystem (`subsystems/DriveSubsystem.java`): code written, not yet tested on the robot
 

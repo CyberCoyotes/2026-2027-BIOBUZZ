@@ -16,7 +16,8 @@ import java.util.List;
  * (for now VisionAlpha) takes the answers from here and tells the turret what to do.
  *
  * WHAT IT ANSWERS: "Where is OUR hive's AprilTag cluster, as seen from the turret?"
- *   getTxDegrees()  -> how far LEFT or RIGHT of the camera's center the target is.
+ *   getTxDegrees()  -> how far LEFT or RIGHT of the camera's center the target is, PLUS the
+ *                      AIM_OFFSET_DEGREES correction (zero by default).
  *                      POSITIVE means the target is to the RIGHT (that is the Limelight's rule).
  *                      Careful: the turret's angle is positive to the LEFT, so the two signs are
  *                      opposite. The OpMode that aims the turret has to flip the sign.
@@ -81,6 +82,21 @@ public class VisionSubsystem {
     // This means "no cell". Real cells are numbered 0 to 3.
     private static final int NO_CELL = -1;
 
+    // ------------------------------------------------------------------
+    // Aim offset (the fudge factor)
+    // ------------------------------------------------------------------
+    // A steady correction, in degrees, added to the camera's tx. Use it when the shots land
+    // to one side even though the turret says it is aimed. Two things cause that: the camera is
+    // not on the shooter's centerline, and the middle of the tag cluster is not exactly the
+    // middle of the cell opening.
+    //   POSITIVE -> the turret aims a little more to the RIGHT of where the camera is centered.
+    //   NEGATIVE -> the turret aims a little more to the LEFT.
+    // Start at 0.0. Shoot from one fixed spot. If the shots land to the right of the hole, make
+    // this number negative. If they land left, make it positive. Change it a little at a time
+    // (0.5 degrees), because 1 degree is about 1 inch of sideways miss for every 5 feet of range.
+    // It is only applied when there is a target.
+    private static final double AIM_OFFSET_DEGREES = 0.0;
+
     // The alliance we start with. An OpMode can change it any time with setAlliance().
     private static final Alliance DEFAULT_ALLIANCE = Alliance.BLUE;
 
@@ -104,7 +120,9 @@ public class VisionSubsystem {
     private VisionState state = VisionState.NO_TARGET;
 
     // The newest answers. They are zero when there is no target.
+    // txDegrees is the camera's tx PLUS AIM_OFFSET_DEGREES. rawTxDegrees is the camera's own tx.
     private double txDegrees = 0.0;
+    private double rawTxDegrees = 0.0;
     private double tyDegrees = 0.0;
     private int tagCount = 0;
     private int targetCell = NO_CELL;
@@ -201,7 +219,8 @@ public class VisionSubsystem {
             }
         }
 
-        txDegrees = txTotal / tagsInCell;
+        rawTxDegrees = txTotal / tagsInCell;
+        txDegrees = rawTxDegrees + AIM_OFFSET_DEGREES;
         tyDegrees = tyTotal / tagsInCell;
         tagCount = tagsInCell;
         targetCell = bestCell;
@@ -291,6 +310,8 @@ public class VisionSubsystem {
         if (state == VisionState.TARGET_VISIBLE) {
             telemetry.addData("Target cell", "%d   (%d tags used)", targetCell, tagCount);
             telemetry.addData("tx", "%.1f deg  (+ = target is to the RIGHT)", txDegrees);
+            telemetry.addData("tx raw / offset", "%.1f deg camera,  %+.1f deg AIM_OFFSET",
+                    rawTxDegrees, AIM_OFFSET_DEGREES);
             telemetry.addData("ty", "%.1f deg  (+ = up)", tyDegrees);
         }
         telemetry.addData("Result age", "%d ms", resultAgeMs);
@@ -303,6 +324,7 @@ public class VisionSubsystem {
     private void clearTarget() {
         state = VisionState.NO_TARGET;
         txDegrees = 0.0;
+        rawTxDegrees = 0.0;
         tyDegrees = 0.0;
         tagCount = 0;
         targetCell = NO_CELL;
