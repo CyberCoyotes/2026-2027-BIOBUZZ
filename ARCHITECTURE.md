@@ -34,7 +34,7 @@ org.firstinspires.ftc.teamcode
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 5"; gamepad1 is the driver, gamepad2 is the operator: shooter buttons normally, and the turret buttons while the Left Trigger is held, see its header). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`, `VisionAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 5"; gamepad1 is the driver, gamepad2 is the operator: shooter buttons normally, and the turret buttons while the Left Trigger is held, see its header). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -232,6 +232,19 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Test controls:** `TurretAlpha` uses **gamepad2**: left stick and D-pad Left/Right turn the turret (hold to move, let go to hold the angle), D-pad Up/Down change the turret power by 5% per press (default 50%), **Y / X / B** go to the center / far left (+90°) / far right (−90°) presets, **A** stops. Stick right = turn right, which is a *negative* angle, so `TurretAlpha` flips the stick sign. `MAX_MANUAL_POWER` in the subsystem is 1.0, so the OpMode's power dial is the real motor power.
 - **Test OpMode:** `TurretAlpha` (gamepad2: manual stick, hold-to-turn D-pad, power dial, Y/X/B presets, A to stop). Its header has the safe first-test order.
 - **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.
+
+### VisionSubsystem (`subsystems/VisionSubsystem.java`): code written, not yet tested on the robot
+
+- **Hardware:** `limelight`, the Limelight 3A, as an Ethernet device (USB-C to USB-A into the Control Hub's USB 3.0 port). It needs about 30 seconds to boot.
+- **Reads only.** It never moves the turret and has no gamepad code. The OpMode takes its answers and tells the turret what to do.
+- **Target choice:** keeps only our alliance's tags (RED = tags 30-37, BLUE = tags 38-45), picks the cell holding the **highest** tag (largest `ty`, which is the raised cell), then **averages `tx` and `ty` over the visible tags of that one cell**. Averaging avoids aiming up to 6.5 in off center at a single tag.
+- **Sign convention:** `getTxDegrees()` is the Limelight's: **positive = target to the RIGHT**. Turret angles are positive to the LEFT, so aiming code uses `turretAngle - tx`.
+- **States:** `NO_TARGET`, `TARGET_VISIBLE`. A result older than `MAX_RESULT_AGE_MS` counts as no target.
+- **Methods:** `setAlliance()`, `getAlliance()`, `update()` (once per loop), `hasTarget()`, `getTxDegrees()`, `getTyDegrees()`, `getTagCount()`, `getTargetCell()`, `getResultAgeMs()`, `isCameraConnected()`, `stop()`, `addTelemetry()`.
+- **Test OpMode:** `VisionAlpha` ("Vision - Alpha"). Step 1 is camera only (watch the numbers in INIT). Step 2 is auto-align: gamepad2 Right Bumper held turns the turret to cancel `tx`, Left Stick X is manual and wins, A stops. Gamepad1 **START** switches the alliance (starts **BLUE**). It picks a new turret target only when `|tx|` is over 1 degree, so the turret's on-target check can settle. If the target is lost it holds; it does not search.
+- **Starting values to check on the robot:** `APRILTAG_PIPELINE_INDEX` (0, must be an AprilTag pipeline in the Limelight web page), `MAX_RESULT_AGE_MS`, and the two thresholds in `VisionAlpha`.
+- **`[CONFIRM]`:** the arm can hide a pair of tags. If it hides only the left or right pair, the average shifts toward the visible side. Measure how big that error is on the real hive. Camera latency (a few frames) can also make fast turret moves overshoot a little.
+- **Not in this class:** distance and the shot table (next), the offset from the tags to the cell opening, and searching for a lost target.
 
 ### DriveSubsystem (`subsystems/DriveSubsystem.java`): code written, not yet tested on the robot
 

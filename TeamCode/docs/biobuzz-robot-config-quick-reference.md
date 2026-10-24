@@ -41,7 +41,7 @@ Without it, turret 0° is wherever the turret pointed when the hub powered on, s
 
 | Config name | Device type | Notes |
 |---|---|---|
-| `limelight` | Limelight 3A, **Ethernet device** | Lives at `172.29.0.1` (NOT 192.168.1.11). Exposure 1000 / gain 8 to start. Not used by any subsystem yet. |
+| `limelight` | Limelight 3A, **Ethernet device** | Lives at `172.29.0.1` (NOT 192.168.1.11). Exposure 1000 / gain 8 to start. Used by `VisionSubsystem`. Plugged into the Control Hub's blue USB 3.0 port. Needs an AprilTag pipeline (index 0) set up in its web page, `http://172.29.0.1:5801`. |
 
 ---
 
