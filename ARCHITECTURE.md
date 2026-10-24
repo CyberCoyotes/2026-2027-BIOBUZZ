@@ -145,7 +145,7 @@ Names already in use:
 
 | Name | Device |
 |---|---|
-| `intake_motor` | One motor for intake, index, and transfer (goBILDA 5203, probably 1620 RPM 3.71:1 `[CONFIRM]`) |
+| `intake` | One motor for intake, index, and transfer (goBILDA 5203, probably 1620 RPM 3.71:1 `[CONFIRM]`) |
 | `flywheel` | Shooter flywheel: goBILDA 5202/3/4, about 4 in, on the front of the ball path |
 | `hood_wheel` | Hood wheel: goBILDA 5203 series (believed `[CONFIRM]`), about 2 in, on the back/top side in the fixed hood. Its RPM relative to the flywheel sets the ball spin. |
 | `left_front` | Drive motor, left front (mecanum) |
@@ -193,6 +193,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 ### ShooterSubsystem (`subsystems/ShooterSubsystem.java`)
 
 - **Hardware:** `flywheel` and `hood_wheel`, both goBILDA 5203 series (6000 RPM, believed `[CONFIRM]`) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
+- **Hood wheel ratio:** `HOOD_WHEEL_RATIO` is **2.0** (hood wheel RPM / flywheel RPM), the best value found in robot testing so far. `setTargetRpm()` uses it, and `BiobuzzTeleOp` starts its ratio dial at the same number. At 2.0 the flywheel tops out at `MAX_TARGET_RPM / 2` (2700 RPM) before the hood wheel is capped.
 - **Control:** speed control in RPM (`setTargetRpm()` / `setTargetRpms()`). `setPower()` is open loop, for tests and clearing jams. `stop()` coasts (never commands a speed of 0).
 - **States:** `IDLE`, `OPEN_LOOP`, `SPINNING_UP`, `READY`. `isAtSpeed()` is true only in `READY` and is the shooter's half of the firing gate. The turret's on-target check is the other half.
 - **Test OpMode:** `ShooterRPMAlpha`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
@@ -260,7 +261,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 
 ### IntakeSubsystem (`subsystems/IntakeSubsystem.java`): code written, not yet tested on the robot
 
-- **Hardware:** `intake_motor`, one goBILDA 5203 series at 1620 RPM (3.7:1, believed `[CONFIRM]`). The one motor spins the front intake **and** a second hex shaft with grippers in the transfer chute, so intake and transfer always run together.
+- **Hardware:** `intake`, one goBILDA 5203 series at 1620 RPM (3.7:1, believed `[CONFIRM]`). The one motor spins the front intake **and** a second hex shaft with grippers in the transfer chute, so intake and transfer always run together.
 - **Control:** plain power, not RPM (`RUN_WITHOUT_ENCODER`). There is **one power dial** (`setIntakePower()`, 0.0 to 1.0, starting at 50%). `intake()` runs at +dial, `reverse()` runs at -dial, `stop()` coasts (`FLOAT`). Splitting reverse into its own number is an easy later change.
 - **States:** `STOPPED`, `INTAKING`, `REVERSING`.
 - **Encoder:** plugged in for testing. `update()` reads `getVelocity()` once per loop and `getTicksPerSecond()` returns it. It is shown in **raw ticks per second only, with no RPM conversion**, so nothing here depends on the 28-vs-112 `[CONFIRM]`.

@@ -36,7 +36,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *   If the encoder is not plugged in, the speed just reads 0 and nothing else is affected.
  *
  * Robot configuration (on the Driver Station):
- *   Motor name: intake_motor
+ *   Motor name: intake
  *   Motor type: goBILDA 5202/3/4 series
  */
 public class IntakeSubsystem {
