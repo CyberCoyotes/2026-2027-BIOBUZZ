@@ -34,7 +34,7 @@ org.firstinspires.ftc.teamcode
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`, `VisionAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 5"; gamepad1 is the driver, gamepad2 is the operator: shooter buttons normally, and the turret buttons while the Left Trigger is held, see its header). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`, `VisionAlpha`, `ShotTableAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 5"; gamepad1 is the driver, gamepad2 is the operator: shooter buttons normally, and the turret buttons while the Left Trigger is held, see its header). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -249,7 +249,19 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Starting values to check on the robot:** `APRILTAG_PIPELINE_INDEX` (0, must be an AprilTag pipeline in the Limelight web page), `MAX_RESULT_AGE_MS`, `AIM_OFFSET_DEGREES`, and the two thresholds in `VisionAlpha`.
 - **Tested on the robot:** the camera reads tags (pipeline 0, cell 2, 3 tags used, 5 ms old), and `tx` falls toward 0 when the turret turns toward the target, and Right Bumper auto-align works.
 - **`[CONFIRM]`:** the arm can hide a pair of tags. If it hides only the left or right pair, the average shifts toward the visible side. Measure how big that error is on the real hive. Camera latency (a few frames) can also make fast turret moves overshoot a little.
-- **Not in this class:** distance and the shot table (next), the vertical offset from the tags to the cell opening, and searching for a lost target.
+- **Not in this class:** a distance calculation (the shot table uses `ty` directly, see `ShotTable`), the vertical offset from the tags to the cell opening, and searching for a lost target.
+
+### ShotTable (`subsystems/ShotTable.java`): code written, not yet measured on the robot
+
+- **What it is:** a plain class with **no hardware**, no `update()`, and no gamepad code. You give it a `ty` and it returns the **flywheel RPM** for a shot from there. It is not a mechanism, so its name does not end in `Subsystem`. It sits in `subsystems/` because its numbers describe the shooter `[CONFIRM]`.
+- **Why `ty` and not distance:** the camera is fixed on the turret, so a closer hive shows **higher** in the view, which is a **bigger `ty`**. That makes `ty` a stand-in for distance with no lens height or camera tilt needed. **If the camera is moved or re-tilted, measure the table again.**
+- **The table:** two lists in the same order, `TY_DEGREES` (smallest to biggest, which is far to close) and `FLYWHEEL_RPM`. Between two rows it draws a straight line (linear interpolation). Outside the table it **uses the nearest row and never extrapolates**. The constructor stops with a clear message if the lists are different lengths or `ty` does not strictly increase.
+- **Methods:** `getFlywheelRpm(ty)`, `isInRange(ty)`, `getRowCount()`.
+- **Hood wheel:** the table has one RPM per row. The hood wheel is `flywheel × HOOD_WHEEL_RATIO` when the RPM goes through `ShooterSubsystem.setTargetRpm()`. A second column is an easy later change if testing shows a fixed ratio is not enough.
+- **Speed cap:** `MAX_TARGET_RPM` is 5400 and the hood wheel is at twice the flywheel, so **keep every flywheel RPM at 2700 or below**. Above that the hood wheel is cut off and the real ratio drops.
+- **Test OpMode:** `ShotTableAlpha` ("Shot Table - Alpha", gamepad1). Minimal on purpose: no drive, intake, turret, or gate. Move the robot and feed balls **by hand**. Right Trigger shoots at a dial RPM (D-pad Up/Down) to find the slowest speed that scores; A saves a row (`ty` + RPM) to the screen; Left Trigger shoots at the table's RPM to check it; Left Bumper reverses both wheels; START switches alliance. Nothing is saved to disk, so copy the rows into `ShotTable` before stopping.
+- **`[CONFIRM]` the rows are placeholders:** every row is 1300 flywheel RPM (about 1300 / 2600 looked right by eye) and the `ty` values are guesses. The table acts like one fixed speed until it is measured.
+- **Not wired into TeleOp yet.** `BiobuzzTeleOp` is unchanged. Wiring it in is a later session, and it will have to settle the gamepad2 Right Bumper clash (it reverses the flywheel in the TeleOp and auto-aligns in `VisionAlpha`).
 
 ### DriveSubsystem (`subsystems/DriveSubsystem.java`): code written, not yet tested on the robot
 
