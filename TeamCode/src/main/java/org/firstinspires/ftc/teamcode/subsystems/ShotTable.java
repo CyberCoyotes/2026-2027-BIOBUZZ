@@ -46,7 +46,9 @@ public class ShotTable {
     // ------------------------------------------------------------------
     // [CONFIRM] FIRST PASS, measured with ShotTableAlpha (7 saves from 5 different spots, the
     // repeats were merged). The RPMs were found in 50 RPM dial steps, so each is only good to
-    // about +/- 50. ty is NEGATIVE here (the tags appear BELOW the middle of the camera view).
+    // about +/- 50. Row 0 (the farthest spot) is a judgment call between two dial settings:
+    // 1400 made the shot and 1450 felt more comfortable, so it is 1425, in between.
+    // ty is NEGATIVE here (the tags appear BELOW the middle of the camera view).
     // That is fine. What matters is that a bigger ty (closer to zero) means closer to the hive,
     // and the closer spots needed a LOWER RPM.
     // The closest spot measured is ty -4.0 and the farthest is ty -16.8. Outside that, the table
@@ -55,7 +57,7 @@ public class ShotTable {
     // If shots between those rows miss, measure another spot there.
     //                                           row 0    row 1    row 2    row 3    row 4
     private static final double[] TY_DEGREES =   { -16.8,   -15.8,   -13.1,    -8.7,    -4.0 };
-    private static final double[] FLYWHEEL_RPM = { 1450.0,  1350.0,  1300.0,  1250.0,  1250.0 };
+    private static final double[] FLYWHEEL_RPM = { 1425.0,  1350.0,  1300.0,  1250.0,  1250.0 };
 
     // ==================================================================
     // SETUP
