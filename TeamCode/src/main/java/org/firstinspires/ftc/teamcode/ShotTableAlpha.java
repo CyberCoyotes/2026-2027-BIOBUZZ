@@ -79,11 +79,13 @@ public class ShotTableAlpha extends OpMode {
     // Test-only numbers
     // ------------------------------------------------------------------
     // The dial is the FLYWHEEL RPM. It starts at 1300, the speed that looked about right by eye.
+    // One D-pad press moves it 25 RPM, so a new spot can be tuned finely. (The first rows in
+    // ShotTable were found in 50 RPM steps, so they are only good to about +/- 50.)
     // The ShooterSubsystem will not go above its MAX_TARGET_RPM, and with the hood wheel at
     // twice the flywheel (HOOD_WHEEL_RATIO 2.0) the flywheel tops out at 2700 RPM. So the dial
     // stops at 2700. Raise DIAL_MAX_RPM only if MAX_TARGET_RPM or the ratio changes.
     private static final int DIAL_START_RPM = 1300;
-    private static final int DIAL_STEP_RPM = 50;
+    private static final int DIAL_STEP_RPM = 25;
     private static final int DIAL_MIN_RPM = 500;
     private static final int DIAL_MAX_RPM = 2700;
 
