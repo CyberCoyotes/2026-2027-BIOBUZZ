@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShotTable;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
@@ -13,18 +14,28 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * An iterative OpMode for MEASURING the shot table, and then CHECKING it, using gamepad1.
  *   VisionSubsystem  -> reads the Limelight: the ty of our hive's AprilTags
  *   ShooterSubsystem -> spins the flywheel and the hood wheel
+ *   IntakeSubsystem  -> carries the balls up the chute to the shooter
  *   ShotTable        -> turns a ty into a flywheel RPM
  * This OpMode owns NO hardware itself. It only reads the gamepad and tells the subsystems what
- * to do. It does NOT drive, run the intake, move the turret, or open the gate:
+ * to do. It does NOT drive, move the turret, or move the gate:
  *   - MOVE THE ROBOT BY HAND to each spot on the field, with the turret left straight ahead.
  *     Point the robot so the camera can see the hive's tags.
- *   - FEED THE BALL BY HAND into the spinning wheels.
+ *   - LOAD the balls into the intake by hand. Holding a shoot trigger runs the intake too.
+ *   - The gate servo is NOT touched. It stays wherever it was. If the gate has to be open
+ *     for a ball to leave the shooter, open it first (ShooterRPMAlpha or the TeleOp).
+ *
+ * THE INTAKE FEEDS ONLY WHEN THE WHEELS ARE READY
+ *   Holding a shoot trigger spins the wheels first. The intake starts only when "Shooter State"
+ *   says READY (both wheels at speed). A ball slows the wheels, the state drops back to
+ *   SPINNING_UP, and the intake pauses until the wheels recover. So the balls go one at a time,
+ *   each at the right speed. That keeps the measurements honest. To run the intake the moment
+ *   you pull the trigger instead, set INTAKE_WAITS_FOR_SPEED to false.
  *
  * PART 1: MEASURE THE TABLE (one row per spot)
  *   1. Pick a spot. Move the robot there. Check "Vision State" says TARGET_VISIBLE.
  *   2. HOLD the Right Trigger. The wheels spin at the DIAL speed (flywheel RPM; the hood wheel
- *      is that x the ratio, set in ShooterSubsystem).
- *   3. When "Shooter State" says READY, feed a ball by hand. Did it score?
+ *      is that x the ratio, set in ShooterSubsystem). Once READY, the intake feeds the balls.
+ *   3. Watch where each ball goes. Did it score?
  *   4. D-pad Up / Down changes the dial. Repeat until you find the SLOWEST speed that scores
  *      reliably from that spot (a slower shot is easier on the wheels and the batteries).
  *   5. Press A. That saves one row: the spot's ty and the dial RPM. Saved rows stay on the screen.
@@ -40,23 +51,25 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * GAMEPAD 1:
  *   Right Trigger (hold) -> shoot at the DIAL speed
  *   Left Trigger  (hold) -> shoot at the TABLE speed (from the ty right now)
+ *   (Both triggers run the intake too, once the wheels are READY.)
  *   D-pad Up / Down      -> dial +/- DIAL_STEP_RPM (one change per press)
  *   A                    -> SAVE a row (current ty + dial RPM)
  *   B                    -> clear the saved rows
- *   Left Bumper (hold)   -> reverse BOTH wheels (clearing a jam). Beats everything.
+ *   Left Bumper (hold)   -> reverse BOTH wheels AND the intake (clearing a jam). Beats everything.
  *   START                -> switch alliance BLUE <-> RED (one switch per press). Starts as BLUE.
  *      (Pairing the controller on the Driver Station is Start + A. If you do that while this
  *       OpMode is running, it also switches the alliance and saves a row, so check both.)
- *   No trigger held -> both wheels coast to a stop.
+ *   No trigger held -> both wheels coast to a stop and the intake stops.
  *
  * Priority, highest first: Left Bumper (jam clearing), Right Trigger (dial), Left Trigger (table).
  *
- * SAFE USE: the wheels are fast. Keep hands, hair and loose clothing away from them, and feed
- * balls from behind the guard. Keep a hand near the Stop button.
+ * SAFE USE: the wheels are fast. Keep hands, hair and loose clothing away from them, and from
+ * the intake. Keep a hand near the Stop button.
  *
  * Robot configuration (on the Driver Station):
  *   Motor name:           flywheel     (ShooterSubsystem, encoder plugged in)
  *   Motor name:           hood_wheel   (ShooterSubsystem, encoder plugged in)
+ *   Motor name:           intake       (IntakeSubsystem)
  *   Ethernet Device name: limelight    (VisionSubsystem, Limelight 3A)
  */
 @TeleOp(name = "Shot Table - Alpha", group = "Testing")
@@ -77,7 +90,15 @@ public class ShotTableAlpha extends OpMode {
     // How many rows A can save. The screen has only so much room. 8 is more than the table needs.
     private static final int MAX_SAVED_ROWS = 8;
 
+    // true  -> the intake runs only while the shooter says READY (both wheels at speed), so each
+    //          ball is fed into wheels that are at the speed you are measuring. Use this to
+    //          collect table rows.
+    // false -> the intake runs the whole time a shoot trigger is held, even while the wheels are
+    //          still spinning up. The first ball may leave slow.
+    private static final boolean INTAKE_WAITS_FOR_SPEED = true;
+
     // Reverse power is NEGATIVE so the motors spin the other way (the same as ShooterRPMAlpha).
+    // This is for the two shooter wheels. The intake reverses at its own power dial.
     private static final double REVERSE_POWER = -0.60;
 
     // The measured ratio (hood RPM / flywheel RPM) is only worth showing when the flywheel is
@@ -91,6 +112,7 @@ public class ShotTableAlpha extends OpMode {
     private ElapsedTime runtime = new ElapsedTime();
     private VisionSubsystem visionSubsystem;
     private ShooterSubsystem shooterSubsystem;
+    private IntakeSubsystem intakeSubsystem;
     private ShotTable shotTable;
 
     // The dial: the flywheel RPM that Right Trigger shoots at.
@@ -123,11 +145,11 @@ public class ShotTableAlpha extends OpMode {
      */
     private void addControlsTelemetry() {
         telemetry.addLine("--- CONTROLS ---");
-        telemetry.addLine("Right Trigger (hold) = shoot at the DIAL speed");
-        telemetry.addLine("Left Trigger (hold) = shoot at the TABLE speed");
+        telemetry.addLine("Right Trigger (hold) = shoot at the DIAL speed (+ intake when READY)");
+        telemetry.addLine("Left Trigger (hold) = shoot at the TABLE speed (+ intake when READY)");
         telemetry.addLine("D-pad Up / Down = dial +/- " + DIAL_STEP_RPM + " RPM");
         telemetry.addLine("A = SAVE a row (ty + dial RPM)   B = clear saved rows");
-        telemetry.addLine("Left Bumper (hold) = REVERSE both wheels (jam)");
+        telemetry.addLine("Left Bumper (hold) = REVERSE both wheels + intake (jam)");
         telemetry.addLine("START = switch alliance (BLUE / RED)");
     }
 
@@ -219,6 +241,7 @@ public class ShotTableAlpha extends OpMode {
         // The Limelight starts polling here. The shooter does not spin at INIT.
         visionSubsystem = new VisionSubsystem(hardwareMap);
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
+        intakeSubsystem = new IntakeSubsystem(hardwareMap);
         shotTable = new ShotTable();
 
         telemetry.addData("Status", "Initialized");
@@ -252,8 +275,9 @@ public class ShotTableAlpha extends OpMode {
      */
     @Override
     public void loop() {
-        // 1. Read sensors. (The shooter reads its own encoders inside update(), below.)
+        // 1. Read sensors. (The shooter and the intake read their own encoders inside update().)
         visionSubsystem.update();
+        intakeSubsystem.update();
 
         // 2. Read the gamepad and decide what to do.
         checkAllianceToggle();
@@ -273,15 +297,20 @@ public class ShotTableAlpha extends OpMode {
 
         // 3. Tell the shooter what to do, then call update().
         // Check from HIGHEST priority to LOWEST. The first one that is true wins.
+        // shooting is true when a shoot trigger is held AND the wheels are being told to spin.
+        // The intake uses it below.
         String shooterControl;
+        boolean shooting = false;
         if (reverseHeld) {
             shooterSubsystem.setPower(REVERSE_POWER, REVERSE_POWER);
             shooterControl = "Left Bumper (REVERSE)";
         } else if (dialShotHeld) {
             shooterSubsystem.setTargetRpm(dialRpm);
+            shooting = true;
             shooterControl = "Right Trigger (DIAL " + dialRpm + " RPM)";
         } else if (tableShotHeld && hasTarget) {
             shooterSubsystem.setTargetRpm(tableRpm);
+            shooting = true;
             shooterControl = String.format("Left Trigger (TABLE %.0f RPM)", tableRpm);
         } else if (tableShotHeld) {
             // No target means no ty, so there is no table answer. Stay stopped instead of guessing.
@@ -294,9 +323,29 @@ public class ShotTableAlpha extends OpMode {
         }
         shooterSubsystem.update();
 
+        // The intake. This comes AFTER shooterSubsystem.update(), because isAtSpeed() is only
+        // fresh once the shooter has read its encoders this loop. Reverse goes first, so
+        // clearing a jam always works.
+        String intakeControl;
+        if (reverseHeld) {
+            intakeSubsystem.reverse();
+            intakeControl = "Left Bumper (REVERSE)";
+        } else if (shooting && INTAKE_WAITS_FOR_SPEED && !shooterSubsystem.isAtSpeed()) {
+            // A shoot trigger is held, but the wheels are not at speed yet. Hold the balls back.
+            intakeSubsystem.stop();
+            intakeControl = "waiting for the wheels (not READY)";
+        } else if (shooting) {
+            intakeSubsystem.intake();
+            intakeControl = "FEEDING";
+        } else {
+            intakeSubsystem.stop();
+            intakeControl = "None";
+        }
+
         // 4. Show what is happening on the Driver Station.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
         telemetry.addData("Shooter Control", shooterControl);
+        telemetry.addData("Intake Control", intakeControl);
 
         telemetry.addLine("--- SHOT ---");
         telemetry.addData("Dial (flywheel RPM)", dialRpm);
@@ -319,6 +368,7 @@ public class ShotTableAlpha extends OpMode {
         }
 
         shooterSubsystem.addTelemetry(telemetry);
+        intakeSubsystem.addTelemetry(telemetry);
         visionSubsystem.addTelemetry(telemetry);
         addSavedRowsTelemetry();
     }
@@ -330,6 +380,7 @@ public class ShotTableAlpha extends OpMode {
     public void stop() {
         // Always leave the motors stopped, and stop polling the camera.
         shooterSubsystem.stop();
+        intakeSubsystem.stop();
         visionSubsystem.stop();
     }
 }
