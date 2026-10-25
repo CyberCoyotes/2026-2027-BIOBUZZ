@@ -42,7 +42,7 @@ The specific classes, states, and methods are decided one session at a time, pro
 - **Flywheel speed:** a **lookup table** of distance → flywheel RPM (and hood wheel RPM), measured at 4–6 distances and interpolated between them. Don't use physics equations. Students can re-tune a table at an event.
 - **Firing gate:** only feed a ball when the flywheel (and hood wheel) are within a velocity tolerance **and** the turret is on target.
 - **Velocity control:** `DcMotorEx.setVelocity()` with tuned PIDF. Confirm the encoder counts per revolution first (28 or 112, see `CLAUDE.md`).
-- **Hood wheel:** start at a **fixed ratio** (hood wheel RPM ÷ flywheel RPM, `HOOD_WHEEL_RATIO`) to the flywheel speed. About 2.0 is expected for no ball spin because the hood wheel is half the flywheel diameter (`[CONFIRM]` on the robot). Tune it separately only if testing shows spin matters.
+- **Hood wheel:** start at a **fixed ratio** (hood wheel RPM ÷ flywheel RPM, `HOOD_WHEEL_RATIO`) to the flywheel speed. **2.0 is the best ratio found in robot testing so far** (about no ball spin, because the hood wheel is half the flywheel diameter), and it is now `HOOD_WHEEL_RATIO` in `ShooterSubsystem`. Keep checking it with `ShooterRatioAlpha`, and tune it separately only if testing shows spin matters.
 - **Target entry angle:** a ball coming down at ~30° arrives square-on to the tilted window and has the largest usable opening.
 
 ## Fallback mode (required)
@@ -57,11 +57,11 @@ Build this first, and keep it working all season:
 
 - It goes **on the turret**, facing the same way as the shooter, **as low as practical**.
 - **Tilt it up about 40°** as a starting point. Recalculate once the lens height is known (see the geometry doc).
-- Plan the cable routing and turret rotation limits so the Ethernet and power cables can't wrap or snag.
+- It connects to the Control Hub's **USB 3.0 port** with one USB-C to USB-A cable (power and data). The Control Hub sees it as an Ethernet device. Plan the cable routing and turret rotation limits so that cable can't wrap or snag.
 
 ## Open decisions `[CONFIRM]`
 
-- [ ] **Vision source:** Limelight 3A, or a webcam with the SDK `VisionPortal`? SDK 12.0 clusters put the origin at the cell opening, which makes aiming simpler. The Limelight is faster and already in our code. Decide before writing turret aiming code.
+- [x] **Vision source:** **Limelight 3A is final.** (A webcam with `VisionPortal` would have given SDK 12.0 clusters with the origin at the cell opening, but we are not using it, so we apply the opening offset ourselves.)
 - [ ] **Intake motor ratio:** goBILDA 5203 at 1620 RPM (3.71:1) is the likely choice, not final. Confirm it before writing `Intake` constants.
 - [ ] **One motor for intake and transfer:** the firing gate says "only feed when the flywheel is ready." With one shared motor, feeding a ball means the intake runs too. Decide how the driver handles that (for example, intake runs only while the shooter is ready, or the driver holds a button to feed).
 - [ ] Turret range of motion and homing method (limit switch versus absolute encoder)

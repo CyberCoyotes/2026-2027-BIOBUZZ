@@ -41,7 +41,7 @@ import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
  * On a PS5 controller: the bumpers are L1 and R1.
  *
  * Robot configuration (on the Driver Station):
- *   Motor name: intake_motor
+ *   Motor name: intake
  *   Motor type: goBILDA 5202/3/4 series
  *
  * HIDDEN FROM THE DRIVER STATION LIST

@@ -29,15 +29,16 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *   The presets use their own position-control power (MAX_POWER in TurretSubsystem),
  *   not the Turret power dial.
  *
- * TURRET POWER is how fast the turret turns. It starts at DEFAULT_TURRET_POWER_PERCENT (50%).
+ * TURRET POWER is how fast the turret turns. It starts at DEFAULT_TURRET_POWER_PERCENT (100%).
  * A full push on the stick, or holding D-pad Left / Right, turns the turret at this power.
  * A half push on the stick turns it at half of this power.
  *
  * ANGLES: left (counterclockwise) is POSITIVE, right is NEGATIVE, 0 is straight ahead.
  *
- * THE ANGLE LIMITS ARE OFF FOR NOW (SOFT_LIMITS_ON in TurretSubsystem is false). Nothing
- * stops the turret at an angle, so it can run into the cables or the frame. Keep your hand
- * near the Stop button, and start with a low power.
+ * THE ANGLE LIMITS ARE ON: the turret will not be driven past +/-120 degrees (SOFT_LIMITS_ON,
+ * MIN_ANGLE_DEGREES and MAX_ANGLE_DEGREES in TurretSubsystem). They are measured from 0 degrees,
+ * so power on with the turret pointing straight ahead. They only work if the angle is right,
+ * so do the first test below before trusting them, and keep your hand near the Stop button.
  *
  * HOME SWITCH IS OFF FOR NOW (not installed). 0 degrees is wherever the turret was when the
  * Control Hub powered on, so power on with the turret pointing straight ahead.
@@ -55,8 +56,9 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *      go. Press D-pad Up and Down and watch the Turret power line change.
  *   5. Try the presets from the center: Y should stay put, X should swing LEFT and B should
  *      swing RIGHT, each stopping at about 90 degrees on the screen. Press A to stop it.
- *   6. When all of that works, set SOFT_LIMITS_ON to true in TurretSubsystem and set the
- *      limits to about +/-130 degrees.
+ *   6. Last, test the limits: from the center, push the stick slowly to one side. The turret
+ *      must stop at about 120 degrees (or -120 on the right) and stay there. Then check that it
+ *      still moves back toward the middle.
  *
  * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
  *
@@ -70,7 +72,7 @@ public class TurretAlpha extends OpMode {
 
     // The turret power at the start. This is the power the turret uses for a full push on
     // the stick, or while D-pad Left / Right is held. 100 means full power.
-    private static final int DEFAULT_TURRET_POWER_PERCENT = 50;
+    private static final int DEFAULT_TURRET_POWER_PERCENT = 100;
 
     // Each press of D-pad Up or Down changes the turret power by this many percent.
     private static final int TURRET_POWER_PERCENT_STEP = 5;

@@ -93,8 +93,10 @@ public class ShooterSubsystem {
     //   up to MAX_TARGET_RPM / 2 (2700 RPM) before the hood wheel hits the cap and the ratio
     //   quietly gets smaller.
     //
-    // It stays 1.0 for now because the 2.0 idea has not been tested on the robot yet.
-    private static final double HOOD_WHEEL_RATIO = 1.0;
+    // 2.0 is the best ratio found so far in testing on the robot (no-spin shots). It is the
+    // number TeleOp starts its ratio dial at. Keep testing a little higher or lower with
+    // ShooterRatioAlpha, and type any better number here.
+    private static final double HOOD_WHEEL_RATIO = 2.0;
 
     // A wheel counts as "at speed" when it is within this many RPM of its target.
     // A smaller number means a more precise shot but a longer wait. Starting guess.

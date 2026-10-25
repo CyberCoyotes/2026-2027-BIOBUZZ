@@ -34,7 +34,7 @@ org.firstinspires.ftc.teamcode
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 5"; gamepad1 is the driver, gamepad2 is the operator: shooter buttons normally, and the turret buttons while the Left Trigger is held, see its header). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`, `VisionAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 5"; gamepad1 is the driver, gamepad2 is the operator: shooter buttons normally, and the turret buttons while the Left Trigger is held, see its header). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -145,7 +145,7 @@ Names already in use:
 
 | Name | Device |
 |---|---|
-| `intake_motor` | One motor for intake, index, and transfer (goBILDA 5203, probably 1620 RPM 3.71:1 `[CONFIRM]`) |
+| `intake` | One motor for intake, index, and transfer (goBILDA 5203, probably 1620 RPM 3.71:1 `[CONFIRM]`) |
 | `flywheel` | Shooter flywheel: goBILDA 5202/3/4, about 4 in, on the front of the ball path |
 | `hood_wheel` | Hood wheel: goBILDA 5203 series (believed `[CONFIRM]`), about 2 in, on the back/top side in the fixed hood. Its RPM relative to the flywheel sets the ball spin. |
 | `left_front` | Drive motor, left front (mecanum) |
@@ -193,10 +193,11 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 ### ShooterSubsystem (`subsystems/ShooterSubsystem.java`)
 
 - **Hardware:** `flywheel` and `hood_wheel`, both goBILDA 5203 series (6000 RPM, believed `[CONFIRM]`) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
+- **Hood wheel ratio:** `HOOD_WHEEL_RATIO` is **2.0** (hood wheel RPM / flywheel RPM), the best value found in robot testing so far. `setTargetRpm()` uses it, and `BiobuzzTeleOp` starts its ratio dial at the same number. At 2.0 the flywheel tops out at `MAX_TARGET_RPM / 2` (2700 RPM) before the hood wheel is capped.
 - **Control:** speed control in RPM (`setTargetRpm()` / `setTargetRpms()`). `setPower()` is open loop, for tests and clearing jams. `stop()` coasts (never commands a speed of 0).
 - **States:** `IDLE`, `OPEN_LOOP`, `SPINNING_UP`, `READY`. `isAtSpeed()` is true only in `READY` and is the shooter's half of the firing gate. The turret's on-target check is the other half.
 - **Test OpMode:** `ShooterRPMAlpha`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
-- **Ratio test OpMode:** `ShooterRatioAlpha` finds the best `HOOD_WHEEL_RATIO` (hood wheel / flywheel). **It uses plain POWER for now, because the encoder wires are not connected yet.** B/A turn the flywheel power dial (5% steps), D-pad Left/Right turn the ratio dial (0.05 steps), Y/X start and stop the shooter, and hood wheel power = flywheel power x ratio. It warns CAPPED when the hood wheel power would be over 100%, and counts 3 seconds for "wheels settled?" since it cannot read speed. Printable student sheet: `TeamCode/docs/hood-wheel-ratio-test-sheet-power.html` (and a `.pdf` copy). **When the encoders are connected,** the speed-control (RPM) version is saved in git (commit `89c074f`), with its sheet `hood-wheel-ratio-test-sheet.html`. `ShooterSubsystem.getMaxTargetRpm()` is for that RPM version.
+- **Ratio test OpMode:** `ShooterRatioAlpha` finds the best `HOOD_WHEEL_RATIO` (hood wheel / flywheel). **It uses speed control (RPM)**, now that the flywheel and hood wheel encoders are connected. B/A turn the flywheel RPM dial (100 RPM steps), D-pad Left/Right turn the ratio dial (0.05 steps), Y/X start and stop the shooter, and hood wheel RPM = flywheel RPM x ratio. It warns CAPPED when the hood wheel target is over `ShooterSubsystem.getMaxTargetRpm()`, shows the measured ratio, and records the lowest RPM each wheel hit after reaching speed (Back resets it). Printable student sheet: `TeamCode/docs/hood-wheel-ratio-test-sheet.html` (and a `.pdf` copy). The old plain-POWER version is saved in git (commit `88c7669`), with its sheet `hood-wheel-ratio-test-sheet-power.html`, in case the encoders ever stop working.
 - **Starting guesses to tune on the robot:** the at-speed tolerance and hold time, `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterRPMAlpha`.
 - **Not in this class:** the distance-to-RPM shot table (a separate class later), feeding, and anything that reads a gamepad.
 
@@ -207,7 +208,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **States:** `LOADING` and `SHOOTING`. A servo reports no position, so this is only what we commanded. `isAtPosition()` is a **time guess** (`SERVO_TRAVEL_SECONDS` since the last command), and is the gate's half of the future firing gate.
 - **Methods:** `goToLoading()`, `goToShooting()`, `toggle()`, `nudgePosition()` (for finding positions), `getState()`, `isAtPosition()`, `addTelemetry()`. No `update()`, because there is no ongoing work. It starts in `LOADING` when constructed (R103.B allows pre-positioning servos at INIT).
 - **Test OpModes:** both `ShooterPowerAlpha` and `ShooterRPMAlpha`. **Left Trigger** toggles the gate (one flip per press). **D-pad Up/Down** nudges the current position by 0.01.
-- **`[CONFIRM]` positions are TBD:** `LOADING_POSITION` (0.30) and `SHOOTING_POSITION` (0.60) are placeholders. Find the real values with the D-pad nudge, then type them into the constants. Also tune `SERVO_TRAVEL_SECONDS` (0.50 is a guess).
+- **`[CONFIRM]` positions are TBD:** `LOADING_POSITION` (0.30) and `SHOOTING_POSITION` (0.0, the end of the servo's travel) are placeholders. Find the real values with the D-pad nudge, then type them into the constants. Also tune `SERVO_TRAVEL_SECONDS` (0.50 is a guess).
 - **Open:** which end of travel is "closed", and whether the gate needs a different position in Auto.
 
 ### TurretSubsystem (`subsystems/TurretSubsystem.java`): code written, not yet tested on the robot
@@ -222,16 +223,33 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
   - **0° is the home switch, and it points at the intake direction** (straight ahead).
   - Angles are **signed**, and the travel is about 270° (±135°). The 90° dead zone is directly behind, opposite the intake.
   - **Positive is counterclockwise viewed from above** (turning left). This matches Pinpoint and Pedro Pathing heading, so `shooterFieldHeading = robotHeading + turretAngle`.
-  - Soft limits sit about 5° inside the range (about ±130°).
+  - Soft limits are **±120°**, 15° inside the range, so the turret has room to coast before the cables or frame.
 - **Zeroing:**
   - At power-up the turret is placed by hand **on the switch**. INIT telemetry warns if the switch is not active. There is no motion at INIT (G304, G403).
   - During a match, the switch turning on resets the encoder count to zero (0°). To avoid repeated re-zeroing while hovering at the magnet's edge, it re-arms only after the turret has moved about 10° away.
   - The hub keeps encoder counts between Auto and TeleOp, so nothing is stored in a static field. `isZeroConfirmed()` is false until the switch has been crossed once.
 - **Control:** our own P controller (D added only if it oscillates) on the angle error, with a small friction kick, a max power clamp, and soft limits that cut power pushing past a limit. The motor `FLOAT`s until the first command (so the turret can be placed on the switch by hand during INIT), then uses `BRAKE` to hold position. `stop()` floats again.
-- **Soft limits are OFF for now** (`SOFT_LIMITS_ON = false` in `TurretSubsystem`). Nothing stops the turret at an angle, so keep a hand on Stop. Before real use, set it to `true` and set the limits (they are written as ±45° and should be widened to about ±130° after the encoder direction and ticks per degree check out).
-- **Test controls:** `TurretAlpha` uses **gamepad2**: left stick and D-pad Left/Right turn the turret (hold to move, let go to hold the angle), D-pad Up/Down change the turret power by 5% per press (default 50%), **Y / X / B** go to the center / far left (+90°) / far right (−90°) presets, **A** stops. Stick right = turn right, which is a *negative* angle, so `TurretAlpha` flips the stick sign. `MAX_MANUAL_POWER` in the subsystem is 1.0, so the OpMode's power dial is the real motor power.
+- **Soft limits are ON at ±120°** (`SOFT_LIMITS_ON = true`, `MIN_ANGLE_DEGREES` / `MAX_ANGLE_DEGREES` in `TurretSubsystem`). They cut power that pushes past a limit and clip `setTargetAngle()`. They are only as good as the angle: with no home switch, 0° is where the turret pointed at power-up, so power on pointing straight ahead. Still check the encoder direction and ticks per degree on the robot first (step 1 and 2 in `TurretAlpha`).
+- **Test controls:** `TurretAlpha` uses **gamepad2**: left stick and D-pad Left/Right turn the turret (hold to move, let go to hold the angle), D-pad Up/Down change the turret power by 5% per press (default 100%), **Y / X / B** go to the center / far left (+90°) / far right (−90°) presets, **A** stops. Stick right = turn right, which is a *negative* angle, so `TurretAlpha` flips the stick sign. `MAX_MANUAL_POWER` in the subsystem is 1.0, so the OpMode's power dial is the real motor power.
+- **Speeds (100%):** the manual stick power is 100% in `BiobuzzTeleOp` and `VisionAlpha` (and the `TurretAlpha` dial starts there). Position control (auto-align and the presets) is capped by `MAX_POWER = 1.0` in `TurretSubsystem`. Both were 50% for the first tests, then 75%. Stopping distance grows with the square of the speed, so at 100% the turret overshoots more and coasts further past a soft limit. **Not yet tested at 100%:** re-check the limit coasting (ease the stick into a limit first) and auto-align overshoot. The ±120° limits only tested safe at 50%.
+- **Tested on the robot:** the ±120° limits, and `VisionAlpha` auto-align (`tx` falls toward 0 when the turret turns toward the target).
 - **Test OpMode:** `TurretAlpha` (gamepad2: manual stick, hold-to-turn D-pad, power dial, Y/X/B presets, A to stop). Its header has the safe first-test order.
 - **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.
+
+### VisionSubsystem (`subsystems/VisionSubsystem.java`): code written, not yet tested on the robot
+
+- **Hardware:** `limelight`, the Limelight 3A, as an Ethernet device (USB-C to USB-A into the Control Hub's USB 3.0 port). It needs about 30 seconds to boot.
+- **Reads only.** It never moves the turret and has no gamepad code. The OpMode takes its answers and tells the turret what to do.
+- **Target choice:** keeps only our alliance's tags (RED = tags 30-37, BLUE = tags 38-45), picks the cell holding the **highest** tag (largest `ty`, which is the raised cell), then **averages `tx` and `ty` over the visible tags of that one cell**. Averaging avoids aiming up to 6.5 in off center at a single tag.
+- **Sign convention:** `getTxDegrees()` is the Limelight's: **positive = target to the RIGHT**. Turret angles are positive to the LEFT, so aiming code uses `turretAngle - tx`.
+- **States:** `NO_TARGET`, `TARGET_VISIBLE`. A result older than `MAX_RESULT_AGE_MS` counts as no target.
+- **Methods:** `setAlliance()`, `getAlliance()`, `update()` (once per loop), `hasTarget()`, `getTxDegrees()`, `getTyDegrees()`, `getTagCount()`, `getTargetCell()`, `getResultAgeMs()`, `isCameraConnected()`, `stop()`, `addTelemetry()`.
+- **Test OpMode:** `VisionAlpha` ("Vision - Alpha"). Step 1 is camera only (watch the numbers in INIT). Step 2 is auto-align: gamepad2 Right Bumper held turns the turret to cancel `tx`, Left Stick X is manual and wins, A stops. Gamepad1 **START** switches the alliance (starts **BLUE**). It picks a new turret target only when `|tx|` is over 1 degree, so the turret's on-target check can settle. If the target is lost it holds; it does not search.
+- **Aim offset (the fudge factor):** `AIM_OFFSET_DEGREES` (starts at 0.0) is added to the camera's tx inside `update()`, so `getTxDegrees()`, the "aimed" check, and auto-align all get it. **Positive = the turret aims a little more to the RIGHT, negative = more to the LEFT.** Tune it by shooting from one fixed spot: shots landing right of the hole means a more negative number, left means more positive. Change it by about 0.5° at a time (1° is about 1 inch of miss per 5 ft). It is not applied when there is no target. Telemetry shows the raw camera tx next to it.
+- **Starting values to check on the robot:** `APRILTAG_PIPELINE_INDEX` (0, must be an AprilTag pipeline in the Limelight web page), `MAX_RESULT_AGE_MS`, `AIM_OFFSET_DEGREES`, and the two thresholds in `VisionAlpha`.
+- **Tested on the robot:** the camera reads tags (pipeline 0, cell 2, 3 tags used, 5 ms old), and `tx` falls toward 0 when the turret turns toward the target, and Right Bumper auto-align works.
+- **`[CONFIRM]`:** the arm can hide a pair of tags. If it hides only the left or right pair, the average shifts toward the visible side. Measure how big that error is on the real hive. Camera latency (a few frames) can also make fast turret moves overshoot a little.
+- **Not in this class:** distance and the shot table (next), the vertical offset from the tags to the cell opening, and searching for a lost target.
 
 ### DriveSubsystem (`subsystems/DriveSubsystem.java`): code written, not yet tested on the robot
 
@@ -247,7 +265,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 
 ### IntakeSubsystem (`subsystems/IntakeSubsystem.java`): code written, not yet tested on the robot
 
-- **Hardware:** `intake_motor`, one goBILDA 5203 series at 1620 RPM (3.7:1, believed `[CONFIRM]`). The one motor spins the front intake **and** a second hex shaft with grippers in the transfer chute, so intake and transfer always run together.
+- **Hardware:** `intake`, one goBILDA 5203 series at 1620 RPM (3.7:1, believed `[CONFIRM]`). The one motor spins the front intake **and** a second hex shaft with grippers in the transfer chute, so intake and transfer always run together.
 - **Control:** plain power, not RPM (`RUN_WITHOUT_ENCODER`). There is **one power dial** (`setIntakePower()`, 0.0 to 1.0, starting at 50%). `intake()` runs at +dial, `reverse()` runs at -dial, `stop()` coasts (`FLOAT`). Splitting reverse into its own number is an easy later change.
 - **States:** `STOPPED`, `INTAKING`, `REVERSING`.
 - **Encoder:** plugged in for testing. `update()` reads `getVelocity()` once per loop and `getTicksPerSecond()` returns it. It is shown in **raw ticks per second only, with no RPM conversion**, so nothing here depends on the 28-vs-112 `[CONFIRM]`.
@@ -269,7 +287,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - [ ] Turret ring gear tooth count (believed 48T; both pinions are 16T). Count it in Onshape.
 - [ ] Evaluate a 360° turret (cables and slip ring, wrap-around logic). Finish the 270° version first.
 - [ ] Main branch: `main` or `master`?
-- [ ] Vision source: Limelight 3A or a webcam with `VisionPortal` (see the robot design doc)
+- [x] Vision source: **Limelight 3A** (final, no webcam or `VisionPortal`). It plugs into the Control Hub's USB 3.0 port with a USB-C to USB-A cable (one cable for power and data).
 
 ## 9. Mentor checklist (anti-drift)
 

@@ -9,60 +9,50 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 
 /*
- * Shooter Ratio Testing (POWER version)
- * An iterative OpMode for finding the best HOOD WHEEL RATIO, using plain POWER (a percent).
- * The printed sheet is TeamCode/docs/hood-wheel-ratio-test-sheet-power.html
- * (open it in a browser and print it).
- *
- * WHY POWER AND NOT RPM
- *   The encoder wires are not connected yet, so we cannot read or control wheel speed. This
- *   version sets POWER instead. Power is not exactly the same as speed: the real speed changes
- *   with the battery and with the ball squeezing the wheels. So use a FRESH battery, write down
- *   the battery volts, and treat the results as a first look.
- *   When the encoders are connected, the speed-control (RPM) version of this OpMode is saved in
- *   git: commit 89c074f. The RPM printed sheet is hood-wheel-ratio-test-sheet.html.
+ * Shooter Ratio Testing
+ * An iterative OpMode for finding the best HOOD WHEEL RATIO, using speed control (RPM).
+ * It is for the hood wheel ratio test. The printed sheet is in
+ * TeamCode/docs/hood-wheel-ratio-test-sheet.html (open it in a browser and print it).
  *
  * THE IDEA
- *   RATIO = HOOD WHEEL POWER / FLYWHEEL POWER (a stand-in for the speed ratio). The hood wheel
- *   is smaller (about 2 inches) than the flywheel (about 4 inches), so a ratio near 2.0 should
- *   make the two wheel SURFACES move at the same speed and give the ball little or no spin.
- *   This test finds out what ratio really gives the least spin. When you find the best ratio,
- *   type it into HOOD_WHEEL_RATIO in ShooterSubsystem.
+ *   RATIO = HOOD WHEEL RPM / FLYWHEEL RPM. The hood wheel is smaller (about 2 inches) than the
+ *   flywheel (about 4 inches), so a ratio near 2.0 should make the two wheel SURFACES move at
+ *   the same speed and give the ball little or no spin. This test finds out what ratio really
+ *   gives the least spin, and whether that ratio stays the same at different flywheel speeds.
+ *   When you find the best ratio, type it into HOOD_WHEEL_RATIO in ShooterSubsystem.
  *
  * THE TWO DIALS (you turn them with buttons, so you do not have to change code and redeploy)
- *   B           -> flywheel power UP   by FLYWHEEL_POWER_PERCENT_STEP
- *   A           -> flywheel power DOWN by FLYWHEEL_POWER_PERCENT_STEP
+ *   B           -> flywheel target UP   by FLYWHEEL_RPM_STEP
+ *   A           -> flywheel target DOWN by FLYWHEEL_RPM_STEP
  *   D-pad Right -> ratio UP   by 0.05
  *   D-pad Left  -> ratio DOWN by 0.05
- *   The hood wheel power is always flywheel power x ratio. The screen shows all three.
- *   A wheel cannot go past 100% power. If the hood wheel power would be over 100% the screen
- *   says CAPPED. Do not record that shot: the real ratio is lower than the dial says.
- *   Example: 50% flywheel x ratio 2.00 = 100% hood wheel, the most it can do.
+ *   The hood wheel target is always flywheel target x ratio. The screen shows all three.
+ *   If the hood wheel target is higher than the shooter allows, the screen says CAPPED. Do not
+ *   record that shot: the real ratio is lower than the dial says.
  *
  * GAMEPAD 1 (shooter and gate)
- *   Y            -> shooter ON (spins at the dialed powers and keeps spinning)
+ *   Y            -> shooter ON (spins to the dialed speeds and keeps spinning)
  *   X            -> shooter OFF (the wheels coast down. Wait for them to STOP before touching.)
  *   Right Bumper -> HOLD to reverse the flywheel only (clearing a jam)
  *   Left Bumper  -> HOLD to reverse the hood wheel only (clearing a jam)
  *   Left Trigger -> TOGGLES the gate between LOADING and SHOOTING (one flip per press)
  *   D-pad Up/Down-> nudge the gate position (the gate positions are still being measured)
+ *   Back (Share) -> reset the "lowest RPM" readings
  *
- * WHEELS SETTLED?
- *   With no encoder we cannot tell when the wheels are up to speed. So the screen counts
- *   SPIN_SETTLE_SECONDS after the shooter starts, after any dial change, and after every gate
- *   flip (the ball slows the wheels, and they need time to recover). Shoot when it says YES.
+ * THE "LOWEST RPM" READINGS
+ *   When the ball squeezes between the wheels, each wheel slows down for a moment, then the
+ *   speed control catches up. The screen remembers the LOWEST RPM each wheel hit since the
+ *   shooter first reached speed. Read it after your shots, write it on the sheet, then press
+ *   Back to reset. Changing a dial, or turning the shooter off, also resets it.
  *
  * GAMEPAD 2 (intake)
  *   Right Bumper -> INTAKE (pull balls in)     Left Bumper -> REVERSE
  *   The intake runs at the power set in IntakeSubsystem (DEFAULT_INTAKE_POWER).
  *
  * SAFE USE: keep hands, hair and loose clothing away from the wheels, wear eye protection, and
- * keep everyone out of the path of the ball.
+ * keep everyone out of the path of the ball. Only shoot when the screen says "At Speed? true".
  *
- * The shooter's own telemetry (RPM and ticks per second) is left out on purpose: with no
- * encoders it reads zero. Add shooterSubsystem.addTelemetry(telemetry) back when they are connected.
- *
- * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle.
+ * On a PS5 controller: A = Cross, B = Circle, X = Square, Y = Triangle, Back = Share.
  *
  * Robot configuration (on the Driver Station). The names live in the subsystem classes:
  *   Motor names: flywheel, hood_wheel       (ShooterSubsystem)
@@ -75,12 +65,12 @@ public class ShooterRatioAlpha extends OpMode {
     // ------------------------------------------------------------------
     // The two dials. These are test-only numbers.
     // ------------------------------------------------------------------
-    // The flywheel power dial is counted in WHOLE PERCENT (30 means 30% power).
-    // Where it starts, how far one press moves it, and how low and high it can go.
-    private static final int FLYWHEEL_POWER_PERCENT_START = 30;
-    private static final int FLYWHEEL_POWER_PERCENT_STEP = 5;
-    private static final int FLYWHEEL_POWER_PERCENT_MIN = 5;
-    private static final int FLYWHEEL_POWER_PERCENT_MAX = 100;
+    // Where the flywheel dial starts, how far one press moves it, and how low and high it can go.
+    // All are in RPM.
+    private static final int FLYWHEEL_RPM_START = 2000;
+    private static final int FLYWHEEL_RPM_STEP = 100;
+    private static final int FLYWHEEL_RPM_MIN = 500;
+    private static final int FLYWHEEL_RPM_MAX = 3600;
 
     // The ratio dial is counted in HUNDREDTHS so that adding 5 over and over never drifts to
     // something like 1.9999999. So 200 means a ratio of 2.00, and a step of 5 means 0.05.
@@ -92,20 +82,9 @@ public class ShooterRatioAlpha extends OpMode {
     // How many hundredths make a whole number (200 hundredths = 2.00).
     private static final double HUNDREDTHS_PER_ONE = 100.0;
 
-    // How many percent make a whole power of 1.0 (100 percent = 1.0 power).
-    private static final double PERCENT_PER_ONE = 100.0;
-
     // ------------------------------------------------------------------
     // Other test numbers
     // ------------------------------------------------------------------
-    // The most power a wheel can be given, in percent. A hood wheel power above this is CAPPED.
-    private static final double MAX_POWER_PERCENT = 100.0;
-
-    // How long the wheels need to settle after the shooter starts, a dial changes, or a ball
-    // goes through. A starting guess. Time it with a stopwatch: how long until the wheels
-    // sound steady?
-    private static final double SPIN_SETTLE_SECONDS = 3.0;
-
     // Reverse power is NEGATIVE so the motor spins the other way.
     private static final double FLYWHEEL_POWER_REVERSE = -0.60;
     private static final double HOOD_WHEEL_POWER_REVERSE = -0.60;
@@ -117,6 +96,14 @@ public class ShooterRatioAlpha extends OpMode {
     // 0.01 is about 3 degrees on a 300 degree servo (0.01 x 300).
     private static final double GATE_NUDGE_STEP = 0.01;
 
+    // The measured ratio (hood RPM / flywheel RPM) is only worth showing when the flywheel is
+    // spinning faster than this. Below it the division gives silly numbers.
+    private static final double MIN_RPM_FOR_MEASURED_RATIO = 300.0;
+
+    // A hood wheel target counts as CAPPED when the shooter's real target is lower than the
+    // dialed one by more than this many RPM.
+    private static final double CAPPED_TOLERANCE_RPM = 1.0;
+
     // ------------------------------------------------------------------
     // Declare OpMode members.
     // ------------------------------------------------------------------
@@ -126,14 +113,18 @@ public class ShooterRatioAlpha extends OpMode {
     private IntakeSubsystem intakeSubsystem;
 
     // The dials, in whole numbers.
-    private int flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_START;
+    private int flywheelRpmDial = FLYWHEEL_RPM_START;
     private int ratioHundredths = RATIO_HUNDREDTHS_START;
 
     // True after Y, false after X. The shooter keeps spinning between button presses.
     private boolean shooterOn = false;
 
-    // Times how long since the wheels last had a reason to change speed.
-    private ElapsedTime spinTimer = new ElapsedTime();
+    // The lowest RPM each wheel hit since the shooter first reached speed.
+    // We do not start watching until the wheels are at speed the first time, because the
+    // spin-up from zero would otherwise count as a "low".
+    private boolean watchingLowest = false;
+    private double lowestFlywheelRpm = 0.0;
+    private double lowestHoodWheelRpm = 0.0;
 
     // What the buttons were doing LAST loop. A press lasts many loops (about 50 per second),
     // but we want it to count only ONCE. So we only act when it was NOT pressed last loop
@@ -144,6 +135,7 @@ public class ShooterRatioAlpha extends OpMode {
     private boolean wasAPressed = false;
     private boolean wasDpadLeftPressed = false;
     private boolean wasDpadRightPressed = false;
+    private boolean wasBackPressed = false;
     private boolean wasGateTogglePressed = false;
     private boolean wasGateNudgeUpPressed = false;
     private boolean wasGateNudgeDownPressed = false;
@@ -156,10 +148,11 @@ public class ShooterRatioAlpha extends OpMode {
     }
 
     /*
-     * Start the "wheels settled?" count over.
+     * Forget the "lowest RPM" readings and start watching again from the next time the
+     * wheels reach speed.
      */
-    private void restartSpinTimer() {
-        spinTimer.reset();
+    private void resetLowestReadings() {
+        watchingLowest = false;
     }
 
     /*
@@ -168,8 +161,9 @@ public class ShooterRatioAlpha extends OpMode {
     private void addControlsTelemetry() {
         telemetry.addLine("--- GAMEPAD 1 ---");
         telemetry.addLine("Y = shooter ON   X = shooter OFF");
-        telemetry.addLine("B / A = flywheel power up / down");
+        telemetry.addLine("B / A = flywheel RPM up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
+        telemetry.addLine("Back (Share) = reset the LOWEST RPM");
         telemetry.addLine("Left Trigger = TOGGLE gate   D-pad Up/Down = nudge gate");
         telemetry.addLine("Right / Left Bumper = reverse flywheel / hood wheel");
         telemetry.addLine("--- GAMEPAD 2 ---");
@@ -187,7 +181,7 @@ public class ShooterRatioAlpha extends OpMode {
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
 
-        telemetry.addData("Status", "Initialized (POWER control, no encoders)");
+        telemetry.addData("Status", "Initialized");
         addControlsTelemetry();
     }
 
@@ -211,7 +205,6 @@ public class ShooterRatioAlpha extends OpMode {
     @Override
     public void start() {
         runtime.reset();
-        restartSpinTimer();
     }
 
     /*
@@ -219,7 +212,7 @@ public class ShooterRatioAlpha extends OpMode {
      */
     @Override
     public void loop() {
-        // 1. Read sensors. (The shooter has no working encoders yet.)
+        // 1. Read sensors. (The shooter reads its own encoders inside update(), below.)
         intakeSubsystem.update();
 
         // 2. Read the gamepads and decide what to do.
@@ -229,6 +222,7 @@ public class ShooterRatioAlpha extends OpMode {
         boolean aPressed = gamepad1.a;
         boolean dpadLeftPressed = gamepad1.dpad_left;
         boolean dpadRightPressed = gamepad1.dpad_right;
+        boolean backPressed = gamepad1.back;
         boolean gateTogglePressed = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
         boolean gateNudgeUpPressed = gamepad1.dpad_up;
         boolean gateNudgeDownPressed = gamepad1.dpad_down;
@@ -236,36 +230,40 @@ public class ShooterRatioAlpha extends OpMode {
         // Shooter on and off. If both are pressed at once, OFF wins (the safer choice).
         if (isNewPress(yPressed, wasYPressed)) {
             shooterOn = true;
-            restartSpinTimer();
+            resetLowestReadings();
         }
         if (isNewPress(xPressed, wasXPressed)) {
             shooterOn = false;
+            resetLowestReadings();
         }
 
-        // Turn the dials. Any change makes the wheels change speed, so start the count over.
+        // Turn the dials. Any change makes the old "lowest RPM" readings meaningless.
         if (isNewPress(bPressed, wasBPressed)) {
-            flywheelPowerPercent = flywheelPowerPercent + FLYWHEEL_POWER_PERCENT_STEP;
-            restartSpinTimer();
+            flywheelRpmDial = flywheelRpmDial + FLYWHEEL_RPM_STEP;
+            resetLowestReadings();
         }
         if (isNewPress(aPressed, wasAPressed)) {
-            flywheelPowerPercent = flywheelPowerPercent - FLYWHEEL_POWER_PERCENT_STEP;
-            restartSpinTimer();
+            flywheelRpmDial = flywheelRpmDial - FLYWHEEL_RPM_STEP;
+            resetLowestReadings();
         }
         if (isNewPress(dpadRightPressed, wasDpadRightPressed)) {
             ratioHundredths = ratioHundredths + RATIO_HUNDREDTHS_STEP;
-            restartSpinTimer();
+            resetLowestReadings();
         }
         if (isNewPress(dpadLeftPressed, wasDpadLeftPressed)) {
             ratioHundredths = ratioHundredths - RATIO_HUNDREDTHS_STEP;
-            restartSpinTimer();
+            resetLowestReadings();
+        }
+        if (isNewPress(backPressed, wasBackPressed)) {
+            resetLowestReadings();
         }
 
         // Keep the dials between their lowest and highest settings.
-        if (flywheelPowerPercent > FLYWHEEL_POWER_PERCENT_MAX) {
-            flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_MAX;
+        if (flywheelRpmDial > FLYWHEEL_RPM_MAX) {
+            flywheelRpmDial = FLYWHEEL_RPM_MAX;
         }
-        if (flywheelPowerPercent < FLYWHEEL_POWER_PERCENT_MIN) {
-            flywheelPowerPercent = FLYWHEEL_POWER_PERCENT_MIN;
+        if (flywheelRpmDial < FLYWHEEL_RPM_MIN) {
+            flywheelRpmDial = FLYWHEEL_RPM_MIN;
         }
         if (ratioHundredths > RATIO_HUNDREDTHS_MAX) {
             ratioHundredths = RATIO_HUNDREDTHS_MAX;
@@ -274,16 +272,10 @@ public class ShooterRatioAlpha extends OpMode {
             ratioHundredths = RATIO_HUNDREDTHS_MIN;
         }
 
-        // The hood wheel power is the flywheel power times the ratio. A wheel cannot go past
-        // 100%, so if the answer is more than that we use 100% and warn that it was CAPPED.
+        // The hood wheel target is the flywheel target times the ratio.
         double ratio = ratioHundredths / HUNDREDTHS_PER_ONE;
-        double wantedHoodWheelPercent = flywheelPowerPercent * ratio;
-        boolean hoodWheelCapped = wantedHoodWheelPercent > MAX_POWER_PERCENT;
-        double hoodWheelPercent = Math.min(wantedHoodWheelPercent, MAX_POWER_PERCENT);
-
-        // Turn the percents into the 0.0 to 1.0 powers the subsystem wants (30 -> 0.30).
-        double flywheelPower = flywheelPowerPercent / PERCENT_PER_ONE;
-        double hoodWheelPower = hoodWheelPercent / PERCENT_PER_ONE;
+        double flywheelTargetRpm = flywheelRpmDial;
+        double hoodWheelTargetRpm = flywheelTargetRpm * ratio;
 
         // 3. Tell the subsystems what to do, then call their update().
 
@@ -293,20 +285,19 @@ public class ShooterRatioAlpha extends OpMode {
         boolean reverseHoodWheel = gamepad1.left_bumper;
         if (reverseFlywheel || reverseHoodWheel) {
             // A wheel that is NOT being reversed gets 0 power.
-            double reverseFlywheelPower = 0.0;
-            double reverseHoodWheelPower = 0.0;
+            double flywheelPower = 0.0;
+            double hoodWheelPower = 0.0;
             if (reverseFlywheel) {
-                reverseFlywheelPower = FLYWHEEL_POWER_REVERSE;
+                flywheelPower = FLYWHEEL_POWER_REVERSE;
             }
             if (reverseHoodWheel) {
-                reverseHoodWheelPower = HOOD_WHEEL_POWER_REVERSE;
+                hoodWheelPower = HOOD_WHEEL_POWER_REVERSE;
             }
-            shooterSubsystem.setPower(reverseFlywheelPower, reverseHoodWheelPower);
-            shooterControl = "Bumper (REVERSE)";
-            // The wheels need time to settle again after a reverse.
-            restartSpinTimer();
-        } else if (shooterOn) {
             shooterSubsystem.setPower(flywheelPower, hoodWheelPower);
+            shooterControl = "Bumper (REVERSE)";
+            resetLowestReadings();
+        } else if (shooterOn) {
+            shooterSubsystem.setTargetRpms(flywheelTargetRpm, hoodWheelTargetRpm);
             shooterControl = "ON";
         } else {
             shooterSubsystem.stop();
@@ -314,11 +305,23 @@ public class ShooterRatioAlpha extends OpMode {
         }
         shooterSubsystem.update();
 
-        // Gate. Flipping it lets a ball go through, which slows the wheels, so every flip
-        // also starts the "wheels settled?" count over.
+        // Remember the lowest RPM each wheel hit. Start watching only once the wheels have
+        // reached speed, so the spin-up from zero does not count.
+        if (shooterOn && shooterSubsystem.isAtSpeed()) {
+            if (!watchingLowest) {
+                watchingLowest = true;
+                lowestFlywheelRpm = shooterSubsystem.getFlywheelRpm();
+                lowestHoodWheelRpm = shooterSubsystem.getHoodWheelRpm();
+            }
+        }
+        if (watchingLowest) {
+            lowestFlywheelRpm = Math.min(lowestFlywheelRpm, shooterSubsystem.getFlywheelRpm());
+            lowestHoodWheelRpm = Math.min(lowestHoodWheelRpm, shooterSubsystem.getHoodWheelRpm());
+        }
+
+        // Gate.
         if (isNewPress(gateTogglePressed, wasGateTogglePressed)) {
             shooterServoSubsystem.toggle();
-            restartSpinTimer();
         }
         if (isNewPress(gateNudgeUpPressed, wasGateNudgeUpPressed)) {
             shooterServoSubsystem.nudgePosition(GATE_NUDGE_STEP);
@@ -348,6 +351,7 @@ public class ShooterRatioAlpha extends OpMode {
         wasAPressed = aPressed;
         wasDpadLeftPressed = dpadLeftPressed;
         wasDpadRightPressed = dpadRightPressed;
+        wasBackPressed = backPressed;
         wasGateTogglePressed = gateTogglePressed;
         wasGateNudgeUpPressed = gateNudgeUpPressed;
         wasGateNudgeDownPressed = gateNudgeDownPressed;
@@ -356,27 +360,35 @@ public class ShooterRatioAlpha extends OpMode {
         telemetry.addData("Status", "Run Time: " + runtime.toString());
 
         telemetry.addLine("--- THE DIALS ---");
-        telemetry.addData("Flywheel power", "%d%%", flywheelPowerPercent);
+        telemetry.addData("Flywheel target RPM", "%d", flywheelRpmDial);
         telemetry.addData("Ratio (hood / flywheel)", "%.2f", ratio);
+
+        // The shooter cuts any target above its maximum down to the maximum. Warn if that
+        // happened to the hood wheel, because then the real ratio is lower than the dial says.
+        boolean hoodWheelCapped = hoodWheelTargetRpm
+                > shooterSubsystem.getMaxTargetRpm() + CAPPED_TOLERANCE_RPM;
         if (hoodWheelCapped) {
-            telemetry.addData("Hood wheel power", "%.0f%%  CAPPED (you asked for %.0f%%) - DO NOT RECORD",
-                    hoodWheelPercent, wantedHoodWheelPercent);
+            telemetry.addData("Hood wheel target RPM", "%.0f  CAPPED at %.0f - DO NOT RECORD",
+                    hoodWheelTargetRpm, shooterSubsystem.getMaxTargetRpm());
         } else {
-            telemetry.addData("Hood wheel power", "%.0f%%", hoodWheelPercent);
+            telemetry.addData("Hood wheel target RPM", "%.0f", hoodWheelTargetRpm);
         }
 
         telemetry.addLine("--- SHOOTER ---");
         telemetry.addData("Shooter switch", shooterControl);
-        String settledText;
-        if (!shooterOn) {
-            settledText = "shooter is OFF";
-        } else if (spinTimer.seconds() >= SPIN_SETTLE_SECONDS) {
-            settledText = "YES - OK to shoot";
-        } else {
-            settledText = String.format("WAIT (%.1f of %.0f seconds)",
-                    spinTimer.seconds(), SPIN_SETTLE_SECONDS);
+        shooterSubsystem.addTelemetry(telemetry);
+        if (shooterSubsystem.getFlywheelRpm() > MIN_RPM_FOR_MEASURED_RATIO) {
+            telemetry.addData("Ratio measured now", "%.2f",
+                    shooterSubsystem.getHoodWheelRpm() / shooterSubsystem.getFlywheelRpm());
         }
-        telemetry.addData("Wheels settled?", settledText);
+
+        telemetry.addLine("--- LOWEST RPM SINCE REACHING SPEED (Back resets) ---");
+        if (watchingLowest) {
+            telemetry.addData("Flywheel lowest", "%.0f RPM", lowestFlywheelRpm);
+            telemetry.addData("Hood wheel lowest", "%.0f RPM", lowestHoodWheelRpm);
+        } else {
+            telemetry.addData("Lowest", "waiting for the wheels to reach speed");
+        }
 
         // The gate prints its own "--- SHOOTER GATE ---" heading.
         shooterServoSubsystem.addTelemetry(telemetry);
