@@ -44,12 +44,18 @@ public class ShotTable {
     // ------------------------------------------------------------------
     // The table. Each row is one spot on the field.
     // ------------------------------------------------------------------
-    // [CONFIRM] PLACEHOLDERS. These are NOT measured. The ty numbers are guesses, and every RPM
-    // is just the one speed that looked good by eye (1300 flywheel, 2600 hood wheel). The table
-    // will act like a single fixed speed until real rows are typed in.
-    //                                          row 0   row 1   row 2
-    private static final double[] TY_DEGREES = {  0.0,   10.0,   20.0 };
-    private static final double[] FLYWHEEL_RPM = { 1300.0, 1300.0, 1300.0 };
+    // [CONFIRM] FIRST PASS, measured with ShotTableAlpha (7 saves from 5 different spots, the
+    // repeats were merged). The RPMs were found in 50 RPM dial steps, so each is only good to
+    // about +/- 50. ty is NEGATIVE here (the tags appear BELOW the middle of the camera view).
+    // That is fine. What matters is that a bigger ty (closer to zero) means closer to the hive,
+    // and the closer spots needed a LOWER RPM.
+    // The closest spot measured is ty -4.0 and the farthest is ty -16.8. Outside that, the table
+    // uses the nearest row, so add rows if the robot will shoot from farther or closer.
+    // The biggest gaps between measured spots are at the close end (ty -13.1 to -8.7 to -4.0).
+    // If shots between those rows miss, measure another spot there.
+    //                                           row 0    row 1    row 2    row 3    row 4
+    private static final double[] TY_DEGREES =   { -16.8,   -15.8,   -13.1,    -8.7,    -4.0 };
+    private static final double[] FLYWHEEL_RPM = { 1450.0,  1350.0,  1300.0,  1250.0,  1250.0 };
 
     // ==================================================================
     // SETUP
