@@ -10,7 +10,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 /*
  * Shooter Subsystem
- * Owns the shooter FLYWHEEL and the HOOD WHEEL (goBILDA 5203 series, 6000 RPM).
+ * Owns the shooter FLYWHEEL (goBILDA 5203 series, 1620 RPM, the 3.7:1 gearbox) and the HOOD
+ * WHEEL (goBILDA 5203 series, 6000 RPM, 1:1).
  * Only this class touches those two motors. OpModes call its methods.
  *
  * It has two ways to run the wheels:
@@ -25,13 +26,15 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *
  * The OpMode must call update() ONCE per loop(). Nothing calls it for us.
  *
- * "RPM" in this class is the speed of the MOTOR SHAFT, straight from the encoder.
+ * "RPM" in this class is the speed of the motor's OUTPUT SHAFT, worked out from the encoder.
+ * (For the 1620 RPM flywheel motor that is the shaft AFTER the 3.7:1 gearbox, which is why it
+ * has more encoder ticks per turn than the hood wheel motor.)
  * The belt to each wheel is believed to be 1:1, so that is also the wheel speed.
  * [CONFIRM] Check the pulleys. If a belt is not 1:1, the wheel turns at a different speed,
  * but the numbers still work because we tune the shot RPMs by measuring on the robot.
  *
  * Robot configuration (on the Driver Station):
- *   Motor name: flywheel   (goBILDA 5203 series, 6000 RPM, encoder plugged in)
+ *   Motor name: flywheel   (goBILDA 5203 series, 1620 RPM 3.7:1, encoder plugged in)
  *   Motor name: hood_wheel   (goBILDA 5203 series, 6000 RPM, encoder plugged in)
  * Set both motors to the matching goBILDA motor type in the configuration. The
  * Control Hub's built-in speed-control numbers depend on the motor type.
@@ -53,21 +56,35 @@ public class ShooterSubsystem {
     // ------------------------------------------------------------------
     // Encoder and motor numbers
     // ------------------------------------------------------------------
-    // Encoder ticks per ONE turn of the motor shaft.
-    // [CONFIRM] 28 is goBILDA's spec for a 1:1 (6000 RPM) 5203 motor. Last season's
-    // notes said 112. To check on the robot: run ShooterRPMAlpha, hold the RIGHT TRIGGER
-    // (full power, wheel clear!), and read "ticks/sec" on the Driver Station.
-    //   about 2,800 ticks/sec -> 28 is right.   about 11,200 ticks/sec -> change both to 112.
-    private static final double FLYWHEEL_TICKS_PER_REV = 28.0;
+    // Encoder ticks per ONE turn of the motor's OUTPUT shaft. The two motors are different now.
+    //
+    // HOOD WHEEL (6000 RPM, 1:1): 28. [CONFIRM] That is goBILDA's spec. Last season's notes
+    // said 112. To check on the robot: run ShooterRPMAlpha, hold the RIGHT TRIGGER (full power,
+    // wheel clear!), and read the hood wheel "ticks/sec" on the Driver Station.
+    //   about 2,800 ticks/sec -> 28 is right.   about 11,200 ticks/sec -> change it to 112.
+    //
+    // FLYWHEEL (1620 RPM, 3.7:1 gearbox): 103.8. [CONFIRM] That is goBILDA's spec for the 1620 RPM
+    // 5203 motor (the 28 ticks of the motor shaft x the 3.7:1 gearbox). The encoder sits on the
+    // motor shaft, BEFORE the gearbox, so the flywheel's ticks/sec at full power is also about
+    // 2,800. That means the same full-power test checks this number a different way: with
+    // the wheel clear, hold the RIGHT TRIGGER in ShooterRPMAlpha and read "Flywheel RPM".
+    //   about 1,500 to 1,620 RPM -> 103.8 is right (a motor is a little under its top speed).
+    //   about 1,000 or about 2,200 RPM -> the number is wrong. Ask the coach before changing it.
+    // You can also compare the RPM on the screen with a phone tachometer or slow-motion video.
+    private static final double FLYWHEEL_TICKS_PER_REV = 103.8;
     private static final double HOOD_WHEEL_TICKS_PER_REV = 28.0;
 
-    // The motor's top speed with no load (goBILDA 5203 6000 RPM motor).
-    private static final double MOTOR_MAX_RPM = 6000.0;
+    // Each motor's top speed with no load. (goBILDA 5203 1620 RPM and 6000 RPM motors.)
+    private static final double FLYWHEEL_MOTOR_MAX_RPM = 1620.0;
+    private static final double HOOD_WHEEL_MOTOR_MAX_RPM = 6000.0;
 
-    // The highest RPM we will let an OpMode ask for. Under load the motor cannot hold
-    // its full no-load speed, so asking for 100% leaves the controller no room to catch up.
-    // Raise or lower this after you see what the wheels can really hold.
-    private static final double MAX_TARGET_RPM = 5400.0;
+    // The highest RPM we will let an OpMode ask for, for EACH wheel. Under load a motor cannot
+    // hold its full no-load speed, so asking for 100% leaves the controller no room to catch up.
+    // Both are 90% of the motor's top speed. Raise or lower them after you see what the wheels
+    // can really hold. The flywheel motor is the slow one now, so it hits its limit first:
+    // 1458 RPM, and the shot table's farthest spot (1425 RPM) is already close to it.
+    private static final double FLYWHEEL_MAX_TARGET_RPM = 1458.0;
+    private static final double HOOD_WHEEL_MAX_TARGET_RPM = 5400.0;
 
     private static final double SECONDS_PER_MINUTE = 60.0;
 
@@ -89,9 +106,11 @@ public class ShooterSubsystem {
     //   spin could be a bit above 2.0. Test 2.0, then try a little higher or lower.
     //
     // WATCH THE SPEED LIMIT
-    //   MAX_TARGET_RPM caps each wheel on its own. At a ratio of 2.0 the flywheel can only go
-    //   up to MAX_TARGET_RPM / 2 (2700 RPM) before the hood wheel hits the cap and the ratio
-    //   quietly gets smaller.
+    //   Each wheel has its own cap (FLYWHEEL_MAX_TARGET_RPM 1458, HOOD_WHEEL_MAX_TARGET_RPM 5400).
+    //   At a ratio of 2.0 the hood wheel only needs twice the flywheel's RPM, so at the top of the
+    //   flywheel's range (1458) the hood wheel wants 2916, far under its cap. The FLYWHEEL is the
+    //   wheel that runs out first now. Asking for more than 1458 flywheel RPM is cut down to 1458,
+    //   and then the hood wheel (still twice what you asked for) is off ratio.
     //
     // 2.0 is the best ratio found so far in testing on the robot (no-spin shots). It is the
     // number TeleOp starts its ratio dial at. Keep testing a little higher or lower with
@@ -129,14 +148,21 @@ public class ShooterSubsystem {
 
     // The Hub's full-power value is 32767. F = 32767 / (the motor's top speed in ticks/sec).
     // This is the usual starting point for F. It is worked out from the numbers above,
-    // so if you change the ticks per rev, F changes with it.
+    // so if you change the ticks per rev, F changes with it. Each wheel has its own top speed
+    // and its own ticks per rev, so each gets its own F. (They happen to come out almost the
+    // same: both motors make about 2,800 ticks/sec at full power.)
     private static final double HUB_FULL_POWER_VALUE = 32767.0;
-    private static final double MAX_TICKS_PER_SECOND =
-            MOTOR_MAX_RPM / SECONDS_PER_MINUTE * FLYWHEEL_TICKS_PER_REV;
+    private static final double FLYWHEEL_MAX_TICKS_PER_SECOND =
+            FLYWHEEL_MOTOR_MAX_RPM / SECONDS_PER_MINUTE * FLYWHEEL_TICKS_PER_REV;
+    private static final double HOOD_WHEEL_MAX_TICKS_PER_SECOND =
+            HOOD_WHEEL_MOTOR_MAX_RPM / SECONDS_PER_MINUTE * HOOD_WHEEL_TICKS_PER_REV;
     private static final double VELOCITY_P = 10.0;   // Starting guess. Tune on the robot.
     private static final double VELOCITY_I = 0.0;    // Starting guess. Tune on the robot.
     private static final double VELOCITY_D = 0.0;    // Starting guess. Tune on the robot.
-    private static final double VELOCITY_F = HUB_FULL_POWER_VALUE / MAX_TICKS_PER_SECOND;
+    private static final double FLYWHEEL_VELOCITY_F =
+            HUB_FULL_POWER_VALUE / FLYWHEEL_MAX_TICKS_PER_SECOND;
+    private static final double HOOD_WHEEL_VELOCITY_F =
+            HUB_FULL_POWER_VALUE / HOOD_WHEEL_MAX_TICKS_PER_SECOND;
 
     // ------------------------------------------------------------------
     // State
@@ -192,8 +218,10 @@ public class ShooterSubsystem {
         hoodWheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         if (USE_CUSTOM_PIDF) {
-            flywheelMotor.setVelocityPIDFCoefficients(VELOCITY_P, VELOCITY_I, VELOCITY_D, VELOCITY_F);
-            hoodWheelMotor.setVelocityPIDFCoefficients(VELOCITY_P, VELOCITY_I, VELOCITY_D, VELOCITY_F);
+            flywheelMotor.setVelocityPIDFCoefficients(
+                    VELOCITY_P, VELOCITY_I, VELOCITY_D, FLYWHEEL_VELOCITY_F);
+            hoodWheelMotor.setVelocityPIDFCoefficients(
+                    VELOCITY_P, VELOCITY_I, VELOCITY_D, HOOD_WHEEL_VELOCITY_F);
         }
 
         // Start in open loop at zero power. The encoder still reports speed in this mode.
@@ -227,8 +255,8 @@ public class ShooterSubsystem {
      * speed, which works like a brake. Use stop() instead if you want it to coast.
      */
     public void setTargetRpms(double flywheelRpm, double hoodWheelRpm) {
-        double newFlywheelRpm = Range.clip(flywheelRpm, 0.0, MAX_TARGET_RPM);
-        double newHoodWheelRpm = Range.clip(hoodWheelRpm, 0.0, MAX_TARGET_RPM);
+        double newFlywheelRpm = Range.clip(flywheelRpm, 0.0, FLYWHEEL_MAX_TARGET_RPM);
+        double newHoodWheelRpm = Range.clip(hoodWheelRpm, 0.0, HOOD_WHEEL_MAX_TARGET_RPM);
 
         // Both zero means "stop". Never command a speed of 0 to a heavy flywheel,
         // because the controller would fight the coast-down like a brake.
@@ -373,10 +401,14 @@ public class ShooterSubsystem {
         return targetHoodWheelRpm;
     }
 
-    // The highest RPM setTargetRpms() will let EITHER wheel go to. Asking for more is quietly
-    // cut down to this number. Test OpModes use it to warn that a target was cut down.
-    public double getMaxTargetRpm() {
-        return MAX_TARGET_RPM;
+    // The highest RPM setTargetRpms() will let each wheel go to. Asking for more is quietly
+    // cut down to this number. OpModes use these to warn that a target was cut down.
+    public double getMaxFlywheelTargetRpm() {
+        return FLYWHEEL_MAX_TARGET_RPM;
+    }
+
+    public double getMaxHoodWheelTargetRpm() {
+        return HOOD_WHEEL_MAX_TARGET_RPM;
     }
 
     /*

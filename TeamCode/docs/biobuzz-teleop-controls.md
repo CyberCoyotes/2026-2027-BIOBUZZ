@@ -85,8 +85,8 @@ These set the RPMs the driver's **Right Trigger** shot uses. The wheels only spi
 | **Left Bumper** (hold) | **Reverse BOTH wheels** (flywheel and hood wheel) to clear a jam |
 | **Right Bumper** (hold) | Reverse the **flywheel** only |
 
-Starting dials: flywheel **1300 RPM** (lowest 500, highest 3600), ratio **2.00** (lowest 1.00, highest 3.00), so the hood wheel starts at **2600 RPM**. 1300 is the speed that looked about right on the robot. It is also the speed used in TABLE mode when the camera has not seen the hive lately. In TABLE mode the dial does not set the flywheel speed, but the ratio dial still sets the hood wheel.
-Hood wheel target RPM = flywheel RPM x ratio. The shooter will not go past 5400 RPM on a wheel (`MAX_TARGET_RPM` in `ShooterSubsystem`), so if the hood wheel would, the screen says **CAPPED** and the real ratio is lower than the dial says. At ratio 2.00 that means the flywheel can't go above 2700 RPM.
+Starting dials: flywheel **1300 RPM** (lowest 500, highest 1450), ratio **2.00** (lowest 1.00, highest 3.00), so the hood wheel starts at **2600 RPM**. 1300 is the speed that looked about right on the robot. It is also the speed used in TABLE mode when the camera has not seen the hive lately. In TABLE mode the dial does not set the flywheel speed, but the ratio dial still sets the hood wheel.
+Hood wheel target RPM = flywheel RPM x ratio. The flywheel is the **1620 RPM** motor, so the shooter will not take it past **1458 RPM** (`FLYWHEEL_MAX_TARGET_RPM` in `ShooterSubsystem`), and the dial stops at 1450. The hood wheel is a 6000 RPM motor with a limit of 5400. If either wheel would go past its limit, the screen says **CAPPED** and the real ratio is lower than the dial says. At ratio 2.00 the flywheel is always the one that runs out first.
 Jam clearing (the bumpers) is plain reverse power, not RPM. Bumpers beat everything else on the shooter, including the driver's Right Trigger shot.
 Holding a D-pad button moves the dial **one step**. Press it again for the next step.
 

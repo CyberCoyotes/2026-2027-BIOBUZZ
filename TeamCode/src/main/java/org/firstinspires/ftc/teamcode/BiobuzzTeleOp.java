@@ -69,8 +69,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Left Bumper  -> HOLD to reverse BOTH the flywheel and the hood wheel (clearing a jam)
  *   Right Bumper -> HOLD to reverse the flywheel only
  *   The hood wheel target RPM is flywheel RPM x ratio (RATIO = HOOD WHEEL / FLYWHEEL). The
- *   shooter will not go past its MAX_TARGET_RPM, so if the hood wheel would be over that, the
- *   screen says CAPPED and the real ratio is lower than the dial says.
+ *   shooter will not go past each wheel's own maximum (the flywheel motor is the 1620 RPM one,
+ *   so its maximum is only 1458 RPM). If a wheel would be over its maximum, the screen says
+ *   CAPPED and the real ratio is lower than the dial says.
  *   Jam clearing (the bumpers) still uses plain negative POWER, because speed control only
  *   works forward.
  *   The screen shows "OK to shoot" only when BOTH wheels are really at their target RPM
@@ -155,16 +156,18 @@ public class BiobuzzTeleOp extends OpMode {
     // ------------------------------------------------------------------
     // Shooter dials (gamepad2). These are test-only numbers.
     // ------------------------------------------------------------------
-    // The flywheel dial is counted in WHOLE RPM (2700 means 2700 RPM).
+    // The flywheel dial is counted in WHOLE RPM (1300 means 1300 RPM).
     // Where it starts, how far one press moves it, and how low and high it can go.
     // It starts at 1300 RPM and the ratio starts at 2.00, so the hood wheel starts at 2600 RPM.
     // 1300 is the speed that looked about right on the robot. It is also the speed the shooter
     // falls back to in TABLE mode when the camera has not seen the hive lately.
-    // (It used to start at 2700, the old 45% power x 6000 RPM estimate, which was far too fast.)
+    // The flywheel motor is now the goBILDA 1620 RPM one, so the dial stops at 1450, just under
+    // the shooter's own limit (FLYWHEEL_MAX_TARGET_RPM, 1458 in ShooterSubsystem). It used to go
+    // up to 3600 when the flywheel was a 6000 RPM motor.
     private static final int FLYWHEEL_RPM_START = 1300;
     private static final int FLYWHEEL_RPM_STEP = 100;
     private static final int FLYWHEEL_RPM_MIN = 500;
-    private static final int FLYWHEEL_RPM_MAX = 3600;
+    private static final int FLYWHEEL_RPM_MAX = 1450;
 
     // The ratio dial is counted in HUNDREDTHS so that adding 5 over and over never drifts to
     // something like 1.9999999. So 200 means a ratio of 2.00, and a step of 5 means 0.05.
@@ -581,9 +584,11 @@ public class BiobuzzTeleOp extends OpMode {
             }
         }
         double wantedHoodWheelRpm = flywheelTargetRpm * ratio;
-        double maxTargetRpm = shooterSubsystem.getMaxTargetRpm();
-        boolean hoodWheelCapped = wantedHoodWheelRpm > maxTargetRpm + CAPPED_TOLERANCE_RPM;
-        double hoodWheelTargetRpm = Math.min(wantedHoodWheelRpm, maxTargetRpm);
+        double maxFlywheelRpm = shooterSubsystem.getMaxFlywheelTargetRpm();
+        double maxHoodWheelRpm = shooterSubsystem.getMaxHoodWheelTargetRpm();
+        boolean flywheelCapped = flywheelTargetRpm > maxFlywheelRpm + CAPPED_TOLERANCE_RPM;
+        boolean hoodWheelCapped = wantedHoodWheelRpm > maxHoodWheelRpm + CAPPED_TOLERANCE_RPM;
+        double hoodWheelTargetRpm = Math.min(wantedHoodWheelRpm, maxHoodWheelRpm);
 
         // 3. Tell the subsystems what to do. (The drive has no update() to call.)
 
@@ -743,12 +748,17 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("--- SHOOTER DIALS (RPM) ---");
         telemetry.addData("Flywheel speed source (gamepad2 Start)", getModeText());
         telemetry.addData("Using", rpmSource);
-        telemetry.addData("Flywheel target RPM", "%.0f   (the dial is at %d)",
-                flywheelTargetRpm, flywheelRpmDial);
+        if (flywheelCapped) {
+            telemetry.addData("Flywheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
+                    maxFlywheelRpm, maxFlywheelRpm, flywheelTargetRpm);
+        } else {
+            telemetry.addData("Flywheel target RPM", "%.0f   (the dial is at %d)",
+                    flywheelTargetRpm, flywheelRpmDial);
+        }
         telemetry.addData("Ratio (hood / flywheel)", "%.2f", ratio);
         if (hoodWheelCapped) {
             telemetry.addData("Hood wheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
-                    hoodWheelTargetRpm, maxTargetRpm, wantedHoodWheelRpm);
+                    hoodWheelTargetRpm, maxHoodWheelRpm, wantedHoodWheelRpm);
         } else {
             telemetry.addData("Hood wheel target RPM", "%.0f", hoodWheelTargetRpm);
         }

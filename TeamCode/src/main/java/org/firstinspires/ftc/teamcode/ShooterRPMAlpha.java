@@ -16,21 +16,26 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * HOLD a button to run BOTH the flywheel and the hood wheel at a target speed.
  * Each wheel has its OWN RPM for each button, so you can tune them separately.
  * Starting values (flywheel / hood wheel):
- *   Y  -> 3600 / 3600 RPM   (the 60% power shot from ShooterPowerAlpha)
- *   X  -> 3300 / 3300 RPM   (the 55% power shot from ShooterPowerAlpha)
+ *   Y  -> 1400 / 2800 RPM   (flywheel 1400, hood wheel twice that)
+ *   X  -> 1300 / 2600 RPM   (flywheel 1300, hood wheel twice that)
  *   No button -> both coast to a stop
  * Those two power settings were the closest shots in testing, so the other presets were dropped.
- * The RPM numbers are an ESTIMATE: power x 6000 RPM (the motor's no-load top speed).
- * A wheel running a shot is slower than that, so compare with the RPM you read in
- * ShooterPowerAlpha and use the measured number if it is different.
+ * The flywheel is the goBILDA 1620 RPM motor now (the hood wheel is still the 6000 RPM one), so
+ * the old 3600 / 3300 RPM flywheel presets are gone: that motor tops out at 1620 RPM, and the
+ * shooter will not take it above 1458. 1300 is about the speed that looked right on the robot
+ * (see BiobuzzTeleOp). The hood wheel is twice the flywheel, the best ratio found so far.
  * Watch the shooter State on the screen: SPINNING_UP, then READY when both wheels are at speed.
  *
  * CHECK THE ENCODER (do this first!):
  *   Keep the wheels clear of hands and balls, then HOLD the Right Trigger.
  *   That runs both motors at FULL power with no speed control.
  *   Read "ticks/sec" on the screen:
- *     about 2,800  -> 28 ticks per rev is right (what the code uses now)
- *     about 11,200 -> it is really 112. Change the two TICKS_PER_REV numbers in ShooterSubsystem.
+ *     Hood wheel (6000 RPM motor):
+ *       about 2,800  -> 28 ticks per rev is right (what the code uses now)
+ *       about 11,200 -> it is really 112. Change HOOD_WHEEL_TICKS_PER_REV in ShooterSubsystem.
+ *     Flywheel (1620 RPM motor, 3.7:1 gearbox): its ticks/sec is about 2,800 too, so read its
+ *     "Flywheel RPM" instead. About 1,500 to 1,620 means 103.8 ticks per rev is right. Far from
+ *     that, FLYWHEEL_TICKS_PER_REV in ShooterSubsystem is wrong (ask the coach before changing it).
  *   Also check that both RPM readings are POSITIVE. If one is negative, the
  *   encoder or the motor direction is backwards.
  *
@@ -64,27 +69,23 @@ public class ShooterRPMAlpha extends OpMode {
 
     // Each button sets the FLYWHEEL and the HOOD WHEEL target speed in RPM.
     // They are separate numbers on purpose, so you can tune each wheel on its own.
-    // These are ESTIMATES worked out from the two power shots that tested best in
-    // ShooterPowerAlpha: RPM = power x 6000 (the motor's top speed with no load).
-    //   Y: 60% power -> 0.60 x 6000 = 3600 RPM
-    //   X: 55% power -> 0.55 x 6000 = 3300 RPM
-    // The real wheel runs slower than the no-load number when it is shooting, so check the
-    // measured RPM in ShooterPowerAlpha and change these if they are different. The shooter
-    // will not go above its MAX_TARGET_RPM.
+    // The flywheel motor is the goBILDA 1620 RPM one, so its numbers are small: the shooter will
+    // not take it above FLYWHEEL_MAX_TARGET_RPM (1458). 1300 is about the speed that looked right
+    // on the robot (see BiobuzzTeleOp). Change these after you test.
     //
     //                                     Y        X
-    private static final double FLYWHEEL_RPM_Y = 3600.0;
-    private static final double FLYWHEEL_RPM_X = 3300.0;
+    private static final double FLYWHEEL_RPM_Y = 1400.0;
+    private static final double FLYWHEEL_RPM_X = 1300.0;
 
-    // The hood wheel matches the flywheel here, like the power test. Ball spin comes from the
+    // The hood wheel is TWICE the flywheel here (the best ratio found so far). Ball spin comes from the
     // DIFFERENCE between how fast the two wheel surfaces move (surface speed = RPM x diameter).
     // The flywheel is about 4 inches and the hood wheel about 2 inches, so at the SAME RPM
     // the flywheel surface moves about TWICE as fast. For a no-spin shot, the hood wheel RPM
-    // needs to be about DOUBLE the flywheel RPM (for example 2700 flywheel with 5400 hood wheel).
+    // needs to be about DOUBLE the flywheel RPM (for example 1300 flywheel with 2600 hood wheel).
     // To reduce spin, raise the hood wheel or lower the flywheel. Lowering the hood wheel makes
     // the spin worse.
-    private static final double HOOD_WHEEL_RPM_Y = 3600.0;
-    private static final double HOOD_WHEEL_RPM_X = 3300.0;
+    private static final double HOOD_WHEEL_RPM_Y = 2800.0;
+    private static final double HOOD_WHEEL_RPM_X = 2600.0;
 
     // Reverse power is NEGATIVE so the motor spins the other way.
     private static final double FLYWHEEL_POWER_REVERSE = -0.60;

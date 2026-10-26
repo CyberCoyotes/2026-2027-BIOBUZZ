@@ -24,16 +24,18 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * HOLD a button to run BOTH the flywheel and the hood wheel.
  * Each motor has its OWN power number for each button, so you can tune them
  * separately. Starting values (flywheel / hood wheel):
- *   Y  -> 60% / 60%   (about 3600 RPM with no load, see below)
- *   X  -> 55% / 55%   (about 3300 RPM with no load, see below)
+ *   Y  -> 60% / 60%   (see the note below)
+ *   X  -> 55% / 55%   (see the note below)
  *   No button -> both coast to a stop
- * These two were the closest shots in testing, so the other presets were dropped.
+ * These two were the closest shots in testing with BOTH wheels on 6000 RPM motors.
  *
- * RPM ESTIMATE: the motors top out at 6000 RPM with no load, so power x 6000 gives the speed
- * we would see with nothing on the wheels (60% -> 3600, 55% -> 3300). With a ball and the
- * wheel's own drag the real speed is LOWER, and it drops as the battery drains. To see the real
- * number, hold Y or X and read "Flywheel RPM" in the shooter section of the telemetry.
- * ShooterRPMAlpha uses these same two speeds as its targets.
+ * NOTE: THE FLYWHEEL IS NOW THE 1620 RPM MOTOR. The same POWER now spins the flywheel about
+ * 3.7 times slower (60% is about 970 RPM with no load, not 3600), so these power shots are NOT
+ * the same shots any more. The hood wheel is still the 6000 RPM motor (60% -> 3600 RPM, 55% ->
+ * 3300 RPM with no load). To see the real speeds, hold Y or X and read "Flywheel RPM" and
+ * "Hood Wheel RPM" in the shooter section of the telemetry. With a ball and the wheel's own
+ * drag the real speed is LOWER than no load, and it drops as the battery drains.
+ * For shots, use ShooterRPMAlpha (speed control in RPM) instead of these power shots.
  *
  * REVERSE (for clearing a jam, 60% power the other way):
  *   Right Bumper -> reverses the FLYWHEEL only

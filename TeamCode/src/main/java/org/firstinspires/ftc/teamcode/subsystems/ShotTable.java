@@ -25,9 +25,10 @@ package org.firstinspires.ftc.teamcode.subsystems;
  *   This table has only ONE RPM per spot, for the flywheel. The hood wheel runs at the flywheel
  *   RPM x HOOD_WHEEL_RATIO (see ShooterSubsystem). Pass the answer to
  *   ShooterSubsystem.setTargetRpm(), which does that multiplication for you.
- *   ShooterSubsystem cuts any target above MAX_TARGET_RPM, and the hood wheel is the first to
- *   hit it. At a ratio of 2.0 the flywheel can only go up to MAX_TARGET_RPM / 2 = 2700 RPM.
- *   So do not put a flywheel RPM above 2700 in this table.
+ *   ShooterSubsystem cuts the flywheel target at FLYWHEEL_MAX_TARGET_RPM (1458 RPM, because the
+ *   flywheel is the goBILDA 1620 RPM motor). So do not put a flywheel RPM above 1458 in this
+ *   table. The farthest spot (1425) is already close to it. (The hood wheel's own limit is far
+ *   away at a ratio of 2.0, so the flywheel is the one to watch.)
  *
  * HOW TO EDIT IT (after a ShotTableAlpha session)
  *   1. Type each measured spot into the two lists below. Keep them in the SAME ORDER, and keep

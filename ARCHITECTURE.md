@@ -82,7 +82,7 @@ In FRC a `Constants` file is common. In FTC we keep each number with the class t
 
 | The number describes… | It lives in… | Examples |
 |---|---|---|
-| The **mechanism** | That mechanism's subsystem class, as `private static final` at the top | `DEFAULT_INTAKE_POWER`, motor directions, `MAX_TARGET_RPM`, servo positions, soft limits |
+| The **mechanism** | That mechanism's subsystem class, as `private static final` at the top | `DEFAULT_INTAKE_POWER`, motor directions, `FLYWHEEL_MAX_TARGET_RPM`, servo positions, soft limits |
 | How a **test OpMode drives** a mechanism | That test OpMode | Dial step size, the Y/X/B/A preset powers, nudge step |
 | Something **two or more classes** need, or the **field or robot** itself | A shared constants class (see below) | Hive and tag dimensions, camera and turret offsets |
 
@@ -146,7 +146,7 @@ Names already in use:
 | Name | Device |
 |---|---|
 | `intake` | One motor for intake, index, and transfer (goBILDA 5203, probably 1620 RPM 3.71:1 `[CONFIRM]`) |
-| `flywheel` | Shooter flywheel: goBILDA 5202/3/4, about 4 in, on the front of the ball path |
+| `flywheel` | Shooter flywheel: goBILDA 5203 series **1620 RPM (3.7:1)**, about 4 in, on the front of the ball path. In the Driver Station config set its motor type to match (see `biobuzz-robot-config-quick-reference.md`) |
 | `hood_wheel` | Hood wheel: goBILDA 5203 series (believed `[CONFIRM]`), about 2 in, on the back/top side in the fixed hood. Its RPM relative to the flywheel sets the ball spin. |
 | `left_front` | Drive motor, left front (mecanum) |
 | `left_rear` | Drive motor, left rear (mecanum) |
@@ -192,14 +192,15 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 
 ### ShooterSubsystem (`subsystems/ShooterSubsystem.java`)
 
-- **Hardware:** `flywheel` and `hood_wheel`, both goBILDA 5203 series (6000 RPM, believed `[CONFIRM]`) with encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
-- **Hood wheel ratio:** `HOOD_WHEEL_RATIO` is **2.0** (hood wheel RPM / flywheel RPM), the best value found in robot testing so far. `setTargetRpm()` uses it, and `BiobuzzTeleOp` starts its ratio dial at the same number. At 2.0 the flywheel tops out at `MAX_TARGET_RPM / 2` (2700 RPM) before the hood wheel is capped.
+- **Hardware:** `flywheel` is a goBILDA 5203 series **1620 RPM (3.7:1)** motor (changed from 6000 RPM on the `change-shooter-motors` branch). `hood_wheel` is still a goBILDA 5203 series 6000 RPM (1:1, believed `[CONFIRM]`). Both have encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
+- **Different motors, different numbers (not tested on the robot yet):** `ShooterSubsystem` now has a ticks per rev, a motor top speed, and a max target RPM **for each wheel**. Flywheel: **103.8** ticks per output rev `[CONFIRM]` (goBILDA's spec, 28 × the 3.7:1 gearbox), 1620 RPM top speed, **1458 RPM max target** (90%). Hood wheel: 28 ticks per rev `[CONFIRM]`, 6000 RPM, 5400 RPM max target. `getMaxTargetRpm()` was replaced by `getMaxFlywheelTargetRpm()` and `getMaxHoodWheelTargetRpm()`. The encoder is on the motor shaft (before the gearbox), so the speed at full power is about 2,800 ticks/sec on **both** motors. Check the hood wheel by that number (28 ticks per rev). Check the flywheel's 103.8 by its **RPM** at full power in `ShooterRPMAlpha`: about 1,500 to 1,620 means it is right. A tachometer or slow-motion video also works.
+- **Hood wheel ratio:** `HOOD_WHEEL_RATIO` is **2.0** (hood wheel RPM / flywheel RPM), the best value found in robot testing so far. `setTargetRpm()` uses it, and `BiobuzzTeleOp` starts its ratio dial at the same number. The **flywheel** now hits its limit first: it tops out at **1458 RPM** (`FLYWHEEL_MAX_TARGET_RPM`), where the hood wheel only needs 2916 RPM, far under its own 5400 RPM limit.
 - **Control:** speed control in RPM (`setTargetRpm()` / `setTargetRpms()`). `setPower()` is open loop, for tests and clearing jams. `stop()` coasts (never commands a speed of 0).
 - **States:** `IDLE`, `OPEN_LOOP`, `SPINNING_UP`, `READY`. `isAtSpeed()` is true only in `READY` and is the shooter's half of the firing gate. The turret's on-target check is the other half.
 - **Test OpMode:** `ShooterRPMAlpha`. Its Right Trigger button runs the 28-vs-112 ticks-per-rev check.
 - **Ratio test OpMode:** `ShooterRatioAlpha` finds the best `HOOD_WHEEL_RATIO` (hood wheel / flywheel). **It uses speed control (RPM)**, now that the flywheel and hood wheel encoders are connected. B/A turn the flywheel RPM dial (100 RPM steps), D-pad Left/Right turn the ratio dial (0.05 steps), Y/X start and stop the shooter, and hood wheel RPM = flywheel RPM x ratio. It warns CAPPED when the hood wheel target is over `ShooterSubsystem.getMaxTargetRpm()`, shows the measured ratio, and records the lowest RPM each wheel hit after reaching speed (Back resets it). Printable student sheet: `TeamCode/docs/hood-wheel-ratio-test-sheet.html` (and a `.pdf` copy). The old plain-POWER version is saved in git (commit `88c7669`), with its sheet `hood-wheel-ratio-test-sheet-power.html`, in case the encoders ever stop working.
 - **At-speed tolerance is 25 RPM** (was 100) because the shooter gate will only open on `isAtSpeed()`. **Both** wheels must be within it, and one reading outside it drops READY at once. `[CONFIRM]` on the robot: if the RPM readout wanders more than about 15 RPM while steady, READY will flicker. Then fix the speed reading or the PIDF, don't loosen the tolerance without asking.
-- **Starting guesses to tune on the robot:** the hold time (`AT_SPEED_HOLD_SECONDS`), `MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterRPMAlpha`.
+- **Starting guesses to tune on the robot:** the hold time (`AT_SPEED_HOLD_SECONDS`), `FLYWHEEL_MAX_TARGET_RPM` and `HOOD_WHEEL_MAX_TARGET_RPM`, the PIDF numbers (the Hub's built-in values are used until `USE_CUSTOM_PIDF` is turned on), and the preset RPMs in `ShooterRPMAlpha`.
 - **Not in this class:** the distance-to-RPM shot table (a separate class later), feeding, and anything that reads a gamepad.
 
 ### ShooterServoSubsystem (`subsystems/ShooterServoSubsystem.java`): code written, not yet tested on the robot
@@ -259,7 +260,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **The table:** two lists in the same order, `TY_DEGREES` (smallest to biggest, which is far to close) and `FLYWHEEL_RPM`. Between two rows it draws a straight line (linear interpolation). Outside the table it **uses the nearest row and never extrapolates**. The constructor stops with a clear message if the lists are different lengths or `ty` does not strictly increase.
 - **Methods:** `getFlywheelRpm(ty)`, `isInRange(ty)`, `getRowCount()`.
 - **Hood wheel:** the table has one RPM per row. The hood wheel is `flywheel × HOOD_WHEEL_RATIO` when the RPM goes through `ShooterSubsystem.setTargetRpm()`. A second column is an easy later change if testing shows a fixed ratio is not enough.
-- **Speed cap:** `MAX_TARGET_RPM` is 5400 and the hood wheel is at twice the flywheel, so **keep every flywheel RPM at 2700 or below**. Above that the hood wheel is cut off and the real ratio drops.
+- **Speed cap:** the flywheel is the 1620 RPM motor, so `FLYWHEEL_MAX_TARGET_RPM` is **1458**. **Keep every flywheel RPM at 1458 or below.** Above that the flywheel is cut off and the hood wheel (twice what you asked) is off ratio. **The farthest spot (1425 RPM) is within 33 RPM of the cap, and these rows were measured with the old 6000 RPM flywheel motor, so recheck them on the robot.**
 - **Test OpMode:** `ShotTableAlpha` ("Shot Table - Alpha", gamepad1). Minimal on purpose: no drive, turret, or gate. Move the robot **by hand** and load balls into the intake. Right Trigger shoots at a dial RPM (D-pad Up/Down) to find the slowest speed that scores; A saves a row (`ty` + RPM) to the screen; Left Trigger shoots at the table's RPM to check it; Left Bumper reverses both wheels and the intake; START switches alliance. **Both shoot triggers also run `IntakeSubsystem`, but only once `ShooterSubsystem.isAtSpeed()` is true** (`INTAKE_WAITS_FOR_SPEED`), so each ball is fed at the speed being measured. A ball slows the wheels, the intake pauses until they recover, and balls go one at a time. The gate servo is not touched. Nothing is saved to disk, so copy the rows into `ShotTable` before stopping.
 - **`[CONFIRM]` first-pass rows are in:** 5 spots measured with `ShotTableAlpha` (7 saves, repeats merged), from `ty` -16.8 (1425 RPM; 1400 made the shot and 1450 felt more comfortable) to `ty` -4.0 (1250 RPM). `ty` is negative on our camera; the rule that matters is that a bigger `ty` is closer and needs a lower RPM. The RPMs are only good to about ±50 (the dial's step). Check the table with Left Trigger at a spot that was not measured, and add rows where it misses.
 - **Wired into `BiobuzzTeleOp` ("TeleOp - Alpha 7"), not yet tested on the robot.**
