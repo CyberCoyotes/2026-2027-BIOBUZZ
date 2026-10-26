@@ -195,6 +195,17 @@ public class DriveSubsystem {
     }
 
     /*
+     * How hard the robot is being told to spin right now, from -1.0 to 1.0. + is COUNTERCLOCKWISE
+     * (left), - is clockwise (right), the same as drive(). It is the driver's turn AFTER slow mode
+     * and MAX_DRIVE_POWER, so it follows how fast the robot really spins. (It does not include the
+     * small shrink when a wheel would pass 100%, which only happens when driving and turning hard
+     * at the same time.) The TeleOp uses it to tell the turret how fast to follow the spin.
+     */
+    public double getTurnPower() {
+        return turnInput * powerScale * MAX_DRIVE_POWER;
+    }
+
+    /*
      * Slow mode. true slows every wheel to SLOW_MODE_POWER_SCALE of full speed, for careful
      * lining up. false goes back to full speed. It stays set until you change it, so call it
      * every loop with the driver's button (or only when the driver changes it).

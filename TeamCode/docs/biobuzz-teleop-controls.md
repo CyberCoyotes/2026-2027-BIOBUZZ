@@ -1,6 +1,6 @@
 # BIOBUZZ TeleOp Controls: Driver and Operator
 
-Print this and keep it at the driver station. It matches **`TeleOp - Alpha 5`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet.
+Print this and keep it at the driver station. It matches **`TeleOp - Alpha 7`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet.
 
 **Pairing:** on the Driver Station, press **Start + A** on the driver's controller (gamepad 1) and **Start + B** on the operator's controller (gamepad 2).
 **Logitech controller (F310 / F710):** set the switch on the back to **X** (XInput mode), not D. The buttons are then labeled A, B, X, Y like the code. Bumpers are **LB / RB** and triggers are **LT / RT**. Left Trigger = LT, Right Trigger = RT.
@@ -9,7 +9,7 @@ Print this and keep it at the driver station. It matches **`TeleOp - Alpha 5`** 
 
 ## Gamepad 1: DRIVER
 
-The driver drives, runs the intake, and holds the Right Trigger to shoot.
+The driver drives, runs the intake, and holds the Right Trigger to shoot. **The Right Trigger also aims the turret at the hive for you.**
 
 | Control | What it does |
 |---|---|
@@ -18,11 +18,14 @@ The driver drives, runs the intake, and holds the Right Trigger to shoot.
 | **Left Trigger** (hold) | **SLOW MODE** (40% speed) for careful lining up |
 | **Right Bumper** | **INTAKE**: pull balls in (also carries them up the transfer chute) |
 | **Left Bumper** | **REVERSE** the intake: push balls out. Beats the Right Bumper, so clearing a jam always works |
-| **Right Trigger** (hold) | **SHOOT** at the RPMs the operator dialed in (starts at flywheel 2700 RPM, hood wheel 5400 RPM). **Let go and both wheels go to 0 power** (they coast down) |
+| **Right Trigger** (hold) | **SHOOT** (it also auto-aligns the turret, even if ALWAYS-TRACK is off). The wheels use the flywheel speed from the **DIAL** (starts at flywheel 1300 RPM, hood wheel 2600 RPM) or the **TABLE**, whichever the operator picked. **Let go and both wheels go to 0 power** (they coast down), and the turret holds where it ended |
 
 ### Driver tips
 - The robot is **robot-centric**: "forward" is the way the robot is facing.
 - The operator's bumpers (jam clearing) beat your Right Trigger shot, so don't be surprised if the shot stops.
+- Auto-align needs the camera to see the hive. If the screen says **NO TARGET**, the turret just holds where it is, so check the alliance and point the robot toward the hive.
+- The turret now **tracks the hive all the time** (**ALWAYS-TRACK**, see the operator page), so you don't need to hold anything to aim. The screen shows **ALWAYS-TRACK ON / OFF**.
+- The operator's turret stick and **A (STOP)** beat the auto-align.
 - Wait for **"OK to shoot? YES"** on the screen before the operator opens the gate. It turns YES only when **both wheels are at their target RPM** (the screen shows each wheel's real RPM next to its target). After a ball slows the wheels, it goes back to WAIT until they recover.
 
 <div style="page-break-after: always"></div>
@@ -40,8 +43,25 @@ The operator sets the shooter speeds (RPM), aims the turret, and moves the shoot
 | **X** | Turret **FAR LEFT** (+90 degrees) |
 | **B** | Turret **FAR RIGHT** (-90 degrees) |
 | **A** | **STOP** the turret (it floats, so you can turn it by hand) |
+| **Right Stick Button** (press the stick in) | Switch **ALWAYS-TRACK** ON / OFF (see below). It starts **ON** |
 
-A preset goes to its angle and holds there. Letting go of the stick **holds the turret where it is**.
+A preset goes to its angle and holds there.
+
+**ALWAYS-TRACK:** the turret follows the hive **all the time**, with no button held (it also follows the robot's spin). It starts **ON**, and it never moves during INIT.
+- **Stick:** pushing the **Left Stick** beats it. Let go and it goes back to tracking.
+- **Y, X, B and A switch it OFF**, so the turret stays where you put it. Press the **Right Stick Button** to turn it back ON.
+- If the camera loses the hive, the turret **holds** where it is. It does not search.
+- **Check the alliance (Back button) before START.** The wrong alliance tracks the other team's hive.
+
+### Alliance and speed source
+
+| Control | What it does |
+|---|---|
+| **Back** | Switch the **alliance** BLUE / RED. It starts as **BLUE**. **Check it on the screen** before the match: the wrong alliance aims at the other hive |
+| **Start** | Switch the flywheel speed source **DIAL / TABLE**. It starts on **DIAL** |
+
+**DIAL** is the speed the operator dialed in (below), exactly as before, and needs no camera. **TABLE** uses the shot table: while the camera sees the hive, the flywheel speed comes from how high the hive's tags appear (closer = lower RPM). If the camera loses the hive, the table's last speed is kept for **1 second**, then the flywheel goes back to the dial. The screen says which one is in use. The hood wheel is always the flywheel speed x the ratio dial.
+(Start + B is also how gamepad 2 is paired, so pairing while the OpMode is running switches the mode. Check it on the screen.)
 
 ### Shooter gate
 
@@ -65,7 +85,7 @@ These set the RPMs the driver's **Right Trigger** shot uses. The wheels only spi
 | **Left Bumper** (hold) | **Reverse BOTH wheels** (flywheel and hood wheel) to clear a jam |
 | **Right Bumper** (hold) | Reverse the **flywheel** only |
 
-Starting dials: flywheel **2700 RPM** (lowest 500, highest 3600), ratio **2.00** (lowest 1.00, highest 3.00), so the hood wheel starts at **5400 RPM**. These starting numbers are estimates (the old 45% power x 6000 RPM). Tune them on the robot.
+Starting dials: flywheel **1300 RPM** (lowest 500, highest 3600), ratio **2.00** (lowest 1.00, highest 3.00), so the hood wheel starts at **2600 RPM**. 1300 is the speed that looked about right on the robot. It is also the speed used in TABLE mode when the camera has not seen the hive lately. In TABLE mode the dial does not set the flywheel speed, but the ratio dial still sets the hood wheel.
 Hood wheel target RPM = flywheel RPM x ratio. The shooter will not go past 5400 RPM on a wheel (`MAX_TARGET_RPM` in `ShooterSubsystem`), so if the hood wheel would, the screen says **CAPPED** and the real ratio is lower than the dial says. At ratio 2.00 that means the flywheel can't go above 2700 RPM.
 Jam clearing (the bumpers) is plain reverse power, not RPM. Bumpers beat everything else on the shooter, including the driver's Right Trigger shot.
 Holding a D-pad button moves the dial **one step**. Press it again for the next step.

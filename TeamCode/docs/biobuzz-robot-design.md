@@ -39,7 +39,7 @@ The specific classes, states, and methods are decided one session at a time, pro
 
 - **Aim:** turn the turret until the target cluster's `tx` ≈ 0. Filter tags to our alliance, and target the **higher** cluster. See the geometry doc.
 - **Distance:** `d = (50 − lensHeight) / tan(cameraTilt + ty)`.
-- **Flywheel speed:** a **lookup table** of distance → flywheel RPM (and hood wheel RPM), measured at 4–6 distances and interpolated between them. Don't use physics equations. Students can re-tune a table at an event.
+- **Flywheel speed:** a **lookup table** of `ty` → flywheel RPM, measured at 4–6 spots and interpolated between them (the `ShotTable` class, measured with `ShotTableAlpha`). The hood wheel follows at `HOOD_WHEEL_RATIO` times the flywheel. We key the table on `ty` instead of distance: the camera is fixed on the turret, so `ty` already tracks distance and we skip the lens height and tilt. Re-measure if the camera moves. Don't use physics equations. Students can re-tune a table at an event.
 - **Firing gate:** only feed a ball when the flywheel (and hood wheel) are within a velocity tolerance **and** the turret is on target.
 - **Velocity control:** `DcMotorEx.setVelocity()` with tuned PIDF. Confirm the encoder counts per revolution first (28 or 112, see `CLAUDE.md`).
 - **Hood wheel:** start at a **fixed ratio** (hood wheel RPM ÷ flywheel RPM, `HOOD_WHEEL_RATIO`) to the flywheel speed. **2.0 is the best ratio found in robot testing so far** (about no ball spin, because the hood wheel is half the flywheel diameter), and it is now `HOOD_WHEEL_RATIO` in `ShooterSubsystem`. Keep checking it with `ShooterRatioAlpha`, and tune it separately only if testing shows spin matters.
