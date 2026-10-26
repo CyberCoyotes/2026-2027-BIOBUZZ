@@ -13,10 +13,10 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
- * TeleOp Alpha 6
+ * TeleOp Alpha 7
  * An iterative OpMode with TWO controllers:
- *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to SHOOT
- *              (the trigger also AUTO-ALIGNS the turret on the hive).
+ *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to SHOOT.
+ *              (The turret now AUTO-TRACKS the hive ALL THE TIME, see ALWAYS-TRACK below.)
  *   gamepad2 = the OPERATOR: sets the shooter speeds (RPM), aims the TURRET, and moves the GATE.
  * It is DriveAlpha, IntakeAlpha, ShooterRPMAlpha, TurretAlpha, VisionAlpha and ShotTableAlpha
  * put together, so each part has already been tested on its own. This OpMode owns NO hardware.
@@ -30,16 +30,19 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   D-pad Right / Left -> ratio (hood wheel / flywheel) +/- 0.05
  *   Left Bumper      -> HOLD to reverse BOTH shooter wheels (clearing a jam)
  *   Right Bumper     -> HOLD to reverse the flywheel only
- *   Right Stick Button (press the stick in) -> HOLD to AUTO-ALIGN the turret on the hive,
- *                       with NO shooting. The driver's Right Trigger also aligns while it shoots.
+ *   Right Stick Button (press the stick in) -> switch ALWAYS-TRACK ON <-> OFF (starts ON).
+ *                       See ALWAYS-TRACK below. The driver's Right Trigger still aligns while
+ *                       it shoots, even if ALWAYS-TRACK is OFF.
  *   Start            -> switch the flywheel speed source DIAL <-> TABLE (starts as DIAL)
  *   Back             -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
  *   Right Trigger    -> shooter GATE to SHOOTING (lets the ball through)
  *   Left Trigger     -> shooter GATE to LOADING (holds the ball back)
  *      (One move per press. The gate positions are LOADING_POSITION and SHOOTING_POSITION
  *       in ShooterServoSubsystem. If both triggers are pressed at once, LOADING wins.)
- *   Letting go of the stick holds the turret where it is. A preset goes to its angle and
- *   holds. The turret will not go past +/-120 degrees (see TurretSubsystem). 0 degrees is where
+ *   With ALWAYS-TRACK ON, letting go of the stick goes back to tracking the hive. With it OFF,
+ *   the turret holds where it is. A preset (Y, X, B) goes to its angle and holds, and so does
+ *   A (STOP), because pressing any of them turns ALWAYS-TRACK OFF. Press the Right Stick Button
+ *   to turn it back ON. The turret will not go past +/-120 degrees (see TurretSubsystem). 0 degrees is where
  *   the turret pointed when the Control Hub powered on, because the home switch is not
  *   installed yet, so power on with the turret pointing straight ahead.
  *
@@ -82,8 +85,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   - TABLE mode: while the camera sees the hive, the flywheel uses the table's RPM. If the
  *     camera loses the hive, it keeps the LAST table RPM for TABLE_RPM_HOLD_SECONDS so the wheels
  *     do not lurch, then goes back to the dial. The screen says which one is being used.
- *   - The camera can only see the hive when the turret points at it. Hold the driver's Right
- *     Trigger (it aligns the turret for you) or the operator's Right Stick Button.
+ *   - The camera can only see the hive when the turret points at it. ALWAYS-TRACK (below) keeps
+ *     the turret pointed at it, and the driver's Right Trigger aligns it too while it shoots.
  *   - AUTO-ALIGN: the camera is ON the turret, so tx is how far the turret still has to turn.
  *     tx is positive to the RIGHT but turret angles are positive to the LEFT, so the new turret
  *     target is the turret angle NOW minus tx. If the camera loses the hive, the turret holds
@@ -94,6 +97,19 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     The screen shows it as "Turret follows spin". Tune the gain on the robot.
  *   - The table was measured aiming at one hive from a few spots, see ShotTable. Outside those
  *     spots it uses the nearest row, and the screen warns you.
+ *
+ * ALWAYS-TRACK (new in Alpha 7)
+ *   Before, the turret only aligned on the hive while a button was held. Now it aligns on the
+ *   hive ALL THE TIME, the whole match, with no button held. It uses the same auto-align as the
+ *   trigger (see AUTO-ALIGN above), including following the robot's spin.
+ *   - It starts ON. It does NOT run during INIT, because the robot must not move before START.
+ *   - If the camera cannot see the hive, the turret HOLDS where it is. It does not search.
+ *   - The operator's turret stick beats it while the stick is pushed. Let go of the stick and
+ *     it goes back to tracking.
+ *   - Y, X, B (presets) and A (STOP) switch it OFF so the turret stays where they put it.
+ *     Press the Right Stick Button to switch it back ON. The screen shows ON or OFF.
+ *   - The ALLIANCE (gamepad2 Back) must be right, or the turret tracks the OTHER team's hive.
+ *     It starts as BLUE. Check the alliance on the screen before you press START.
  *
  * THE INTAKE ALSO RUNS THE TRANSFER. One motor spins the front intake AND a hex shaft with
  * grippers in the transfer chute, so balls are carried up the chute while you drive.
@@ -123,7 +139,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Ethernet Device name: limelight   (VisionSubsystem, Limelight 3A. This robot's config MUST
  *                                      have it, or this OpMode stops at INIT.)
  */
-@TeleOp(name = "TeleOp - Alpha 6", group = "Testing")
+@TeleOp(name = "TeleOp - Alpha 7", group = "Testing")
 public class BiobuzzTeleOp extends OpMode {
 
     // ------------------------------------------------------------------
@@ -225,6 +241,11 @@ public class BiobuzzTeleOp extends OpMode {
     // Change it by about 0.05 at a time. Try slow mode too, it is scaled to match.
     private static final double TURRET_FEEDFORWARD_GAIN = 0.30;
 
+    // Should the turret track the hive ALL THE TIME from START? true = yes (ALWAYS-TRACK starts
+    // ON), false = it starts OFF and the operator turns it on with the Right Stick Button.
+    // Either way it never moves during INIT.
+    private static final boolean ALWAYS_TRACK_AT_START = true;
+
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
     private DriveSubsystem driveSubsystem;
@@ -266,6 +287,11 @@ public class BiobuzzTeleOp extends OpMode {
     private boolean wasTurningTurretManually = false;
     private boolean wasAutoAligning = false;
 
+    // True = the turret tracks the hive all the time (ALWAYS-TRACK). The operator switches it with
+    // the Right Stick Button, and a preset or A (STOP) switches it OFF.
+    private boolean alwaysTrack = ALWAYS_TRACK_AT_START;
+    private boolean wasTrackToggleButtonPressed = false;
+
     // The push the turret got this loop to follow the robot's spin, for the screen.
     private double turretFeedforward = 0.0;
 
@@ -284,10 +310,10 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Stick = drive and strafe   Right Stick = turn");
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
-        telemetry.addLine("Right Trigger (hold) = SHOOT + AUTO-ALIGN the turret");
+        telemetry.addLine("Right Trigger (hold) = SHOOT (+ AUTO-ALIGN, even if ALWAYS-TRACK is off)");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
         telemetry.addLine("Start = flywheel speed DIAL / TABLE   Back = alliance BLUE / RED");
-        telemetry.addLine("Right Stick Button (hold) = AUTO-ALIGN the turret only");
+        telemetry.addLine("Right Stick Button = ALWAYS-TRACK on / off (turret follows the hive)");
         telemetry.addLine("D-pad Up / Down = flywheel RPM up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
         telemetry.addLine("Left Bumper = reverse BOTH wheels   Right Bumper = reverse flywheel only");
@@ -362,8 +388,7 @@ public class BiobuzzTeleOp extends OpMode {
 
     /*
      * Turns the turret toward the hive. Returns the words to show on the screen.
-     * Call it every loop while the driver's Right Trigger or the operator's Right Stick Button
-     * is held.
+     * Call it every loop while ALWAYS-TRACK is ON or the driver's Right Trigger is held.
      */
     private String autoAlignTurret() {
         if (!visionSubsystem.hasTarget()) {
@@ -496,7 +521,7 @@ public class BiobuzzTeleOp extends OpMode {
         boolean dpadRightPressed = gamepad2.dpad_right;
         boolean gateShootTriggerPressed = gamepad2.right_trigger > TRIGGER_PRESSED_THRESHOLD;
         boolean gateLoadTriggerPressed = gamepad2.left_trigger > TRIGGER_PRESSED_THRESHOLD;
-        boolean alignButtonPressed = gamepad2.right_stick_button;
+        boolean trackToggleButtonPressed = gamepad2.right_stick_button;
 
         // Turn the dials. Only a NEW press counts, so holding a button moves it one step.
         if (isNewPress(dpadUpPressed, wasDpadUpPressed)) {
@@ -637,9 +662,22 @@ public class BiobuzzTeleOp extends OpMode {
         double turretStick = -gamepad2.left_stick_x;
         boolean usingTurretStick = Math.abs(turretStick) > TURRET_STICK_DEADBAND;
 
-        // Auto-align runs while the driver holds the Right Trigger (it aligns AND shoots) or the
-        // operator holds the Right Stick Button (it aligns only).
-        boolean alignWanted = alignButtonPressed || triggerShotPressed;
+        // Right Stick Button switches ALWAYS-TRACK ON <-> OFF. One switch per press.
+        if (isNewPress(trackToggleButtonPressed, wasTrackToggleButtonPressed)) {
+            alwaysTrack = !alwaysTrack;
+        }
+
+        // The operator picking a turret angle (Y, X, B) or STOP (A) means "stay where I put it",
+        // so those switch ALWAYS-TRACK OFF. Do this BEFORE we decide below, so the press counts
+        // on the very loop it happens. (The operator can press the Right Stick Button to turn
+        // tracking back on.)
+        if (yPressed || xPressed || bPressed || aPressed) {
+            alwaysTrack = false;
+        }
+
+        // Auto-align runs ALL THE TIME while ALWAYS-TRACK is ON, and also while the driver holds
+        // the Right Trigger (it aligns AND shoots, even if ALWAYS-TRACK is OFF).
+        boolean alignWanted = alwaysTrack || triggerShotPressed;
         boolean autoAligningNow = false;
 
         // Cleared every loop. Only auto-align sets it, so nothing else ever gets a push.
@@ -648,18 +686,15 @@ public class BiobuzzTeleOp extends OpMode {
         String turretControl;
         if (usingTurretStick) {
             // The stick scales the power: a full push is the whole turret power,
-            // a half push is half of it.
+            // a half push is half of it. The stick beats auto-align. When it is let go,
+            // ALWAYS-TRACK (if it is ON) takes the turret back.
             turretSubsystem.setManualPower(turretStick * turretPower);
             turretControl = "Left Stick (MANUAL)";
         } else if (alignWanted && !aPressed) {
-            // The stick beats auto-align. So does A (STOP): while A is held we skip this and the
-            // turret falls through to the A branch below.
+            // A (STOP) beats auto-align too: while A is held we skip this and the turret falls
+            // through to the A branch below.
             turretControl = autoAlignTurret();
             autoAligningNow = true;
-        } else if (wasTurningTurretManually || wasAutoAligning) {
-            // The stick or the auto-align was just let go, so hold the turret where it stopped.
-            turretSubsystem.holdCurrentAngle();
-            turretControl = "Released (HOLD)";
         } else if (yPressed) {
             turretSubsystem.setTargetAngle(TURRET_PRESET_CENTER_DEGREES);
             turretControl = "Y (preset CENTER)";
@@ -672,6 +707,10 @@ public class BiobuzzTeleOp extends OpMode {
         } else if (aPressed) {
             turretSubsystem.stop();
             turretControl = "A (STOP)";
+        } else if (wasTurningTurretManually || wasAutoAligning) {
+            // The stick or the auto-align was just let go, so hold the turret where it stopped.
+            turretSubsystem.holdCurrentAngle();
+            turretControl = "Released (HOLD)";
         } else {
             // No new command. The turret keeps doing what it was last told to do.
             turretControl = "None (keeps last command)";
@@ -683,6 +722,7 @@ public class BiobuzzTeleOp extends OpMode {
         wasDpadDownPressed = dpadDownPressed;
         wasTurningTurretManually = usingTurretStick;
         wasAutoAligning = autoAligningNow;
+        wasTrackToggleButtonPressed = trackToggleButtonPressed;
         wasGateShootTriggerPressed = gateShootTriggerPressed;
         wasGateLoadTriggerPressed = gateLoadTriggerPressed;
         wasDpadLeftPressed = dpadLeftPressed;
@@ -749,6 +789,8 @@ public class BiobuzzTeleOp extends OpMode {
         // The turret prints its own "--- TURRET ---" heading, so we add our lines under it.
         turretSubsystem.addTelemetry(telemetry);
         telemetry.addData("Turret Control", turretControl);
+        telemetry.addData("ALWAYS-TRACK (gamepad2 Right Stick Button)",
+                alwaysTrack ? "ON - the turret follows the hive" : "OFF - the turret stays where you put it");
         telemetry.addData("Turret power", "%d%%", TURRET_POWER_PERCENT);
         telemetry.addData("Turret follows spin", "%+.2f power   (gain %.2f)",
                 turretFeedforward, TURRET_FEEDFORWARD_GAIN);
