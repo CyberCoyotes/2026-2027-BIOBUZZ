@@ -88,6 +88,10 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     tx is positive to the RIGHT but turret angles are positive to the LEFT, so the new turret
  *     target is the turret angle NOW minus tx. If the camera loses the hive, the turret holds
  *     where it is. It does not search.
+ *   - FOLLOWING THE ROBOT'S SPIN: auto-align alone only pushes once the turret is already off
+ *     target, so when the driver turns the robot the turret always trails it. So while it aligns,
+ *     the turret also gets a push the opposite way to the driver's turn (TURRET_FEEDFORWARD_GAIN).
+ *     The screen shows it as "Turret follows spin". Tune the gain on the robot.
  *   - The table was measured aiming at one hive from a few spots, see ShotTable. Outside those
  *     spots it uses the nearest row, and the screen warns you.
  *
@@ -206,6 +210,21 @@ public class BiobuzzTeleOp extends OpMode {
     // lurching if a tag drops out for a moment, and a limit stops a stale RPM from lasting.
     private static final double TABLE_RPM_HOLD_SECONDS = 1.0;
 
+    // How much the turret FOLLOWS the robot's spin while it is auto-aligning.
+    // On its own, auto-align only pushes once the turret is already off target, so a spinning
+    // robot always gets ahead of it. This adds a push the OPPOSITE way to the driver's turn, so
+    // the turret starts following right away. The push is: -(the robot's turn power) x this number.
+    //   0.0  -> no following (auto-align by itself, like before).
+    //   Higher -> the turret follows harder.
+    // The right number is about (how fast the robot spins at full turn) / (how fast the turret
+    // can turn at full power), which we have not measured. 0.30 is a SAFE starting guess that
+    // follows a little less than needed, and auto-align cleans up the rest.
+    // TO TUNE: auto-align on the hive, then spin the robot at a steady rate and watch tx.
+    //   tx drifts to the same side the robot is spinning -> the turret is lagging, raise this.
+    //   tx swings to the OTHER side -> the turret is leading, lower this.
+    // Change it by about 0.05 at a time. Try slow mode too, it is scaled to match.
+    private static final double TURRET_FEEDFORWARD_GAIN = 0.30;
+
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
     private DriveSubsystem driveSubsystem;
@@ -246,6 +265,9 @@ public class BiobuzzTeleOp extends OpMode {
     // hold the angle when it is released. The same for auto-align.
     private boolean wasTurningTurretManually = false;
     private boolean wasAutoAligning = false;
+
+    // The push the turret got this loop to follow the robot's spin, for the screen.
+    private double turretFeedforward = 0.0;
 
     /*
      * True only on the loop where a button goes from "not pressed" to "pressed".
@@ -356,14 +378,27 @@ public class BiobuzzTeleOp extends OpMode {
 
         double txDegrees = visionSubsystem.getTxDegrees();
 
+        // Follow the robot's spin. The drive's turn power is positive for COUNTERCLOCKWISE (left).
+        // When the robot spins left the turret has to turn RIGHT (negative) to keep pointing at
+        // the hive, so the push is the turn power with its sign flipped. getTurnPower() already
+        // includes slow mode. It is 0.0 when the driver is not turning.
+        turretFeedforward = -driveSubsystem.getTurnPower() * TURRET_FEEDFORWARD_GAIN;
+        turretSubsystem.setFeedforwardPower(turretFeedforward);
+        boolean robotIsTurning = turretFeedforward != 0.0;
+
         // Pick a new target if the turret is not in POSITION mode yet (the align just started),
-        // or if the camera says we are far enough off.
+        // or if the camera says we are far enough off. While the robot is turning we pick a new
+        // target EVERY loop: the push is already moving the turret, so the target has to move
+        // with it, or position control would pull the turret back toward an old target.
         boolean notAimingYet = turretSubsystem.getState() != TurretSubsystem.TurretState.POSITION;
         boolean farOff = Math.abs(txDegrees) > ALIGN_REAIM_THRESHOLD_DEGREES;
-        if (notAimingYet || farOff) {
+        if (notAimingYet || farOff || robotIsTurning) {
             // tx is positive to the RIGHT, but turret angles are positive to the LEFT, so subtract.
             double newTargetAngle = turretSubsystem.getAngleDegrees() - txDegrees;
             turretSubsystem.setTargetAngle(newTargetAngle);
+        }
+        if (robotIsTurning) {
+            return "AUTO-ALIGN (following the robot's spin)";
         }
         return "AUTO-ALIGN";
     }
@@ -607,6 +642,9 @@ public class BiobuzzTeleOp extends OpMode {
         boolean alignWanted = alignButtonPressed || triggerShotPressed;
         boolean autoAligningNow = false;
 
+        // Cleared every loop. Only auto-align sets it, so nothing else ever gets a push.
+        turretFeedforward = 0.0;
+
         String turretControl;
         if (usingTurretStick) {
             // The stick scales the power: a full push is the whole turret power,
@@ -712,6 +750,8 @@ public class BiobuzzTeleOp extends OpMode {
         turretSubsystem.addTelemetry(telemetry);
         telemetry.addData("Turret Control", turretControl);
         telemetry.addData("Turret power", "%d%%", TURRET_POWER_PERCENT);
+        telemetry.addData("Turret follows spin", "%+.2f power   (gain %.2f)",
+                turretFeedforward, TURRET_FEEDFORWARD_GAIN);
 
         // The vision prints its own "--- VISION ---" heading, so we add our lines under it.
         visionSubsystem.addTelemetry(telemetry);

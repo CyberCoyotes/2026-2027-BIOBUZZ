@@ -211,6 +211,11 @@ public class TurretSubsystem {
     private double targetAngleDegrees = 0.0;
     private double manualPower = 0.0;
 
+    // An extra push added on top of position control, so the turret can follow a robot that is
+    // spinning (see setFeedforwardPower). It lasts ONE loop: update() sets it back to 0.0 after
+    // using it, so an OpMode that wants it must send it again every loop.
+    private double feedforwardPower = 0.0;
+
     // What the sensors reported the last time update() ran.
     private int encoderTicks = 0;
     private double angleDegrees = 0.0;
@@ -323,6 +328,23 @@ public class TurretSubsystem {
     }
 
     /*
+     * Add an extra push to position control so the turret FOLLOWS the robot as it spins.
+     * Use -1.0 to 1.0. Positive pushes the turret LEFT, negative pushes it RIGHT, the same as
+     * setManualPower(). When the robot spins left (counterclockwise), the turret has to turn
+     * RIGHT to keep pointing at the hive, so the OpMode sends a NEGATIVE number.
+     *
+     * WHY: position control only pushes when the turret is already off target, so on its own
+     * it always trails a spinning robot by some degrees. This push starts the turret moving
+     * before it falls behind, and position control only has to clean up what is left.
+     *
+     * It only matters in POSITION mode, and it lasts ONE loop. Call it every loop, before
+     * update(). The max power and the soft limits still apply to the total.
+     */
+    public void setFeedforwardPower(double power) {
+        feedforwardPower = Range.clip(power, -1.0, 1.0);
+    }
+
+    /*
      * Drive the turret at a power. Use -1.0 to 1.0, where 1.0 means MAX_MANUAL_POWER.
      * Positive turns the turret LEFT (toward positive angles). Negative turns it RIGHT.
      * The soft limits still stop it (when SOFT_LIMITS_ON is true).
@@ -377,6 +399,10 @@ public class TurretSubsystem {
         } else if (state == TurretState.POSITION) {
             turretMotor.setPower(applySoftLimits(calculatePositionPower()));
         }
+
+        // The feedforward lasts one loop. Clearing it here means a push that nobody renewed can
+        // never keep the turret moving.
+        feedforwardPower = 0.0;
 
         // 5. Are we on target?
         updateOnTarget();
@@ -518,19 +544,26 @@ public class TurretSubsystem {
     private double calculatePositionPower() {
         double error = targetAngleDegrees - angleDegrees;
 
-        // Close enough: stop pushing and let the BRAKE hold the turret.
+        // Close enough: stop pushing and let the BRAKE hold the turret. The feedforward still
+        // goes through (it is 0.0 unless the OpMode sent one this loop), so a turret that is
+        // following a spinning robot keeps following instead of stopping inside this band.
         if (Math.abs(error) <= ON_TARGET_TOLERANCE_DEGREES) {
-            return 0.0;
+            return Range.clip(feedforwardPower, -MAX_POWER, MAX_POWER);
         }
 
         // P pushes harder the further away we are. D slows the push when we are already
         // turning fast. Friction power gets the turret moving.
+        // (If you turn KD on while using the feedforward, KD will push AGAINST the turret's
+        // following motion, so lower the feedforward gain to match.)
         double power = KP * error - KD * angularVelocityDegreesPerSecond;
         if (error > 0.0) {
             power = power + FRICTION_POWER;
         } else {
             power = power - FRICTION_POWER;
         }
+
+        // The feedforward goes on top of all that.
+        power = power + feedforwardPower;
         return Range.clip(power, -MAX_POWER, MAX_POWER);
     }
 
