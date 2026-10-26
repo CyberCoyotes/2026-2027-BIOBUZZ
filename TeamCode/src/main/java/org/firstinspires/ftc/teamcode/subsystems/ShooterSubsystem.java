@@ -99,8 +99,14 @@ public class ShooterSubsystem {
     private static final double HOOD_WHEEL_RATIO = 2.0;
 
     // A wheel counts as "at speed" when it is within this many RPM of its target.
-    // A smaller number means a more precise shot but a longer wait. Starting guess.
-    private static final double AT_SPEED_TOLERANCE_RPM = 100.0;
+    // A smaller number means a more precise shot but a longer wait. It is 25, the same size as
+    // one step of the shot-table dial, because the shooter gate will only open when READY.
+    // BOTH wheels must be inside it, and the hood wheel runs at about twice the flywheel's RPM.
+    // WATCH FOR READY FLICKERING: one reading outside the band drops READY at once (on purpose),
+    // so if the RPM on the screen wanders by more than about 15 RPM while the wheels are
+    // steady, READY will keep blinking off. If that happens, the cause is the speed reading or
+    // the speed control (PIDF), not the tolerance. Tell the coach before loosening this.
+    private static final double AT_SPEED_TOLERANCE_RPM = 25.0;
 
     // BOTH wheels must stay within the tolerance this long before we say READY.
     // This stops READY from flashing on while the wheels are just passing through the speed.
