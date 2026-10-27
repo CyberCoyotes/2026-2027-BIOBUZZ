@@ -103,6 +103,10 @@ public class ShooterRPMAlpha extends OpMode {
     // finer adjustment, or bigger to move faster.
     private static final double GATE_NUDGE_STEP = 0.01;
 
+    // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
+    // bottom, under the live data). false = it is only shown before START, like it used to be.
+    private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
+
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
     private ShooterSubsystem shooterSubsystem;
@@ -235,6 +239,12 @@ public class ShooterRPMAlpha extends OpMode {
         telemetry.addData("Control", shooterControl);
         shooterSubsystem.addTelemetry(telemetry);
         shooterServoSubsystem.addTelemetry(telemetry);
+
+        // 5. Keep the button map on the screen while running, at the bottom under the live data.
+        //    (Before START the same map is shown by init() and init_loop().)
+        if (SHOW_CONTROLS_WHILE_RUNNING) {
+            addControlsTelemetry();
+        }
     }
 
     /*

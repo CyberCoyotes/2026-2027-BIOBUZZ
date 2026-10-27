@@ -110,6 +110,10 @@ public class ShotTableAlpha extends OpMode {
     // The triggers give a number from 0.0 to 1.0. Past this much counts as "pressed".
     private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
 
+    // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
+    // bottom, under the live data). false = it is only shown before START, like it used to be.
+    private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
+
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
     private VisionSubsystem visionSubsystem;
@@ -373,6 +377,12 @@ public class ShotTableAlpha extends OpMode {
         intakeSubsystem.addTelemetry(telemetry);
         visionSubsystem.addTelemetry(telemetry);
         addSavedRowsTelemetry();
+
+        // 5. Keep the button map on the screen while running, at the bottom under the live data.
+        //    (Before START the same map is shown by init() and init_loop().)
+        if (SHOW_CONTROLS_WHILE_RUNNING) {
+            addControlsTelemetry();
+        }
     }
 
     /*

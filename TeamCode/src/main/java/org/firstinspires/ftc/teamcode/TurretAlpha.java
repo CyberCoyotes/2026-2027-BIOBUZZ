@@ -92,6 +92,10 @@ public class TurretAlpha extends OpMode {
     // quite rest at zero will not turn the turret.
     private static final double STICK_DEADBAND = 0.1;
 
+    // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
+    // bottom, under the live data). false = it is only shown before START, like it used to be.
+    private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
+
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
     private TurretSubsystem turretSubsystem;
@@ -243,6 +247,12 @@ public class TurretAlpha extends OpMode {
         telemetry.addData("Control", turretControl);
         telemetry.addData("Turret power", "%d%%", turretPowerPercent);
         turretSubsystem.addTelemetry(telemetry);
+
+        // 5. Keep the button map on the screen while running, at the bottom under the live data.
+        //    (Before START the same map is shown by init() and init_loop().)
+        if (SHOW_CONTROLS_WHILE_RUNNING) {
+            addControlsTelemetry();
+        }
     }
 
     /*

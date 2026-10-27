@@ -249,6 +249,10 @@ public class BiobuzzTeleOp extends OpMode {
     // Either way it never moves during INIT.
     private static final boolean ALWAYS_TRACK_AT_START = true;
 
+    // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
+    // bottom, under the live data). false = it is only shown before START, like it used to be.
+    private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
+
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -859,6 +863,12 @@ public class BiobuzzTeleOp extends OpMode {
                     visionSubsystem.getTxDegrees());
         }
         telemetry.addData("Turret aimed?", aimText);
+
+        // 5. Keep the button map on the screen while running, at the bottom under the live data.
+        //    (Before START the same map is shown by init() and init_loop().)
+        if (SHOW_CONTROLS_WHILE_RUNNING) {
+            addControlsTelemetry();
+        }
     }
 
     /*

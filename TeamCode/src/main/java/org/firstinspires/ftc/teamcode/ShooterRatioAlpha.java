@@ -107,6 +107,10 @@ public class ShooterRatioAlpha extends OpMode {
     private static final double CAPPED_TOLERANCE_RPM = 1.0;
 
     // ------------------------------------------------------------------
+    // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
+    // bottom, under the live data). false = it is only shown before START, like it used to be.
+    private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
+
     // Declare OpMode members.
     // ------------------------------------------------------------------
     private ElapsedTime runtime = new ElapsedTime();
@@ -397,6 +401,12 @@ public class ShooterRatioAlpha extends OpMode {
 
         telemetry.addLine("--- INTAKE ---");
         telemetry.addData("Intake Control", intakeControl);
+
+        // 5. Keep the button map on the screen while running, at the bottom under the live data.
+        //    (Before START the same map is shown by init() and init_loop().)
+        if (SHOW_CONTROLS_WHILE_RUNNING) {
+            addControlsTelemetry();
+        }
     }
 
     /*
