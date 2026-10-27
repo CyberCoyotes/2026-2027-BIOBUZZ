@@ -1,6 +1,6 @@
 # BIOBUZZ TeleOp Controls: Driver and Operator
 
-Print this and keep it at the driver station. It matches **`TeleOp - Alpha 7`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet.
+Print this and keep it at the driver station. It matches **`TeleOp - Alpha 7`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet. The controls for every other OpMode (the test Alphas) are in `biobuzz-opmode-controls.md`.
 
 **Pairing:** on the Driver Station, press **Start + A** on the driver's controller (gamepad 1) and **Start + B** on the operator's controller (gamepad 2).
 **Logitech controller (F310 / F710):** set the switch on the back to **X** (XInput mode), not D. The buttons are then labeled A, B, X, Y like the code. Bumpers are **LB / RB** and triggers are **LT / RT**. Left Trigger = LT, Right Trigger = RT.
