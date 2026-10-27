@@ -251,6 +251,16 @@ public class BiobuzzTeleOp extends OpMode {
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
+
+    // LOOP TIME: how long one trip through loop() takes, in milliseconds. We time from the start
+    // of one loop() to the start of the next, so it includes everything: the hub reads, the
+    // subsystems, and the telemetry. A shorter loop means the turret, the shooter's READY check,
+    // and the drive all update more often. This is only for measuring (to see whether
+    // anything we add later, like bulk reads, really helps).
+    private ElapsedTime loopTimer = new ElapsedTime();
+    private int loopCount = 0;
+    private double totalLoopMs = 0.0;
+    private double worstLoopMs = 0.0;
     private DriveSubsystem driveSubsystem;
     private IntakeSubsystem intakeSubsystem;
     private ShooterSubsystem shooterSubsystem;
@@ -487,6 +497,7 @@ public class BiobuzzTeleOp extends OpMode {
     @Override
     public void start() {
         runtime.reset();
+        loopTimer.reset();
     }
 
     /*
@@ -494,6 +505,19 @@ public class BiobuzzTeleOp extends OpMode {
      */
     @Override
     public void loop() {
+        // 0. Time the loop. This is how long it has been since the last loop() started. The very
+        //    first loop only measures the wait after START, so we leave it out of the average
+        //    and the worst. (Run the robot a few seconds before you read the average.)
+        double thisLoopMs = loopTimer.milliseconds();
+        loopTimer.reset();
+        loopCount = loopCount + 1;
+        if (loopCount > 1) {
+            totalLoopMs = totalLoopMs + thisLoopMs;
+            if (thisLoopMs > worstLoopMs) {
+                worstLoopMs = thisLoopMs;
+            }
+        }
+
         // 1. Read sensors. (The drive has none. The intake reads its own encoder in update().
         //    The shooter reads its wheel encoders in its own update(), in step 3 below.)
         intakeSubsystem.update();
@@ -735,6 +759,11 @@ public class BiobuzzTeleOp extends OpMode {
 
         // 4. Show what is happening on the Driver Station, one section at a time.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
+        if (loopCount > 1) {
+            double averageLoopMs = totalLoopMs / (loopCount - 1);
+            telemetry.addData("Loop time (ms)", "%.1f now   %.1f average   %.1f worst   (%.0f loops/sec)",
+                    thisLoopMs, averageLoopMs, worstLoopMs, 1000.0 / averageLoopMs);
+        }
         // Always on the screen: aiming at the wrong alliance's hive is not an obvious failure.
         telemetry.addData("Alliance (gamepad2 Back)", visionSubsystem.getAlliance());
 
