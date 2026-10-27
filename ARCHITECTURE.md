@@ -147,7 +147,7 @@ Names already in use:
 |---|---|
 | `intake` | One motor for intake, index, and transfer (goBILDA 5203, probably 1620 RPM 3.71:1 `[CONFIRM]`) |
 | `flywheel` | Shooter flywheel: goBILDA 5203 series **1620 RPM (3.7:1)**, about 4 in, on the front of the ball path. In the Driver Station config set its motor type to match (see `biobuzz-robot-config-quick-reference.md`) |
-| `hood_wheel` | Hood wheel: goBILDA 5203 series (believed `[CONFIRM]`), about 2 in, on the back/top side in the fixed hood. Its RPM relative to the flywheel sets the ball spin. |
+| `hood_wheel` | Hood wheel: goBILDA 5203 series 6000 RPM (1:1; spec sheet `5203-2402-0001` in `TeamCode/docs/`), about 2 in, on the back/top side in the fixed hood. Its RPM relative to the flywheel sets the ball spin. |
 | `left_front` | Drive motor, left front (mecanum) |
 | `left_rear` | Drive motor, left rear (mecanum) |
 | `right_front` | Drive motor, right front (mecanum) |
@@ -192,7 +192,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 
 ### ShooterSubsystem (`subsystems/ShooterSubsystem.java`)
 
-- **Hardware:** `flywheel` is a goBILDA 5203 series **1620 RPM (3.7:1)** motor (changed from 6000 RPM on the `change-shooter-motors` branch). `hood_wheel` is still a goBILDA 5203 series 6000 RPM (1:1, believed `[CONFIRM]` that this is what is installed). Both have encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
+- **Hardware:** `flywheel` is a goBILDA 5203 series **1620 RPM (3.7:1)** motor (changed from 6000 RPM on the `change-shooter-motors` branch). `hood_wheel` is still a goBILDA 5203 series 6000 RPM (1:1) motor, confirmed by the coach. Both have encoders plugged in, belt driven and believed to be 1:1 `[CONFIRM]`.
 - **Different motors, different numbers (not tested on the robot yet):** `ShooterSubsystem` now has a ticks per rev, a motor top speed, and a max target RPM **for each wheel**. Flywheel: **103.8** ticks per output rev (spec sheet `5203-2402-0003`: 28 at the encoder shaft, 103.8 at the output shaft), 1620 RPM top speed, **1458 RPM max target** (90%). Hood wheel: 28 ticks per rev (spec sheet `5203-2402-0001`), 6000 RPM, 5400 RPM max target. `getMaxTargetRpm()` was replaced by `getMaxFlywheelTargetRpm()` and `getMaxHoodWheelTargetRpm()`. The encoder is on the motor shaft (before the gearbox), so the speed at full power is about 2,800 ticks/sec on **both** motors. The numbers are not in doubt (they come from the spec sheets), but a full-power run in `ShooterRPMAlpha` is a quick sanity check for wiring and config mistakes: the hood wheel should read about 6,000 RPM and the flywheel about 1,500 to 1,620 RPM.
 - **Hood wheel ratio:** `HOOD_WHEEL_RATIO` is **2.0** (hood wheel RPM / flywheel RPM), the best value found in robot testing so far. `setTargetRpm()` uses it, and `BiobuzzTeleOp` starts its ratio dial at the same number. The **flywheel** now hits its limit first: it tops out at **1458 RPM** (`FLYWHEEL_MAX_TARGET_RPM`), where the hood wheel only needs 2916 RPM, far under its own 5400 RPM limit.
 - **Control:** speed control in RPM (`setTargetRpm()` / `setTargetRpms()`). `setPower()` is open loop, for tests and clearing jams. `stop()` coasts (never commands a speed of 0).
