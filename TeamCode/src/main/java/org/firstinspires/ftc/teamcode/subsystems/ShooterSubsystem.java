@@ -128,6 +128,31 @@ public class ShooterSubsystem {
     // the speed control (PIDF), not the tolerance. Tell the coach before loosening this.
     private static final double AT_SPEED_TOLERANCE_RPM = 25.0;
 
+    // ------------------------------------------------------------------
+    // Smoothing the RPM reading
+    // ------------------------------------------------------------------
+    // The Control Hub works out each wheel's speed from the few encoder counts that arrive in a
+    // very short time, so a single reading jumps around. A steady wheel at 1300 RPM can read
+    // anywhere from about 1290 to 1330 from one loop to the next. The wheel itself is too heavy
+    // to change speed that fast, so most of that jump is noise in the READING, not the wheel.
+    // We smooth it: each loop, the new reading is blended into a running average. (This is
+    // called an exponential low-pass filter.)
+    //
+    // RPM_FILTER_TIME_CONSTANT_SECONDS is how long the average takes to catch up with a real
+    // change in speed. About 0.1 means it catches up most of the way in about a third of a
+    // second.
+    //   Bigger  -> a steadier number, but it is slower to show a real change.
+    //   Smaller -> a jumpier number that reacts faster. 0.0 turns the smoothing off.
+    // WATCH OUT: when a ball goes through, the flywheel really does slow down for a moment, and
+    // READY drops when that happens. A bigger number here can smooth that dip away or delay it.
+    // If READY stays on while a ball is going through, make this number smaller.
+    // Starting guess. Tune on the robot.
+    private static final double RPM_FILTER_TIME_CONSTANT_SECONDS = 0.10;
+
+    // If more than this many seconds pass between update() calls, the old average is out of date,
+    // so we start the average over from the new reading.
+    private static final double RPM_FILTER_MAX_GAP_SECONDS = 0.5;
+
     // BOTH wheels must stay within the tolerance this long before we say READY.
     // This stops READY from flashing on while the wheels are just passing through the speed.
     // Starting guess.
@@ -194,8 +219,16 @@ public class ShooterSubsystem {
     private double targetHoodWheelRpm = 0.0;
 
     // What the encoders reported the last time update() ran, in ticks per second.
+    // This is the RAW reading, with no smoothing.
     private double flywheelTicksPerSecond = 0.0;
     private double hoodWheelTicksPerSecond = 0.0;
+
+    // The SMOOTHED speed of each wheel, in RPM. update() works these out from the raw readings.
+    // The READY check and the RPM on the screen use these, not the raw readings.
+    private double flywheelRpm = 0.0;
+    private double hoodWheelRpm = 0.0;
+    private ElapsedTime rpmFilterTimer = new ElapsedTime();
+    private boolean rpmFilterStarted = false;
 
     // Times how long both wheels have been within the tolerance.
     private ElapsedTime atSpeedTimer = new ElapsedTime();
@@ -330,6 +363,7 @@ public class ShooterSubsystem {
         // Read the speeds once, so everything in this loop uses the same numbers.
         flywheelTicksPerSecond = flywheelMotor.getVelocity();
         hoodWheelTicksPerSecond = hoodWheelMotor.getVelocity();
+        smoothRpms();
 
         // Only speed control has a target to check against.
         if (state != ShooterState.SPINNING_UP && state != ShooterState.READY) {
@@ -375,13 +409,14 @@ public class ShooterSubsystem {
         return state;
     }
 
-    // Actual speed of each wheel in RPM, as of the last update().
+    // Actual speed of each wheel in RPM, as of the last update(). These are SMOOTHED (see
+    // RPM_FILTER_TIME_CONSTANT_SECONDS). The raw reading is getFlywheelTicksPerSecond().
     public double getFlywheelRpm() {
-        return ticksPerSecondToRpm(flywheelTicksPerSecond, FLYWHEEL_TICKS_PER_REV);
+        return flywheelRpm;
     }
 
     public double getHoodWheelRpm() {
-        return ticksPerSecondToRpm(hoodWheelTicksPerSecond, HOOD_WHEEL_TICKS_PER_REV);
+        return hoodWheelRpm;
     }
 
     // The raw encoder speed. Use this to check the ticks per rev (see the note near the top).
@@ -420,10 +455,10 @@ public class ShooterSubsystem {
         telemetry.addLine("--- SHOOTER ---");
         telemetry.addData("Shooter State", state);
         telemetry.addData("At Speed?", isAtSpeed());
-        telemetry.addData("Flywheel RPM", "%.0f  (target %.0f)", getFlywheelRpm(), targetFlywheelRpm);
-        telemetry.addData("Hood Wheel RPM", "%.0f  (target %.0f)", getHoodWheelRpm(), targetHoodWheelRpm);
-        telemetry.addData("Flywheel ticks/sec", "%.0f", flywheelTicksPerSecond);
-        telemetry.addData("Hood Wheel ticks/sec", "%.0f", hoodWheelTicksPerSecond);
+        telemetry.addData("Flywheel RPM (smoothed)", "%.0f  (target %.0f)", getFlywheelRpm(), targetFlywheelRpm);
+        telemetry.addData("Hood Wheel RPM (smoothed)", "%.0f  (target %.0f)", getHoodWheelRpm(), targetHoodWheelRpm);
+        telemetry.addData("Flywheel ticks/sec (raw)", "%.0f", flywheelTicksPerSecond);
+        telemetry.addData("Hood Wheel ticks/sec (raw)", "%.0f", hoodWheelTicksPerSecond);
     }
 
     // ==================================================================
@@ -450,6 +485,35 @@ public class ShooterSubsystem {
         flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         hoodWheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         speedControlOn = false;
+    }
+
+    /*
+     * Blends this loop's raw readings into the smoothed RPMs. Call it once per update(), right
+     * after reading the encoders.
+     */
+    private void smoothRpms() {
+        double rawFlywheelRpm = ticksPerSecondToRpm(flywheelTicksPerSecond, FLYWHEEL_TICKS_PER_REV);
+        double rawHoodWheelRpm = ticksPerSecondToRpm(hoodWheelTicksPerSecond, HOOD_WHEEL_TICKS_PER_REV);
+
+        double secondsSinceLastUpdate = rpmFilterTimer.seconds();
+        rpmFilterTimer.reset();
+
+        // blend is how much of the NEW reading goes into the average (0.0 to 1.0).
+        // 1.0 means "use the new reading as it is".
+        double blend;
+        if (!rpmFilterStarted || secondsSinceLastUpdate > RPM_FILTER_MAX_GAP_SECONDS) {
+            // The first reading, or a long gap: there is no good average yet, so start fresh.
+            blend = 1.0;
+            rpmFilterStarted = true;
+        } else {
+            // A longer time since the last loop means the new reading counts for more.
+            // With a time constant of 0 this is 1.0, so there is no smoothing.
+            blend = secondsSinceLastUpdate
+                    / (RPM_FILTER_TIME_CONSTANT_SECONDS + secondsSinceLastUpdate);
+        }
+
+        flywheelRpm = flywheelRpm + blend * (rawFlywheelRpm - flywheelRpm);
+        hoodWheelRpm = hoodWheelRpm + blend * (rawHoodWheelRpm - hoodWheelRpm);
     }
 
     // getVelocity() and setVelocity() work in encoder ticks per second.
