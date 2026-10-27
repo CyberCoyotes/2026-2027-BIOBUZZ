@@ -99,9 +99,10 @@ public class TurretSubsystem {
     // ------------------------------------------------------------------
     // FOR NOW we use the turret motor's BUILT-IN encoder (the goBILDA 5203, 435 RPM, 13.7:1
     // gearbox). goBILDA lists it at 384.5 ticks per turn of the motor's output shaft.
-    // [CONFIRM] Our notes disagree about 28 vs 112 counts per motor revolution (see CLAUDE.md).
-    // 384.5 is goBILDA's published number for this motor and is what the 28 gives. The hand
-    // test below settles it: if the angle is off by exactly 4x, the number is wrong.
+    // goBILDA's spec sheet for this motor (5203-2402-0014 in TeamCode/docs/) says 28 pulses per
+    // rev at the encoder shaft and 384.5 at the gearbox output shaft (28 x 13.7). The hand test
+    // below checks the whole chain (this number and the gear teeth): if the angle is off, look
+    // at the gear teeth first.
     //
     // TO GO BACK to the REV Through Bore Encoder: use 8192.0 here (2048 cycles x 4 edges), and
     // ENCODER_PINION_TEETH stays 16 because the encoder pinion is also a 16T gear.

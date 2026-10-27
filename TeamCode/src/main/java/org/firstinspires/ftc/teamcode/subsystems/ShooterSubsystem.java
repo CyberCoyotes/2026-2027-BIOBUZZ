@@ -58,19 +58,20 @@ public class ShooterSubsystem {
     // ------------------------------------------------------------------
     // Encoder ticks per ONE turn of the motor's OUTPUT shaft. The two motors are different now.
     //
-    // HOOD WHEEL (6000 RPM, 1:1): 28. [CONFIRM] That is goBILDA's spec. Last season's notes
-    // said 112. To check on the robot: run ShooterRPMAlpha, hold the RIGHT TRIGGER (full power,
-    // wheel clear!), and read the hood wheel "ticks/sec" on the Driver Station.
-    //   about 2,800 ticks/sec -> 28 is right.   about 11,200 ticks/sec -> change it to 112.
+    // Both numbers come from the goBILDA spec sheets in TeamCode/docs/.
     //
-    // FLYWHEEL (1620 RPM, 3.7:1 gearbox): 103.8. [CONFIRM] That is goBILDA's spec for the 1620 RPM
-    // 5203 motor (the 28 ticks of the motor shaft x the 3.7:1 gearbox). The encoder sits on the
-    // motor shaft, BEFORE the gearbox, so the flywheel's ticks/sec at full power is also about
-    // 2,800. That means the same full-power test checks this number a different way: with
-    // the wheel clear, hold the RIGHT TRIGGER in ShooterRPMAlpha and read "Flywheel RPM".
-    //   about 1,500 to 1,620 RPM -> 103.8 is right (a motor is a little under its top speed).
-    //   about 1,000 or about 2,200 RPM -> the number is wrong. Ask the coach before changing it.
-    // You can also compare the RPM on the screen with a phone tachometer or slow-motion video.
+    // HOOD WHEEL (6000 RPM, 1:1): 28. Spec sheet 5203-2402-0001: 28 pulses per rev at both the
+    // encoder shaft and the output shaft. (Last season's notes said 112. That was wrong.)
+    //
+    // FLYWHEEL (1620 RPM, 3.7:1 gearbox): 103.8. Spec sheet 5203-2402-0003: 28 pulses per rev at
+    // the encoder shaft and 103.8 at the gearbox output shaft (28 x the 3.7:1 gearbox).
+    //
+    // SANITY CHECK on the robot (the numbers are not in doubt, this just catches a wiring or
+    // config mistake): the encoder sits on the motor shaft, BEFORE the gearbox, so both motors
+    // read about 2,800 ticks/sec at full power. With the wheels clear, hold the RIGHT TRIGGER in
+    // ShooterRPMAlpha. The hood wheel should read about 6,000 RPM and the flywheel about 1,620
+    // RPM (a motor is a little under its top speed). If one reads far off, check the cables and
+    // the motor type in the Driver Station config first, then ask the coach.
     private static final double FLYWHEEL_TICKS_PER_REV = 103.8;
     private static final double HOOD_WHEEL_TICKS_PER_REV = 28.0;
 

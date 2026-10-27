@@ -33,7 +33,7 @@ Build a shooter on a rotating turret for BIOBUZZ:
 
 - **Limelight 3A** needs an Ethernet device entry named `limelight` in the robot config. It lives at `172.29.0.1` on the Control Hub's internal subnet (not 192.168.1.11). Firmware 2025.x. RPIBoot USB drivers are needed on Windows for flashing. The REV Control Hub supports only one Limelight 3A.
 - Limelight AprilTag settings that worked: exposure 1000, gain 8, up to 90 FPS. Retune under real lighting: the tags sit in the cell's shadow with arena lights behind them.
-- **goBILDA 5203 encoder:** 28 PPR x 4 (quadrature) = 112 CPR, max about 11,200 ticks/sec at 6000 RPM. A 4x error here previously made the flywheel underperform. Verify ticks-per-rev for the exact motor and gearing used here.
+- **goBILDA 5203 encoder:** **28 counts per motor-shaft revolution** (the 4x quadrature is already included in that 28). It is 28 at the encoder shaft, and at the gearbox output shaft it is 28 x the gear ratio, per the goBILDA spec sheets in `TeamCode/docs/` (`5203-2402-0001`, `-0003`, `-0014`): **28** for the 6000 RPM 1:1 motor, **103.8** for the 1620 RPM 3.7:1 motor, **384.5** for the 435 RPM 13.7:1 motor. Max about 2,800 ticks/sec at full power for every one of them. (An older version of this note said 112 and 11,200 ticks/sec. That was wrong, and a 4x error like it previously made the flywheel underperform.)
 - Troubleshoot cables and port assignments before code.
 - Android Studio on Windows must be run as administrator to deploy (permanent fix: set `GRADLE_USER_HOME`). `compileSdk` override to 36 is needed in TeamCode's `build.gradle`.
 - Hardware: REV Control Hub and Expansion Hub, goBILDA Pinpoint odometry. Controllers: PS5 DualSense (primary), Logitech F310 (backup).

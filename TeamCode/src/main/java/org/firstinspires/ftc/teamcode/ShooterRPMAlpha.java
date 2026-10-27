@@ -29,13 +29,14 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * CHECK THE ENCODER (do this first!):
  *   Keep the wheels clear of hands and balls, then HOLD the Right Trigger.
  *   That runs both motors at FULL power with no speed control.
- *   Read "ticks/sec" on the screen:
- *     Hood wheel (6000 RPM motor):
- *       about 2,800  -> 28 ticks per rev is right (what the code uses now)
- *       about 11,200 -> it is really 112. Change HOOD_WHEEL_TICKS_PER_REV in ShooterSubsystem.
- *     Flywheel (1620 RPM motor, 3.7:1 gearbox): its ticks/sec is about 2,800 too, so read its
- *     "Flywheel RPM" instead. About 1,500 to 1,620 means 103.8 ticks per rev is right. Far from
- *     that, FLYWHEEL_TICKS_PER_REV in ShooterSubsystem is wrong (ask the coach before changing it).
+ *   The tick counts in ShooterSubsystem come from the goBILDA spec sheets (28 for the hood wheel
+ *   motor, 103.8 for the flywheel motor), so this is a sanity check for wiring and config
+ *   mistakes, not a way to find the numbers. Both encoders sit before the gearbox, so both
+ *   motors read about 2,800 "ticks/sec" at full power. Then read "RPM" on the screen:
+ *     Hood wheel (6000 RPM motor):  about 6,000 RPM
+ *     Flywheel (1620 RPM motor):    about 1,500 to 1,620 RPM
+ *   A motor reading far off means check the cables and the motor type in the Driver Station
+ *   config first, then ask the coach.
  *   Also check that both RPM readings are POSITIVE. If one is negative, the
  *   encoder or the motor direction is backwards.
  *
