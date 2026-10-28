@@ -27,6 +27,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, star
 | **RB** | **Intake** (pull balls in) |
 | **LB** | **Reverse the intake** (push balls out). Beats RB |
 | **RT** (hold) | **Shoot** at the dialed RPMs. It also auto-aligns the turret, even if ALWAYS-TRACK is off. **Let go and both wheels go to 0 power** |
+| **X / B / Y** | Shooter **gate by hand** (for testing): **X** CLOSED, **B** OPENED, **Y** LIFTED. One move per press. Works at the same time as the operator's gate triggers |
 
 ### Gamepad 2: OPERATOR
 
@@ -41,7 +42,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, star
 | **LB** (hold) | **Reverse BOTH shooter wheels** (clear a jam) |
 | **RB** (hold) | Reverse the **flywheel only** |
 | **RT** | Gate to **OPENED** (lets the ball through) |
-| **LT** | Gate to **CLOSED** (holds the ball back). The gate's third position, **LIFTED**, has no button in the TeleOp yet |
+| **LT** | Gate to **CLOSED** (holds the ball back). The operator has no LIFTED button. The driver's **Y** lifts |
 | **Start** | Flywheel speed source **DIAL / TABLE** (starts DIAL) |
 | **Back** | **Alliance** BLUE / RED (starts **BLUE**, check it on the screen) |
 
@@ -207,7 +208,7 @@ Letting go of RB or the stick holds the turret.
 | Job | TeleOp Alpha 7 | The test OpModes |
 |---|---|---|
 | Shoot | Driver **RT** (hold) | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
-| Gate | Operator **RT** opened / **LT** closed (no LIFTED yet) | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
+| Gate | Driver **X** closed / **B** opened / **Y** lifted, and operator **RT** opened / **LT** closed | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
 | Flywheel speed | Operator **D-pad Up / Down** | **B / A** (Ratio Alpha), **D-pad Up / Down** (Shot Table) |
 | Alliance | Operator **Back** | **Start** (Vision, Shot Table) |
 | Slow mode | Driver **LT** | Driver **RT** (Drive Alpha) |

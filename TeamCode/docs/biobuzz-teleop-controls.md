@@ -18,6 +18,7 @@ The driver drives, runs the intake, and holds the Right Trigger to shoot. **The 
 | **Left Trigger** (hold) | **SLOW MODE** (40% speed) for careful lining up |
 | **Right Bumper** | **INTAKE**: pull balls in (also carries them up the transfer chute) |
 | **Left Bumper** | **REVERSE** the intake: push balls out. Beats the Right Bumper, so clearing a jam always works |
+| **X / B / Y** | **Shooter gate by hand**, for testing: **X** CLOSED, **B** OPENED, **Y** LIFTED. One move per press, and they work at the same time as the operator's gate triggers. (Careful: **B** is the gate OPENED button, so pairing gamepad 2 with Start + B while this OpMode runs also opens the gate if you press it on gamepad 1.) |
 | **Right Trigger** (hold) | **SHOOT** (it also auto-aligns the turret, even if ALWAYS-TRACK is off). The wheels use the flywheel speed from the **DIAL** (starts at flywheel 1300 RPM, hood wheel 2600 RPM) or the **TABLE**, whichever the operator picked. **Let go and both wheels go to 0 power** (they coast down), and the turret holds where it ended |
 
 ### Driver tips
@@ -70,7 +71,7 @@ A preset goes to its angle and holds there.
 | **Right Trigger** | Gate to **OPENED** (lets the ball through) |
 | **Left Trigger** | Gate to **CLOSED** (holds the ball back) |
 
-One move per press. If both are pressed at once, CLOSED wins. The gate's third position, **LIFTED**, has no button in the TeleOp yet.
+One move per press. The driver's face buttons also move the gate: **X** CLOSED, **B** OPENED, **Y** LIFTED (the only LIFTED button). If more than one is pressed at the same time, CLOSED wins, then OPENED, then LIFTED. Later the gate will become part of a smart shooting sequence.
 
 ### Shooter speeds (the dials)
 

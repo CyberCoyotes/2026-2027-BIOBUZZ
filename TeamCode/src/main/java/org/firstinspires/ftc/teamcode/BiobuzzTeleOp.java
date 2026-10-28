@@ -37,9 +37,10 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Back             -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
  *   Right Trigger    -> shooter GATE to OPENED (lets the ball through)
  *   Left Trigger     -> shooter GATE to CLOSED (holds the ball back)
- *      (One move per press. The gate positions are CLOSED_POSITION and OPENED_POSITION
- *       in ShooterServoSubsystem. If both triggers are pressed at once, CLOSED wins.
- *       The gate's third position, LIFTED, has no button in the TeleOp yet.)
+ *      (One move per press. The gate positions are CLOSED_POSITION, OPENED_POSITION and
+ *       LIFTED_POSITION in ShooterServoSubsystem. If CLOSED and another move are pressed at
+ *       the same time, CLOSED wins. The operator's triggers have no LIFTED button, only the
+ *       driver's Y does.)
  *   With ALWAYS-TRACK ON, letting go of the stick goes back to tracking the hive. With it OFF,
  *   the turret holds where it is. A preset (Y, X, B) goes to its angle and holds, and so does
  *   A (STOP), because pressing any of them turns ALWAYS-TRACK OFF. Press the Right Stick Button
@@ -63,6 +64,10 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      Let go and both wheels go to 0 power and coast down. The turret holds where it ended.
  *      Reverse (gamepad2 bumpers) still beats the wheels, so clearing a jam always works.
  *      The operator's turret stick and A (STOP) still beat the auto-align.
+ *   X / B / Y    -> shooter GATE by hand, for testing: X = CLOSED, B = OPENED, Y = LIFTED.
+ *      (One move per press. These are for manual control and testing. They work at the same
+ *       time as the operator's gate triggers below, and the latest press wins. Later the gate
+ *       will become part of a smart shooting sequence.)
  *
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (SPEED CONTROL in RPM, read from the wheel encoders)
  *   D-pad Up / Down    -> flywheel target RPM UP / DOWN by FLYWHEEL_RPM_STEP
@@ -293,6 +298,9 @@ public class BiobuzzTeleOp extends OpMode {
     // and IS pressed now.
     private boolean wasGateShootTriggerPressed = false;
     private boolean wasGateLoadTriggerPressed = false;
+    private boolean wasDriverGateClosedPressed = false;
+    private boolean wasDriverGateOpenedPressed = false;
+    private boolean wasDriverGateLiftedPressed = false;
     private boolean wasDpadLeftPressed = false;
     private boolean wasDpadRightPressed = false;
     private boolean wasDpadUpPressed = false;
@@ -329,6 +337,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
         telemetry.addLine("Right Trigger (hold) = SHOOT (+ AUTO-ALIGN, even if ALWAYS-TRACK is off)");
+        telemetry.addLine("X = gate CLOSED   B = gate OPENED   Y = gate LIFTED");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
         telemetry.addLine("Start = flywheel speed DIAL / TABLE   Back = alliance BLUE / RED");
         telemetry.addLine("Right Stick Button = ALWAYS-TRACK on / off (turret follows the hive)");
@@ -542,6 +551,11 @@ public class BiobuzzTeleOp extends OpMode {
         boolean slowMode = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
         boolean triggerShotPressed = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
 
+        // The driver's face buttons move the shooter gate by hand, for manual control and testing.
+        boolean driverGateClosedPressed = gamepad1.x;
+        boolean driverGateOpenedPressed = gamepad1.b;
+        boolean driverGateLiftedPressed = gamepad1.y;
+
         // ---- Gamepad 2 (operator) ----
         boolean yPressed = gamepad2.y;
         boolean xPressed = gamepad2.x;
@@ -676,13 +690,23 @@ public class BiobuzzTeleOp extends OpMode {
         }
         shooterSubsystem.update();
 
-        // Shooter gate (operator). A trigger counts as ONE press only on the loop where it goes
-        // from "not pressed" to "pressed", so holding it does not keep re-sending the move.
-        // Left Trigger is checked first, so if both are pressed at once the gate goes to CLOSED.
-        if (isNewPress(gateLoadTriggerPressed, wasGateLoadTriggerPressed)) {
+        // Shooter gate. A button counts as ONE press only on the loop where it goes from
+        // "not pressed" to "pressed", so holding it does not keep re-sending the move.
+        // The gate has two sets of buttons for now, and both work at the same time:
+        //   operator (gamepad2): Left Trigger = CLOSED, Right Trigger = OPENED
+        //   driver (gamepad1):   X = CLOSED, B = OPENED, Y = LIFTED
+        // If more than one is pressed on the same loop, CLOSED wins, then OPENED, then LIFTED.
+        boolean closedNewPress = isNewPress(gateLoadTriggerPressed, wasGateLoadTriggerPressed)
+                || isNewPress(driverGateClosedPressed, wasDriverGateClosedPressed);
+        boolean openedNewPress = isNewPress(gateShootTriggerPressed, wasGateShootTriggerPressed)
+                || isNewPress(driverGateOpenedPressed, wasDriverGateOpenedPressed);
+        boolean liftedNewPress = isNewPress(driverGateLiftedPressed, wasDriverGateLiftedPressed);
+        if (closedNewPress) {
             shooterServoSubsystem.goToClosed();
-        } else if (isNewPress(gateShootTriggerPressed, wasGateShootTriggerPressed)) {
+        } else if (openedNewPress) {
             shooterServoSubsystem.goToOpened();
+        } else if (liftedNewPress) {
+            shooterServoSubsystem.goToLifted();
         }
 
         // Turret (operator, gamepad2). The same controls as TurretAlpha. The first one that is
@@ -759,6 +783,9 @@ public class BiobuzzTeleOp extends OpMode {
         wasTrackToggleButtonPressed = trackToggleButtonPressed;
         wasGateShootTriggerPressed = gateShootTriggerPressed;
         wasGateLoadTriggerPressed = gateLoadTriggerPressed;
+        wasDriverGateClosedPressed = driverGateClosedPressed;
+        wasDriverGateOpenedPressed = driverGateOpenedPressed;
+        wasDriverGateLiftedPressed = driverGateLiftedPressed;
         wasDpadLeftPressed = dpadLeftPressed;
         wasDpadRightPressed = dpadRightPressed;
 
