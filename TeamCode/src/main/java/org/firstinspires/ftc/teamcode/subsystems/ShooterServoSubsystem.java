@@ -53,9 +53,9 @@ public class ShooterServoSubsystem {
     // the D-pad moves the current position by a small step, so you can creep the gate to the
     // right spot (the OpMode shows the number). Then type the numbers you found in here.
     // (They used to be LOADING 0.30 and SHOOTING 0.0, before the gate had a third position.)
-    private static final double CLOSED_POSITION = 0.00;
+    private static final double CLOSED_POSITION = 0.80;
     private static final double OPENED_POSITION = 0.50;
-    private static final double LIFTED_POSITION = 1.00;
+    private static final double LIFTED_POSITION = 0.00;
 
     // The servo does not tell us when it arrives. This is how long we assume a move takes.
     // (CLOSED to LIFTED is the whole travel, so it may need more time than a shorter move.)
