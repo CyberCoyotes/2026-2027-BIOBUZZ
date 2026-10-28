@@ -7,7 +7,7 @@ Print this and keep it at the driver station. It lists **what every button does 
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
 - **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward.
 
-**Names on the Driver Station:** `TeleOp - Alpha 7`, `Shooter RPM - Alpha`, `Shooter Power - Alpha`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Turret Testing`, `Vision - Alpha`. **Hidden** (`@Disabled`, remove that line and redeploy to bring them back): `Drive Alpha`, `Intake Testing - Alpha`.
+**Names on the Driver Station:** `TeleOp - Alpha 7`, `Shooter RPM - Alpha 2`, `Shooter Power - Alpha`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Turret Testing`, `Vision - Alpha`. **Hidden** (`@Disabled`, remove that line and redeploy to bring them back): `Drive Alpha`, `Intake Testing - Alpha`.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
@@ -40,8 +40,8 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, star
 | **D-pad Right / Left** | Hood / flywheel **ratio + / - 0.05** (range 1.00 to 3.00, starts 2.00) |
 | **LB** (hold) | **Reverse BOTH shooter wheels** (clear a jam) |
 | **RB** (hold) | Reverse the **flywheel only** |
-| **RT** | Gate to **SHOOTING** (lets the ball through) |
-| **LT** | Gate to **LOADING** (holds the ball back) |
+| **RT** | Gate to **OPENED** (lets the ball through) |
+| **LT** | Gate to **CLOSED** (holds the ball back). The gate's third position, **LIFTED**, has no button in the TeleOp yet |
 | **Start** | Flywheel speed source **DIAL / TABLE** (starts DIAL) |
 | **Back** | **Alliance** BLUE / RED (starts **BLUE**, check it on the screen) |
 
@@ -49,9 +49,11 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, star
 
 ---
 
-## 2. Shooter RPM - Alpha (gamepad 1 only)
+## 2. Shooter RPM - Alpha 2 (two controllers)
 
-Speed-control version of the shooter test. **Hold** a button, the wheels run, let go and they coast.
+Speed-control version of the shooter test. **Hold** a button, the wheels run, let go and they coast. New in Alpha 2: the gate has **three positions**, and the intake runs from gamepad 2.
+
+**Gamepad 1: shooter and gate**
 
 | Control | What it does |
 |---|---|
@@ -60,10 +62,19 @@ Speed-control version of the shooter test. **Hold** a button, the wheels run, le
 | **RT** (hold) | **Encoder check:** both motors at FULL power, no speed control. Wheels clear. Expect about **6,000 RPM** hood wheel and **1,500 to 1,620 RPM** flywheel |
 | **RB** (hold) | Reverse the **flywheel only** |
 | **LB** (hold) | Reverse the **hood wheel only** |
-| **LT** | **Toggle** the gate LOADING / SHOOTING |
-| **D-pad Up / Down** | **Nudge the gate** position + / - 0.01 (Up raises the number) |
+| **D-pad Left** | Gate **CLOSED** (holds the balls back, so balls can be loaded into the shooter) |
+| **D-pad Right** | Gate **OPENED** (lets a ball pass into a ready flywheel and shooter) |
+| **LT** | Gate **LIFTED** (lifts to push the last ball into the shooter) |
+| **D-pad Up / Down** | **Nudge the current gate position** + / - 0.01 (Up raises the number) |
 
-Priority, highest first: bumpers, RT (encoder check), Y / X.
+**Gamepad 2: intake**
+
+| Control | What it does |
+|---|---|
+| **RB** (hold) | **Intake** |
+| **LB** (hold) | **Reverse** the intake. Beats RB |
+
+Priority, highest first: bumpers, RT (encoder check), Y / X. The gate buttons are on the left side so your right thumb can keep holding Y or X. The gate starts CLOSED at INIT.
 
 ---
 
@@ -79,7 +90,7 @@ Plain **power**, no speed control. Note: with the 1620 RPM flywheel motor, the s
 | **X** (hold) | Flywheel **55%** and hood wheel **55%** power. If both held, the higher power wins |
 | **RB** (hold) | Reverse the **flywheel only** |
 | **LB** (hold) | Reverse the **hood wheel only** |
-| **LT** | **Toggle** the gate LOADING / SHOOTING |
+| **LT** | **Toggle** the gate CLOSED / OPENED |
 | **D-pad Up / Down** | **Nudge the gate** position (small step) |
 
 **Gamepad 2: intake**
@@ -106,7 +117,7 @@ Finds the best **hood / flywheel ratio**. Shoot only when the screen says **At S
 | **X** | Shooter **OFF** (wheels coast down, wait for them to stop) |
 | **RB** (hold) | Reverse the **flywheel only** |
 | **LB** (hold) | Reverse the **hood wheel only** |
-| **LT** | **Toggle** the gate LOADING / SHOOTING |
+| **LT** | **Toggle** the gate CLOSED / OPENED |
 | **D-pad Up / Down** | **Nudge the gate** position |
 | **Back** | Reset the **lowest RPM** readings |
 
@@ -196,7 +207,7 @@ Letting go of RB or the stick holds the turret.
 | Job | TeleOp Alpha 7 | The test OpModes |
 |---|---|---|
 | Shoot | Driver **RT** (hold) | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
-| Gate | Operator **RT** shoot / **LT** load | **LT** toggles (Shooter alphas), none (Shot Table) |
+| Gate | Operator **RT** opened / **LT** closed (no LIFTED yet) | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
 | Flywheel speed | Operator **D-pad Up / Down** | **B / A** (Ratio Alpha), **D-pad Up / Down** (Shot Table) |
 | Alliance | Operator **Back** | **Start** (Vision, Shot Table) |
 | Slow mode | Driver **LT** | Driver **RT** (Drive Alpha) |

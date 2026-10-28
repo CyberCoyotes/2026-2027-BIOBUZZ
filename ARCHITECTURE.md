@@ -154,7 +154,7 @@ Names already in use:
 | `right_rear` | Drive motor, right rear (mecanum) |
 | `turret_motor` | Turret rotation motor (goBILDA 5203 series, 435 RPM, 13.7:1; spec sheet `5203-2402-0014` in `TeamCode/docs/`). The REV Through Bore Encoder (incremental/quadrature, on the turret ring gear) is plugged into this same port's encoder connector, so there is no separate encoder entry. |
 | `turret_home_switch` | REV magnetic limit switch (active-low) that re-zeros the turret angle (digital port). Name approved. |
-| `shooter_servo` | Shooter gate: goBILDA dual mode 300° torque servo, set to positional mode. Moves about 90° between LOADING and SHOOTING. |
+| `shooter_servo` | Shooter gate: goBILDA dual mode 300° torque servo, set to positional mode. Has three positions: CLOSED, OPENED and LIFTED (about 90° between CLOSED and OPENED, and the whole travel to LIFTED). |
 | `limelight` | Limelight 3A (Ethernet device) |
 
 Add new names here when you add hardware. Names in code must match the configuration exactly.
@@ -206,12 +206,12 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 
 ### ShooterServoSubsystem (`subsystems/ShooterServoSubsystem.java`): code written, not yet tested on the robot
 
-- **Hardware:** `shooter_servo`, a goBILDA dual mode 300° torque servo. It acts as a **gate** and moves about 90° between two positions. Set it to **positional** mode with the goBILDA Servo Programmer, and configure it as a plain "Servo" on the Driver Station.
+- **Hardware:** `shooter_servo`, a goBILDA dual mode 300° torque servo. It acts as a **gate** with **three positions**: CLOSED (holds the balls back so balls can be loaded into the shooter), OPENED (lets a ball pass into a ready flywheel and shooter), and LIFTED (lifts to push the last ball into the shooter). Set it to **positional** mode with the goBILDA Servo Programmer, and configure it as a plain "Servo" on the Driver Station.
 - **Separate from `ShooterSubsystem`** so the flywheel tests still run on a robot where the servo is not configured yet.
-- **States:** `LOADING` and `SHOOTING`. A servo reports no position, so this is only what we commanded. `isAtPosition()` is a **time guess** (`SERVO_TRAVEL_SECONDS` since the last command), and is the gate's half of the future firing gate.
-- **Methods:** `goToLoading()`, `goToShooting()`, `toggle()`, `nudgePosition()` (for finding positions), `getState()`, `isAtPosition()`, `addTelemetry()`. No `update()`, because there is no ongoing work. It starts in `LOADING` when constructed (R103.B allows pre-positioning servos at INIT).
-- **Test OpModes:** both `ShooterPowerAlpha` and `ShooterRPMAlpha`. **Left Trigger** toggles the gate (one flip per press). **D-pad Up/Down** nudges the current position by 0.01.
-- **`[CONFIRM]` positions are TBD:** `LOADING_POSITION` (0.30) and `SHOOTING_POSITION` (0.0, the end of the servo's travel) are placeholders. Find the real values with the D-pad nudge, then type them into the constants. Also tune `SERVO_TRAVEL_SECONDS` (0.50 is a guess).
+- **States:** `CLOSED`, `OPENED` and `LIFTED` (renamed from `LOADING` and `SHOOTING` when the third position was added). A servo reports no position, so this is only what we commanded. `isAtPosition()` is a **time guess** (`SERVO_TRAVEL_SECONDS` since the last command), and is the gate's half of the future firing gate.
+- **Methods:** `goToClosed()`, `goToOpened()`, `goToLifted()`, `toggle()` (flips CLOSED / OPENED only), `nudgePosition()` (for finding positions), `getState()`, `isAtPosition()`, `addTelemetry()`. No `update()`, because there is no ongoing work. It starts `CLOSED` when constructed (R103.B allows pre-positioning servos at INIT).
+- **Test OpModes:** `ShooterPowerAlpha` and `ShooterRatioAlpha`: **Left Trigger** toggles CLOSED / OPENED (one flip per press), **D-pad Up/Down** nudges the current position by 0.01. **`ShooterRPMAlpha` ("Shooter RPM - Alpha 2")** reaches all three positions: **D-pad Left** CLOSED, **D-pad Right** OPENED, **Left Trigger** LIFTED, **D-pad Up/Down** nudge. It also runs the intake from gamepad 2 (**RB** intake, **LB** reverse). `BiobuzzTeleOp` uses gamepad 2 **Right Trigger** for OPENED and **Left Trigger** for CLOSED, and has no LIFTED button yet.
+- **`[CONFIRM]` positions are still being tuned:** `CLOSED_POSITION` (0.00), `OPENED_POSITION` (0.50) and `LIFTED_POSITION` (1.00; they used to be LOADING 0.30 and SHOOTING 0.0). Find the real values with the D-pad nudge, then type them into the constants. Also tune `SERVO_TRAVEL_SECONDS` (0.50 is a guess).
 - **Open:** which end of travel is "closed", and whether the gate needs a different position in Auto.
 
 ### TurretSubsystem (`subsystems/TurretSubsystem.java`): code written, not yet tested on the robot

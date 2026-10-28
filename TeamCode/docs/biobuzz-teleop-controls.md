@@ -67,10 +67,10 @@ A preset goes to its angle and holds there.
 
 | Control | What it does |
 |---|---|
-| **Right Trigger** | Gate to **SHOOTING** (lets the ball through) |
-| **Left Trigger** | Gate to **LOADING** (holds the ball back) |
+| **Right Trigger** | Gate to **OPENED** (lets the ball through) |
+| **Left Trigger** | Gate to **CLOSED** (holds the ball back) |
 
-One move per press. If both are pressed at once, LOADING wins.
+One move per press. If both are pressed at once, CLOSED wins. The gate's third position, **LIFTED**, has no button in the TeleOp yet.
 
 ### Shooter speeds (the dials)
 

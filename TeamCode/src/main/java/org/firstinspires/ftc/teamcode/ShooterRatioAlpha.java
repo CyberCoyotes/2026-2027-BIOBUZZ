@@ -35,7 +35,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  *   X            -> shooter OFF (the wheels coast down. Wait for them to STOP before touching.)
  *   Right Bumper -> HOLD to reverse the flywheel only (clearing a jam)
  *   Left Bumper  -> HOLD to reverse the hood wheel only (clearing a jam)
- *   Left Trigger -> TOGGLES the gate between LOADING and SHOOTING (one flip per press)
+ *   Left Trigger -> TOGGLES the gate between CLOSED and OPENED (one flip per press)
  *   D-pad Up/Down-> nudge the gate position (the gate positions are still being measured)
  *   Back (Share) -> reset the "lowest RPM" readings
  *
@@ -183,7 +183,7 @@ public class ShooterRatioAlpha extends OpMode {
     public void init() {
         // Each subsystem gets its own hardware from the hardware map.
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
-        // The gate servo moves to LOADING here, so it starts from a known place.
+        // The gate servo moves to CLOSED here, so it starts from a known place.
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
 
@@ -201,7 +201,7 @@ public class ShooterRatioAlpha extends OpMode {
         telemetry.addData("Status", "Ready to start!");
         addControlsTelemetry();
 
-        // Show the gate here too, so you can check before START that it went to LOADING.
+        // Show the gate here too, so you can check before START that it went to CLOSED.
         shooterServoSubsystem.addTelemetry(telemetry);
     }
 

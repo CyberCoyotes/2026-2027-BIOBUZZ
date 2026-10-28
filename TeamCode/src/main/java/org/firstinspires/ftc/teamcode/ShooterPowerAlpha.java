@@ -45,13 +45,14 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * If more than one shooter button is held, the HIGHEST power wins.
  *
  * SHOOTER GATE (the servo), separate from the wheel buttons above:
- *   Left Trigger -> TOGGLES the gate between LOADING and SHOOTING (one flip per press)
+ *   Left Trigger -> TOGGLES the gate between CLOSED and OPENED (one flip per press)
  *   D-pad Up     -> nudge the gate's CURRENT position toward 1.0 (small step)
  *   D-pad Down   -> nudge the gate's CURRENT position toward 0.0 (small step)
  * The gate positions are not measured yet. Use the D-pad nudge to creep the gate to the
  * right spot for each state, read the number on the screen, and then type it into
- * LOADING_POSITION / SHOOTING_POSITION in ShooterServoSubsystem.
- * The gate starts in LOADING when you hit INIT. It does NOT depend on the wheels.
+ * CLOSED_POSITION / OPENED_POSITION / LIFTED_POSITION in ShooterServoSubsystem.
+ * The gate starts CLOSED when you hit INIT. It does NOT depend on the wheels.
+ * (This OpMode can't reach the gate's third position, LIFTED. Shooter RPM - Alpha 2 can.)
  *
  * ------------------------- GAMEPAD 2: INTAKE -------------------------
  * HOLD a bumper to run the intake. There is ONE power dial, and the D-pad turns it up and down.
@@ -167,7 +168,7 @@ public class ShooterPowerAlpha extends OpMode {
         telemetry.addLine("Right Bumper = REVERSE flywheel only");
         telemetry.addLine("Left Bumper = REVERSE hood wheel only");
         telemetry.addLine("--- GAMEPAD 1: GATE ---");
-        telemetry.addLine("Left Trigger = TOGGLE gate (loading / shooting)");
+        telemetry.addLine("Left Trigger = TOGGLE gate (closed / opened)");
         telemetry.addLine("D-pad Up / Down = nudge gate position +/-");
         telemetry.addLine("--- GAMEPAD 2: INTAKE ---");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
@@ -181,7 +182,7 @@ public class ShooterPowerAlpha extends OpMode {
     public void init() {
         // Each subsystem gets its own hardware from the hardware map.
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
-        // The gate servo moves to LOADING here, so it starts from a known place.
+        // The gate servo moves to CLOSED here, so it starts from a known place.
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
 

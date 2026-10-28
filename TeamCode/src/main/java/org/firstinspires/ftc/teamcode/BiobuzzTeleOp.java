@@ -35,10 +35,11 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *                       it shoots, even if ALWAYS-TRACK is OFF.
  *   Start            -> switch the flywheel speed source DIAL <-> TABLE (starts as DIAL)
  *   Back             -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
- *   Right Trigger    -> shooter GATE to SHOOTING (lets the ball through)
- *   Left Trigger     -> shooter GATE to LOADING (holds the ball back)
- *      (One move per press. The gate positions are LOADING_POSITION and SHOOTING_POSITION
- *       in ShooterServoSubsystem. If both triggers are pressed at once, LOADING wins.)
+ *   Right Trigger    -> shooter GATE to OPENED (lets the ball through)
+ *   Left Trigger     -> shooter GATE to CLOSED (holds the ball back)
+ *      (One move per press. The gate positions are CLOSED_POSITION and OPENED_POSITION
+ *       in ShooterServoSubsystem. If both triggers are pressed at once, CLOSED wins.
+ *       The gate's third position, LIFTED, has no button in the TeleOp yet.)
  *   With ALWAYS-TRACK ON, letting go of the stick goes back to tracking the hive. With it OFF,
  *   the turret holds where it is. A preset (Y, X, B) goes to its angle and holds, and so does
  *   A (STOP), because pressing any of them turns ALWAYS-TRACK OFF. Press the Right Stick Button
@@ -338,7 +339,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine(String.format("Y = center (%.0f)  X = far left (%+.0f)  B = far right (%+.0f) degrees",
                 TURRET_PRESET_CENTER_DEGREES, TURRET_PRESET_LEFT_DEGREES, TURRET_PRESET_RIGHT_DEGREES));
         telemetry.addLine("A = STOP turret");
-        telemetry.addLine("Right Trigger = gate SHOOTING   Left Trigger = gate LOADING");
+        telemetry.addLine("Right Trigger = gate OPENED   Left Trigger = gate CLOSED");
     }
 
     /*
@@ -454,7 +455,7 @@ public class BiobuzzTeleOp extends OpMode {
         driveSubsystem = new DriveSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
-        // The gate servo moves to LOADING here, so it starts from a known place.
+        // The gate servo moves to CLOSED here, so it starts from a known place.
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
         // The turret does not move at INIT. It only starts reading its encoder.
         turretSubsystem = new TurretSubsystem(hardwareMap);
@@ -485,7 +486,7 @@ public class BiobuzzTeleOp extends OpMode {
         addRawGamepadTelemetry();
         addControlsTelemetry();
 
-        // Show the gate here too, so you can check before START that it went to LOADING.
+        // Show the gate here too, so you can check before START that it went to CLOSED.
         // (The position shown is the one we COMMANDED. A servo cannot report where it really is.)
         shooterServoSubsystem.addTelemetry(telemetry);
 
@@ -677,11 +678,11 @@ public class BiobuzzTeleOp extends OpMode {
 
         // Shooter gate (operator). A trigger counts as ONE press only on the loop where it goes
         // from "not pressed" to "pressed", so holding it does not keep re-sending the move.
-        // Left Trigger is checked first, so if both are pressed at once the gate goes to LOADING.
+        // Left Trigger is checked first, so if both are pressed at once the gate goes to CLOSED.
         if (isNewPress(gateLoadTriggerPressed, wasGateLoadTriggerPressed)) {
-            shooterServoSubsystem.goToLoading();
+            shooterServoSubsystem.goToClosed();
         } else if (isNewPress(gateShootTriggerPressed, wasGateShootTriggerPressed)) {
-            shooterServoSubsystem.goToShooting();
+            shooterServoSubsystem.goToOpened();
         }
 
         // Turret (operator, gamepad2). The same controls as TurretAlpha. The first one that is
