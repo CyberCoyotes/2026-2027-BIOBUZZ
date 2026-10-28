@@ -52,10 +52,11 @@ public class ShooterServoSubsystem {
     // current position by a small step, so you can creep the gate to the right spot
     // (the OpMode shows the number). Then type the numbers you found in here.
     //
-    // They start close together on purpose, so the first test cannot slam the gate.
-    private static final double LOADING_POSITION = 0.30;
-    // 0.0 is the end of the servo's travel. A servo cannot go below it.
-    private static final double SHOOTING_POSITION = 0.0;
+    private static final double CLOSED_POSITION = 0.00; // 0.3
+
+    private static final double OPENED_POSITION = 0.50; // 0.0
+
+    private static final double LIFTED_POSITION = 1.00;
 
     // The servo does not tell us when it arrives. This is how long we assume a 90 degree
     // move takes. Too short and isAtPosition() lies. Too long and we wait for nothing.
@@ -68,7 +69,8 @@ public class ShooterServoSubsystem {
     // STATE = where we told the gate to go.
     public enum GateState {
         LOADING,   // Gate is at (or moving to) the loading position.
-        SHOOTING   // Gate is at (or moving to) the shooting position.
+        SHOOTING,   // Gate is at (or moving to) the shooting position.
+        LIFTING   // Gate is at (or moving to) the lifted position.
     }
 
     // ------------------------------------------------------------------
