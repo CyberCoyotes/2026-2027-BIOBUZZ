@@ -35,10 +35,12 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *                       it shoots, even if ALWAYS-TRACK is OFF.
  *   Start            -> switch the flywheel speed source DIAL <-> TABLE (starts as DIAL)
  *   Back             -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
- *   Right Trigger    -> shooter GATE to SHOOTING (lets the ball through)
- *   Left Trigger     -> shooter GATE to LOADING (holds the ball back)
- *      (One move per press. The gate positions are LOADING_POSITION and SHOOTING_POSITION
- *       in ShooterServoSubsystem. If both triggers are pressed at once, LOADING wins.)
+ *   Right Trigger    -> shooter GATE to OPENED (lets the ball through)
+ *   Left Trigger     -> shooter GATE to CLOSED (holds the ball back)
+ *      (One move per press. The gate positions are CLOSED_POSITION, OPENED_POSITION and
+ *       LIFTED_POSITION in ShooterServoSubsystem. If CLOSED and another move are pressed at
+ *       the same time, CLOSED wins. The operator's triggers have no LIFTED button, only the
+ *       driver's Y does.)
  *   With ALWAYS-TRACK ON, letting go of the stick goes back to tracking the hive. With it OFF,
  *   the turret holds where it is. A preset (Y, X, B) goes to its angle and holds, and so does
  *   A (STOP), because pressing any of them turns ALWAYS-TRACK OFF. Press the Right Stick Button
@@ -62,6 +64,10 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      Let go and both wheels go to 0 power and coast down. The turret holds where it ended.
  *      Reverse (gamepad2 bumpers) still beats the wheels, so clearing a jam always works.
  *      The operator's turret stick and A (STOP) still beat the auto-align.
+ *   X / B / Y    -> shooter GATE by hand, for testing: X = CLOSED, B = OPENED, Y = LIFTED.
+ *      (One move per press. These are for manual control and testing. They work at the same
+ *       time as the operator's gate triggers below, and the latest press wins. Later the gate
+ *       will become part of a smart shooting sequence.)
  *
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (SPEED CONTROL in RPM, read from the wheel encoders)
  *   D-pad Up / Down    -> flywheel target RPM UP / DOWN by FLYWHEEL_RPM_STEP
@@ -69,8 +75,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Left Bumper  -> HOLD to reverse BOTH the flywheel and the hood wheel (clearing a jam)
  *   Right Bumper -> HOLD to reverse the flywheel only
  *   The hood wheel target RPM is flywheel RPM x ratio (RATIO = HOOD WHEEL / FLYWHEEL). The
- *   shooter will not go past its MAX_TARGET_RPM, so if the hood wheel would be over that, the
- *   screen says CAPPED and the real ratio is lower than the dial says.
+ *   shooter will not go past each wheel's own maximum (the flywheel motor is the 1620 RPM one,
+ *   so its maximum is only 1458 RPM). If a wheel would be over its maximum, the screen says
+ *   CAPPED and the real ratio is lower than the dial says.
  *   Jam clearing (the bumpers) still uses plain negative POWER, because speed control only
  *   works forward.
  *   The screen shows "OK to shoot" only when BOTH wheels are really at their target RPM
@@ -155,16 +162,18 @@ public class BiobuzzTeleOp extends OpMode {
     // ------------------------------------------------------------------
     // Shooter dials (gamepad2). These are test-only numbers.
     // ------------------------------------------------------------------
-    // The flywheel dial is counted in WHOLE RPM (2700 means 2700 RPM).
+    // The flywheel dial is counted in WHOLE RPM (1300 means 1300 RPM).
     // Where it starts, how far one press moves it, and how low and high it can go.
     // It starts at 1300 RPM and the ratio starts at 2.00, so the hood wheel starts at 2600 RPM.
     // 1300 is the speed that looked about right on the robot. It is also the speed the shooter
     // falls back to in TABLE mode when the camera has not seen the hive lately.
-    // (It used to start at 2700, the old 45% power x 6000 RPM estimate, which was far too fast.)
+    // The flywheel motor is now the goBILDA 1620 RPM one, so the dial stops at 1450, just under
+    // the shooter's own limit (FLYWHEEL_MAX_TARGET_RPM, 1458 in ShooterSubsystem). It used to go
+    // up to 3600 when the flywheel was a 6000 RPM motor.
     private static final int FLYWHEEL_RPM_START = 1300;
     private static final int FLYWHEEL_RPM_STEP = 100;
     private static final int FLYWHEEL_RPM_MIN = 500;
-    private static final int FLYWHEEL_RPM_MAX = 3600;
+    private static final int FLYWHEEL_RPM_MAX = 1450;
 
     // The ratio dial is counted in HUNDREDTHS so that adding 5 over and over never drifts to
     // something like 1.9999999. So 200 means a ratio of 2.00, and a step of 5 means 0.05.
@@ -246,8 +255,22 @@ public class BiobuzzTeleOp extends OpMode {
     // Either way it never moves during INIT.
     private static final boolean ALWAYS_TRACK_AT_START = true;
 
+    // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
+    // bottom, under the live data). false = it is only shown before START, like it used to be.
+    private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
+
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
+
+    // LOOP TIME: how long one trip through loop() takes, in milliseconds. We time from the start
+    // of one loop() to the start of the next, so it includes everything: the hub reads, the
+    // subsystems, and the telemetry. A shorter loop means the turret, the shooter's READY check,
+    // and the drive all update more often. This is only for measuring (to see whether
+    // anything we add later, like bulk reads, really helps).
+    private ElapsedTime loopTimer = new ElapsedTime();
+    private int loopCount = 0;
+    private double totalLoopMs = 0.0;
+    private double worstLoopMs = 0.0;
     private DriveSubsystem driveSubsystem;
     private IntakeSubsystem intakeSubsystem;
     private ShooterSubsystem shooterSubsystem;
@@ -275,6 +298,9 @@ public class BiobuzzTeleOp extends OpMode {
     // and IS pressed now.
     private boolean wasGateShootTriggerPressed = false;
     private boolean wasGateLoadTriggerPressed = false;
+    private boolean wasDriverGateClosedPressed = false;
+    private boolean wasDriverGateOpenedPressed = false;
+    private boolean wasDriverGateLiftedPressed = false;
     private boolean wasDpadLeftPressed = false;
     private boolean wasDpadRightPressed = false;
     private boolean wasDpadUpPressed = false;
@@ -311,6 +337,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
         telemetry.addLine("Right Trigger (hold) = SHOOT (+ AUTO-ALIGN, even if ALWAYS-TRACK is off)");
+        telemetry.addLine("X = gate CLOSED   B = gate OPENED   Y = gate LIFTED");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
         telemetry.addLine("Start = flywheel speed DIAL / TABLE   Back = alliance BLUE / RED");
         telemetry.addLine("Right Stick Button = ALWAYS-TRACK on / off (turret follows the hive)");
@@ -321,7 +348,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine(String.format("Y = center (%.0f)  X = far left (%+.0f)  B = far right (%+.0f) degrees",
                 TURRET_PRESET_CENTER_DEGREES, TURRET_PRESET_LEFT_DEGREES, TURRET_PRESET_RIGHT_DEGREES));
         telemetry.addLine("A = STOP turret");
-        telemetry.addLine("Right Trigger = gate SHOOTING   Left Trigger = gate LOADING");
+        telemetry.addLine("Right Trigger = gate OPENED   Left Trigger = gate CLOSED");
     }
 
     /*
@@ -437,7 +464,7 @@ public class BiobuzzTeleOp extends OpMode {
         driveSubsystem = new DriveSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
-        // The gate servo moves to LOADING here, so it starts from a known place.
+        // The gate servo moves to CLOSED here, so it starts from a known place.
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
         // The turret does not move at INIT. It only starts reading its encoder.
         turretSubsystem = new TurretSubsystem(hardwareMap);
@@ -468,7 +495,7 @@ public class BiobuzzTeleOp extends OpMode {
         addRawGamepadTelemetry();
         addControlsTelemetry();
 
-        // Show the gate here too, so you can check before START that it went to LOADING.
+        // Show the gate here too, so you can check before START that it went to CLOSED.
         // (The position shown is the one we COMMANDED. A servo cannot report where it really is.)
         shooterServoSubsystem.addTelemetry(telemetry);
 
@@ -484,6 +511,7 @@ public class BiobuzzTeleOp extends OpMode {
     @Override
     public void start() {
         runtime.reset();
+        loopTimer.reset();
     }
 
     /*
@@ -491,6 +519,19 @@ public class BiobuzzTeleOp extends OpMode {
      */
     @Override
     public void loop() {
+        // 0. Time the loop. This is how long it has been since the last loop() started. The very
+        //    first loop only measures the wait after START, so we leave it out of the average
+        //    and the worst. (Run the robot a few seconds before you read the average.)
+        double thisLoopMs = loopTimer.milliseconds();
+        loopTimer.reset();
+        loopCount = loopCount + 1;
+        if (loopCount > 1) {
+            totalLoopMs = totalLoopMs + thisLoopMs;
+            if (thisLoopMs > worstLoopMs) {
+                worstLoopMs = thisLoopMs;
+            }
+        }
+
         // 1. Read sensors. (The drive has none. The intake reads its own encoder in update().
         //    The shooter reads its wheel encoders in its own update(), in step 3 below.)
         intakeSubsystem.update();
@@ -509,6 +550,11 @@ public class BiobuzzTeleOp extends OpMode {
 
         boolean slowMode = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
         boolean triggerShotPressed = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+
+        // The driver's face buttons move the shooter gate by hand, for manual control and testing.
+        boolean driverGateClosedPressed = gamepad1.x;
+        boolean driverGateOpenedPressed = gamepad1.b;
+        boolean driverGateLiftedPressed = gamepad1.y;
 
         // ---- Gamepad 2 (operator) ----
         boolean yPressed = gamepad2.y;
@@ -581,9 +627,11 @@ public class BiobuzzTeleOp extends OpMode {
             }
         }
         double wantedHoodWheelRpm = flywheelTargetRpm * ratio;
-        double maxTargetRpm = shooterSubsystem.getMaxTargetRpm();
-        boolean hoodWheelCapped = wantedHoodWheelRpm > maxTargetRpm + CAPPED_TOLERANCE_RPM;
-        double hoodWheelTargetRpm = Math.min(wantedHoodWheelRpm, maxTargetRpm);
+        double maxFlywheelRpm = shooterSubsystem.getMaxFlywheelTargetRpm();
+        double maxHoodWheelRpm = shooterSubsystem.getMaxHoodWheelTargetRpm();
+        boolean flywheelCapped = flywheelTargetRpm > maxFlywheelRpm + CAPPED_TOLERANCE_RPM;
+        boolean hoodWheelCapped = wantedHoodWheelRpm > maxHoodWheelRpm + CAPPED_TOLERANCE_RPM;
+        double hoodWheelTargetRpm = Math.min(wantedHoodWheelRpm, maxHoodWheelRpm);
 
         // 3. Tell the subsystems what to do. (The drive has no update() to call.)
 
@@ -642,13 +690,23 @@ public class BiobuzzTeleOp extends OpMode {
         }
         shooterSubsystem.update();
 
-        // Shooter gate (operator). A trigger counts as ONE press only on the loop where it goes
-        // from "not pressed" to "pressed", so holding it does not keep re-sending the move.
-        // Left Trigger is checked first, so if both are pressed at once the gate goes to LOADING.
-        if (isNewPress(gateLoadTriggerPressed, wasGateLoadTriggerPressed)) {
-            shooterServoSubsystem.goToLoading();
-        } else if (isNewPress(gateShootTriggerPressed, wasGateShootTriggerPressed)) {
-            shooterServoSubsystem.goToShooting();
+        // Shooter gate. A button counts as ONE press only on the loop where it goes from
+        // "not pressed" to "pressed", so holding it does not keep re-sending the move.
+        // The gate has two sets of buttons for now, and both work at the same time:
+        //   operator (gamepad2): Left Trigger = CLOSED, Right Trigger = OPENED
+        //   driver (gamepad1):   X = CLOSED, B = OPENED, Y = LIFTED
+        // If more than one is pressed on the same loop, CLOSED wins, then OPENED, then LIFTED.
+        boolean closedNewPress = isNewPress(gateLoadTriggerPressed, wasGateLoadTriggerPressed)
+                || isNewPress(driverGateClosedPressed, wasDriverGateClosedPressed);
+        boolean openedNewPress = isNewPress(gateShootTriggerPressed, wasGateShootTriggerPressed)
+                || isNewPress(driverGateOpenedPressed, wasDriverGateOpenedPressed);
+        boolean liftedNewPress = isNewPress(driverGateLiftedPressed, wasDriverGateLiftedPressed);
+        if (closedNewPress) {
+            shooterServoSubsystem.goToClosed();
+        } else if (openedNewPress) {
+            shooterServoSubsystem.goToOpened();
+        } else if (liftedNewPress) {
+            shooterServoSubsystem.goToLifted();
         }
 
         // Turret (operator, gamepad2). The same controls as TurretAlpha. The first one that is
@@ -725,11 +783,19 @@ public class BiobuzzTeleOp extends OpMode {
         wasTrackToggleButtonPressed = trackToggleButtonPressed;
         wasGateShootTriggerPressed = gateShootTriggerPressed;
         wasGateLoadTriggerPressed = gateLoadTriggerPressed;
+        wasDriverGateClosedPressed = driverGateClosedPressed;
+        wasDriverGateOpenedPressed = driverGateOpenedPressed;
+        wasDriverGateLiftedPressed = driverGateLiftedPressed;
         wasDpadLeftPressed = dpadLeftPressed;
         wasDpadRightPressed = dpadRightPressed;
 
         // 4. Show what is happening on the Driver Station, one section at a time.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
+        if (loopCount > 1) {
+            double averageLoopMs = totalLoopMs / (loopCount - 1);
+            telemetry.addData("Loop time (ms)", "%.1f now   %.1f average   %.1f worst   (%.0f loops/sec)",
+                    thisLoopMs, averageLoopMs, worstLoopMs, 1000.0 / averageLoopMs);
+        }
         // Always on the screen: aiming at the wrong alliance's hive is not an obvious failure.
         telemetry.addData("Alliance (gamepad2 Back)", visionSubsystem.getAlliance());
 
@@ -743,12 +809,17 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("--- SHOOTER DIALS (RPM) ---");
         telemetry.addData("Flywheel speed source (gamepad2 Start)", getModeText());
         telemetry.addData("Using", rpmSource);
-        telemetry.addData("Flywheel target RPM", "%.0f   (the dial is at %d)",
-                flywheelTargetRpm, flywheelRpmDial);
+        if (flywheelCapped) {
+            telemetry.addData("Flywheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
+                    maxFlywheelRpm, maxFlywheelRpm, flywheelTargetRpm);
+        } else {
+            telemetry.addData("Flywheel target RPM", "%.0f   (the dial is at %d)",
+                    flywheelTargetRpm, flywheelRpmDial);
+        }
         telemetry.addData("Ratio (hood / flywheel)", "%.2f", ratio);
         if (hoodWheelCapped) {
             telemetry.addData("Hood wheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
-                    hoodWheelTargetRpm, maxTargetRpm, wantedHoodWheelRpm);
+                    hoodWheelTargetRpm, maxHoodWheelRpm, wantedHoodWheelRpm);
         } else {
             telemetry.addData("Hood wheel target RPM", "%.0f", hoodWheelTargetRpm);
         }
@@ -820,6 +891,12 @@ public class BiobuzzTeleOp extends OpMode {
                     visionSubsystem.getTxDegrees());
         }
         telemetry.addData("Turret aimed?", aimText);
+
+        // 5. Keep the button map on the screen while running, at the bottom under the live data.
+        //    (Before START the same map is shown by init() and init_loop().)
+        if (SHOW_CONTROLS_WHILE_RUNNING) {
+            addControlsTelemetry();
+        }
     }
 
     /*

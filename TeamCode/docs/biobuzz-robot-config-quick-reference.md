@@ -17,8 +17,8 @@ Fill in the **Port** column in pen when you wire each robot. The ports are not r
 | `right_front` | goBILDA motor (mecanum drive) | DriveSubsystem | FORWARD | ____ |
 | `right_rear` | goBILDA motor (mecanum drive) | DriveSubsystem | FORWARD | ____ |
 | `intake` | goBILDA 5203 (intake + transfer, one motor) | IntakeSubsystem | REVERSE | ____ |
-| `flywheel` | goBILDA 5202/3/4, about 4 in wheel | ShooterSubsystem | FORWARD | ____ |
-| `hood_wheel` | goBILDA 5203 series, about 2 in wheel | ShooterSubsystem | FORWARD | ____ |
+| `flywheel` | goBILDA 5203 series, **1620 RPM (3.7:1)**, about 4 in wheel. **Set this motor's type to match in the Driver Station config** (the Hub's built-in speed control depends on it) | ShooterSubsystem | FORWARD | ____ |
+| `hood_wheel` | goBILDA 5203 series, 6000 RPM (1:1), about 2 in wheel | ShooterSubsystem | FORWARD | ____ |
 | `turret_motor` | goBILDA 5203, 435 RPM (turret rotation). **Power** on the power connector. **For now** the motor's own encoder cable goes in the **same port's encoder connector**. Later the **REV Through Bore Encoder** can go there instead (then change `ENCODER_TICKS_PER_REV` in `TurretSubsystem`). | TurretSubsystem | FORWARD (also flips the encoder count) | ____ |
 
 There is no separate `turret_encoder` entry. The two hubs have exactly 8 motor ports, and we use all 8.

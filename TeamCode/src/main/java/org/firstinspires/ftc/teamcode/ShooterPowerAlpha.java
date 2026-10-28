@@ -24,16 +24,18 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * HOLD a button to run BOTH the flywheel and the hood wheel.
  * Each motor has its OWN power number for each button, so you can tune them
  * separately. Starting values (flywheel / hood wheel):
- *   Y  -> 60% / 60%   (about 3600 RPM with no load, see below)
- *   X  -> 55% / 55%   (about 3300 RPM with no load, see below)
+ *   Y  -> 60% / 60%   (see the note below)
+ *   X  -> 55% / 55%   (see the note below)
  *   No button -> both coast to a stop
- * These two were the closest shots in testing, so the other presets were dropped.
+ * These two were the closest shots in testing with BOTH wheels on 6000 RPM motors.
  *
- * RPM ESTIMATE: the motors top out at 6000 RPM with no load, so power x 6000 gives the speed
- * we would see with nothing on the wheels (60% -> 3600, 55% -> 3300). With a ball and the
- * wheel's own drag the real speed is LOWER, and it drops as the battery drains. To see the real
- * number, hold Y or X and read "Flywheel RPM" in the shooter section of the telemetry.
- * ShooterRPMAlpha uses these same two speeds as its targets.
+ * NOTE: THE FLYWHEEL IS NOW THE 1620 RPM MOTOR. The same POWER now spins the flywheel about
+ * 3.7 times slower (60% is about 970 RPM with no load, not 3600), so these power shots are NOT
+ * the same shots any more. The hood wheel is still the 6000 RPM motor (60% -> 3600 RPM, 55% ->
+ * 3300 RPM with no load). To see the real speeds, hold Y or X and read "Flywheel RPM" and
+ * "Hood Wheel RPM" in the shooter section of the telemetry. With a ball and the wheel's own
+ * drag the real speed is LOWER than no load, and it drops as the battery drains.
+ * For shots, use ShooterRPMAlpha (speed control in RPM) instead of these power shots.
  *
  * REVERSE (for clearing a jam, 60% power the other way):
  *   Right Bumper -> reverses the FLYWHEEL only
@@ -43,13 +45,14 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * If more than one shooter button is held, the HIGHEST power wins.
  *
  * SHOOTER GATE (the servo), separate from the wheel buttons above:
- *   Left Trigger -> TOGGLES the gate between LOADING and SHOOTING (one flip per press)
+ *   Left Trigger -> TOGGLES the gate between CLOSED and OPENED (one flip per press)
  *   D-pad Up     -> nudge the gate's CURRENT position toward 1.0 (small step)
  *   D-pad Down   -> nudge the gate's CURRENT position toward 0.0 (small step)
  * The gate positions are not measured yet. Use the D-pad nudge to creep the gate to the
  * right spot for each state, read the number on the screen, and then type it into
- * LOADING_POSITION / SHOOTING_POSITION in ShooterServoSubsystem.
- * The gate starts in LOADING when you hit INIT. It does NOT depend on the wheels.
+ * CLOSED_POSITION / OPENED_POSITION / LIFTED_POSITION in ShooterServoSubsystem.
+ * The gate starts CLOSED when you hit INIT. It does NOT depend on the wheels.
+ * (This OpMode can't reach the gate's third position, LIFTED. Shooter RPM - Alpha 2 can.)
  *
  * ------------------------- GAMEPAD 2: INTAKE -------------------------
  * HOLD a bumper to run the intake. There is ONE power dial, and the D-pad turns it up and down.
@@ -126,6 +129,10 @@ public class ShooterPowerAlpha extends OpMode {
     private static final int DIAL_MAX_PERCENT = 100;
 
     // ------------------------------------------------------------------
+    // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
+    // bottom, under the live data). false = it is only shown before START, like it used to be.
+    private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
+
     // Declare OpMode members.
     // ------------------------------------------------------------------
     private ElapsedTime runtime = new ElapsedTime();
@@ -161,7 +168,7 @@ public class ShooterPowerAlpha extends OpMode {
         telemetry.addLine("Right Bumper = REVERSE flywheel only");
         telemetry.addLine("Left Bumper = REVERSE hood wheel only");
         telemetry.addLine("--- GAMEPAD 1: GATE ---");
-        telemetry.addLine("Left Trigger = TOGGLE gate (loading / shooting)");
+        telemetry.addLine("Left Trigger = TOGGLE gate (closed / opened)");
         telemetry.addLine("D-pad Up / Down = nudge gate position +/-");
         telemetry.addLine("--- GAMEPAD 2: INTAKE ---");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
@@ -175,7 +182,7 @@ public class ShooterPowerAlpha extends OpMode {
     public void init() {
         // Each subsystem gets its own hardware from the hardware map.
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
-        // The gate servo moves to LOADING here, so it starts from a known place.
+        // The gate servo moves to CLOSED here, so it starts from a known place.
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
 
@@ -335,6 +342,12 @@ public class ShooterPowerAlpha extends OpMode {
         shooterSubsystem.addTelemetry(telemetry);
         shooterServoSubsystem.addTelemetry(telemetry);
         intakeSubsystem.addTelemetry(telemetry);
+
+        // 5. Keep the button map on the screen while running, at the bottom under the live data.
+        //    (Before START the same map is shown by init() and init_loop().)
+        if (SHOW_CONTROLS_WHILE_RUNNING) {
+            addControlsTelemetry();
+        }
     }
 
     /*

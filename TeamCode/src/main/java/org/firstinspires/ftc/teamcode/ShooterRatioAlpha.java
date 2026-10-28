@@ -35,7 +35,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  *   X            -> shooter OFF (the wheels coast down. Wait for them to STOP before touching.)
  *   Right Bumper -> HOLD to reverse the flywheel only (clearing a jam)
  *   Left Bumper  -> HOLD to reverse the hood wheel only (clearing a jam)
- *   Left Trigger -> TOGGLES the gate between LOADING and SHOOTING (one flip per press)
+ *   Left Trigger -> TOGGLES the gate between CLOSED and OPENED (one flip per press)
  *   D-pad Up/Down-> nudge the gate position (the gate positions are still being measured)
  *   Back (Share) -> reset the "lowest RPM" readings
  *
@@ -67,10 +67,12 @@ public class ShooterRatioAlpha extends OpMode {
     // ------------------------------------------------------------------
     // Where the flywheel dial starts, how far one press moves it, and how low and high it can go.
     // All are in RPM.
-    private static final int FLYWHEEL_RPM_START = 2000;
+    // The flywheel motor is the goBILDA 1620 RPM one now, so the dial stops at 1450, just under
+    // the shooter's own limit (FLYWHEEL_MAX_TARGET_RPM, 1458 in ShooterSubsystem).
+    private static final int FLYWHEEL_RPM_START = 1300;
     private static final int FLYWHEEL_RPM_STEP = 100;
     private static final int FLYWHEEL_RPM_MIN = 500;
-    private static final int FLYWHEEL_RPM_MAX = 3600;
+    private static final int FLYWHEEL_RPM_MAX = 1450;
 
     // The ratio dial is counted in HUNDREDTHS so that adding 5 over and over never drifts to
     // something like 1.9999999. So 200 means a ratio of 2.00, and a step of 5 means 0.05.
@@ -105,6 +107,10 @@ public class ShooterRatioAlpha extends OpMode {
     private static final double CAPPED_TOLERANCE_RPM = 1.0;
 
     // ------------------------------------------------------------------
+    // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
+    // bottom, under the live data). false = it is only shown before START, like it used to be.
+    private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
+
     // Declare OpMode members.
     // ------------------------------------------------------------------
     private ElapsedTime runtime = new ElapsedTime();
@@ -177,7 +183,7 @@ public class ShooterRatioAlpha extends OpMode {
     public void init() {
         // Each subsystem gets its own hardware from the hardware map.
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
-        // The gate servo moves to LOADING here, so it starts from a known place.
+        // The gate servo moves to CLOSED here, so it starts from a known place.
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
 
@@ -195,7 +201,7 @@ public class ShooterRatioAlpha extends OpMode {
         telemetry.addData("Status", "Ready to start!");
         addControlsTelemetry();
 
-        // Show the gate here too, so you can check before START that it went to LOADING.
+        // Show the gate here too, so you can check before START that it went to CLOSED.
         shooterServoSubsystem.addTelemetry(telemetry);
     }
 
@@ -366,10 +372,10 @@ public class ShooterRatioAlpha extends OpMode {
         // The shooter cuts any target above its maximum down to the maximum. Warn if that
         // happened to the hood wheel, because then the real ratio is lower than the dial says.
         boolean hoodWheelCapped = hoodWheelTargetRpm
-                > shooterSubsystem.getMaxTargetRpm() + CAPPED_TOLERANCE_RPM;
+                > shooterSubsystem.getMaxHoodWheelTargetRpm() + CAPPED_TOLERANCE_RPM;
         if (hoodWheelCapped) {
             telemetry.addData("Hood wheel target RPM", "%.0f  CAPPED at %.0f - DO NOT RECORD",
-                    hoodWheelTargetRpm, shooterSubsystem.getMaxTargetRpm());
+                    hoodWheelTargetRpm, shooterSubsystem.getMaxHoodWheelTargetRpm());
         } else {
             telemetry.addData("Hood wheel target RPM", "%.0f", hoodWheelTargetRpm);
         }
@@ -395,6 +401,12 @@ public class ShooterRatioAlpha extends OpMode {
 
         telemetry.addLine("--- INTAKE ---");
         telemetry.addData("Intake Control", intakeControl);
+
+        // 5. Keep the button map on the screen while running, at the bottom under the live data.
+        //    (Before START the same map is shown by init() and init_loop().)
+        if (SHOW_CONTROLS_WHILE_RUNNING) {
+            addControlsTelemetry();
+        }
     }
 
     /*

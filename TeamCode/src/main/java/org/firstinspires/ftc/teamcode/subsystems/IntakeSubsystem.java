@@ -31,8 +31,9 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *
  * STATE (what we told it to do) is IntakeState and the power dial.
  * STATUS (what the sensor reports) is the encoder speed in ticks per second.
- *   The encoder is plugged in for testing only. We do NOT turn ticks into RPM, because we have
- *   not yet confirmed if the motor counts 28 or 112 ticks per revolution (see CLAUDE.md).
+ *   The encoder is plugged in for testing only. We do NOT turn ticks into RPM, because nothing
+ *   needs it yet. (For this 1620 RPM motor it would be 103.8 ticks per output revolution, per
+ *   the goBILDA spec sheet 5203-2402-0003 in TeamCode/docs/.)
  *   If the encoder is not plugged in, the speed just reads 0 and nothing else is affected.
  *
  * Robot configuration (on the Driver Station):
