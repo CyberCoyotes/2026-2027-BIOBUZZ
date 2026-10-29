@@ -84,10 +84,14 @@ public class PinpointSubsystem {
     // Which way each pod counts. The rule is: X must go UP when the robot is pushed FORWARD, and
     // Y must go UP when the robot is pushed LEFT. If either one goes the wrong way, change that
     // one to REVERSED. (Last season both were FORWARD.)
+    // TESTED on the robot: the forward pod was right as FORWARD. The sideways pod counted
+    // NEGATIVE when the robot was pushed LEFT, so it is REVERSED. (The pod is mounted with its
+    // thick side toward the front, which is the opposite of last season. It does not need to be
+    // flipped by hand, because this setting does the same job.)
     private static final GoBildaPinpointDriver.EncoderDirection FORWARD_POD_DIRECTION =
             GoBildaPinpointDriver.EncoderDirection.FORWARD;
     private static final GoBildaPinpointDriver.EncoderDirection SIDEWAYS_POD_DIRECTION =
-            GoBildaPinpointDriver.EncoderDirection.FORWARD;
+            GoBildaPinpointDriver.EncoderDirection.REVERSED;
 
     // ------------------------------------------------------------------
     // Corrections found by testing on the robot
@@ -95,8 +99,8 @@ public class PinpointSubsystem {
     // Heading must go UP when the robot turns LEFT (counterclockwise). The Pinpoint can be
     // mounted right side up or upside down, and that can flip the sign. If turning the robot LEFT
     // makes the heading go DOWN, change this to true.
-    // [CONFIRM] Last season's code flipped it (true) in its own helper, but the Pedro Pathing
-    // setup did not, so we do not know which one is right. Test it in PinpointAlpha, step 3.
+    // TESTED on the robot: turning RIGHT gave a negative heading and turning LEFT a positive one,
+    // so false is right. (Last season's helper flipped it, but the Pedro Pathing setup did not.)
     private static final boolean INVERT_HEADING = false;
 
     // Distance fix. Push the robot a measured distance (say 48 inches) and see what X says.
