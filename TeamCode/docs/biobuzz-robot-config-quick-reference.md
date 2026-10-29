@@ -42,6 +42,7 @@ Without it, turret 0° is wherever the turret pointed when the hub powered on, s
 | Config name | Device type | Notes |
 |---|---|---|
 | `limelight` | Limelight 3A, **Ethernet device** | Lives at `172.29.0.1` (NOT 192.168.1.11). Exposure 1000 / gain 8 to start. Used by `VisionSubsystem`. Plugged into the Control Hub's blue USB 3.0 port. Needs an AprilTag pipeline (index 0) set up in its web page, `http://172.29.0.1:5801`. |
+| `pinpoint` | **goBILDA Pinpoint Odometry Computer**, **I2C device** on Control Hub bus 1, 2 or 3 (bus 0 is the Hub's own IMU). Two swingarm pods plug into the Pinpoint. **Last season's name was `odo`: rename it once on each robot.** | Used by `PinpointSubsystem`. Steps and tests: `pinpoint-setup-guide.md`. A missing `pinpoint` does not stop the TeleOp (the screen says NOT FOUND). |
 
 ---
 
@@ -62,9 +63,9 @@ Without it, turret 0° is wherever the turret pointed when the hub powered on, s
 - [ ] (Later, once installed) Home switch is a **Digital Device**, not a Touch Sensor
 - [ ] Servo is in positional mode (not continuous rotation)
 - [ ] Limelight appears as an Ethernet device named `limelight`
+- [ ] Pinpoint appears as an I2C device named `pinpoint` (it was `odo` last season), and `Pinpoint - Alpha` shows **READY**
 - [ ] Wheels off the ground for the first direction test
 
 ## Not wired in code yet
 
-- **goBILDA Pinpoint odometry**: no config name chosen yet
 - **Pedro Pathing** drive/localizer config: not set up yet

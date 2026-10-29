@@ -1,6 +1,6 @@
 # BIOBUZZ TeleOp Controls: Driver and Operator
 
-Print this and keep it at the driver station. It matches **`TeleOp - Alpha 7`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet. The controls for every other OpMode (the test Alphas) are in `biobuzz-opmode-controls.md`.
+Print this and keep it at the driver station. It matches **`TeleOp - Alpha 8`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet. The controls for every other OpMode (the test Alphas) are in `biobuzz-opmode-controls.md`.
 
 **Pairing:** on the Driver Station, press **Start + A** on the driver's controller (gamepad 1) and **Start + B** on the operator's controller (gamepad 2).
 **Logitech controller (F310 / F710):** set the switch on the back to **X** (XInput mode), not D. The buttons are then labeled A, B, X, Y like the code. Bumpers are **LB / RB** and triggers are **LT / RT**. Left Trigger = LT, Right Trigger = RT.
@@ -23,6 +23,7 @@ The driver drives, runs the intake, and holds the Right Trigger to shoot. **The 
 
 ### Driver tips
 - The robot is **robot-centric**: "forward" is the way the robot is facing.
+- **Keep the robot still during INIT.** The Pinpoint odometry calibrates its gyro then. Before START, check that the screen says **Pinpoint status: READY**. The screen shows the robot's X, Y and heading, but nothing uses them yet.
 - The operator's bumpers (jam clearing) beat your Right Trigger shot, so don't be surprised if the shot stops.
 - Auto-align needs the camera to see the hive. If the screen says **NO TARGET**, the turret just holds where it is, so check the alliance and point the robot toward the hive.
 - The turret now **tracks the hive all the time** (**ALWAYS-TRACK**, see the operator page), so you don't need to hold anything to aim. The screen shows **ALWAYS-TRACK ON / OFF**.

@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -66,7 +67,14 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *   Motor name:           turret_motor        (goBILDA 5203 motor; its encoder cable is plugged
  *                                              into the same port's encoder connector)
  *   (Home switch, Digital Device "turret_home_sensor": not installed yet, so not needed.)
+ *
+ * HIDDEN FROM THE DRIVER STATION LIST
+ *   TeleOp - Alpha 8 has the turret stick, the presets and ALWAYS-TRACK built in, so this
+ *   OpMode is @Disabled to keep the list short. The code is all still here. To bring it back
+ *   (for example to recheck the turret direction, limits or speed, issue #35), put // in front
+ *   of the @Disabled line below and redeploy.
  */
+@Disabled
 @TeleOp(name = "Turret Testing", group = "Testing")
 public class TurretAlpha extends OpMode {
 
