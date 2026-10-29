@@ -12,7 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit
 /*
  * Pinpoint Subsystem
  * Owns the goBILDA PINPOINT odometry computer and its two odometry pods. It only READS. It never
- * moves a motor, and it has no gamepad code. Another class (for now TeleOp - Alpha 9 and
+ * moves a motor, and it has no gamepad code. Another class (for now TeleOp - Alpha 10 and
  * PinpointAlpha) asks it where the robot is.
  *
  * WHAT IT ANSWERS: "Where is the robot, and which way is it facing, compared to where it started?"

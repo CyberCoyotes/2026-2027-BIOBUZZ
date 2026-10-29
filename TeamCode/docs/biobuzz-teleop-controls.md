@@ -1,6 +1,6 @@
 # BIOBUZZ TeleOp Controls: Driver and Operator
 
-Print this and keep it at the driver station. It matches **`TeleOp - Alpha 9`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet. The controls for every other OpMode (the test Alphas) are in `biobuzz-opmode-controls.md`.
+Print this and keep it at the driver station. It matches **`TeleOp - Alpha 10`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet. The controls for every other OpMode (the test Alphas) are in `biobuzz-opmode-controls.md`.
 
 **Pairing:** on the Driver Station, press **Start + A** on the driver's controller (gamepad 1) and **Start + B** on the operator's controller (gamepad 2).
 **Logitech controller (F310 / F710):** set the switch on the back to **X** (XInput mode), not D. The buttons are then labeled A, B, X, Y like the code. Bumpers are **LB / RB** and triggers are **LT / RT**. Left Trigger = LT, Right Trigger = RT.
@@ -23,6 +23,7 @@ The driver drives, runs the intake, and holds the Right Trigger to shoot. **The 
 
 ### Driver tips
 - The robot is **robot-centric**: "forward" is the way the robot is facing.
+- **Battery check:** the screen shows **HUB POWER**: each hub's voltage now and the **lowest** since START. Before START it shows the resting voltage. If a hub says **LOW BATTERY** or **NOT RESPONDING**, stop and check the battery, its connector and the power switch before you keep driving.
 - **Keep the robot still during INIT.** The Pinpoint odometry calibrates its gyro then. Before START, check that the screen says **Pinpoint status: READY**.
 - **The turret keeps pointing at the hive while you spin, even if the camera loses it.** The Pinpoint remembers which way the hive was. It gives up (screen: **Hive memory ... STALE**, turret holds still) if you drive more than **12 inches** or **5 seconds** pass without the camera seeing the hive. When the camera sees the hive again it takes over.
 - The operator's bumpers (jam clearing) beat your Right Trigger shot, so don't be surprised if the shot stops.

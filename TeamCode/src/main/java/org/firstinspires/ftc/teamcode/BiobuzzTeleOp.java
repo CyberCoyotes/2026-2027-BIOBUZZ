@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.HiveBearingMemory;
+import org.firstinspires.ftc.teamcode.subsystems.HubPowerSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
@@ -15,7 +16,7 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
- * TeleOp Alpha 9
+ * TeleOp Alpha 10
  * An iterative OpMode with TWO controllers:
  *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to SHOOT.
  *              (The turret now AUTO-TRACKS the hive ALL THE TIME, see ALWAYS-TRACK below.)
@@ -23,6 +24,22 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * It is DriveAlpha, IntakeAlpha, ShooterRPMAlpha, TurretAlpha, VisionAlpha, ShotTableAlpha and
  * PinpointAlpha put together, so each part has already been tested on its own. This OpMode owns
  * NO hardware. It only reads the gamepads and tells the subsystems what to do.
+ *
+ * NEW IN ALPHA 10: HUB POWER ON THE SCREEN, and safer Pinpoint heading follow
+ *   1. HUB POWER. HubPowerSubsystem reads the battery voltage and the current of the Control Hub
+ *      and the Expansion Hub four times a second and shows them under "--- HUB POWER ---": the
+ *      voltage now and the LOWEST since START, the current now and the HIGHEST, the I2C bus
+ *      current, and a count of hub DROPOUTS. It is here to find a worn battery or a bad
+ *      connection: drive and shoot with two different batteries and compare the lowest voltage.
+ *      It is also shown during INIT, so you can read the resting voltage before START.
+ *   2. SAFER HEADING FOLLOW (after the first robot test, where the turret snapped around):
+ *      - The remembered hive direction is THROWN AWAY whenever the Pinpoint is not READY, or its
+ *        heading jumps by more than MAX_PINPOINT_HEADING_JUMP_DEGREES in one loop (a robot cannot
+ *        turn that fast, so the Pinpoint must have restarted, for example after a power dip).
+ *        Before, a restarted Pinpoint (heading back at 0) could send the turret to a wrong angle.
+ *      - If the remembered hive is somewhere the turret cannot go (for example behind the robot),
+ *        the turret now HOLDS where it is. Before, a small turn could flip the target between the
+ *        two limits and swing the turret all the way across.
  *
  * NEW IN ALPHA 9: THE PINPOINT HELPS THE TURRET (and our hive's two sides)
  *   1. PINPOINT HEADING FOLLOW. While the camera sees the hive, HiveBearingMemory saves which
@@ -182,7 +199,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   I2C Device name: pinpoint         (PinpointSubsystem, goBILDA Pinpoint Odometry Computer. If it
  *                                      is missing, the screen says so and the OpMode still runs.)
  */
-@TeleOp(name = "TeleOp - Alpha 9", group = "Testing")
+@TeleOp(name = "TeleOp - Alpha 10", group = "Testing")
 public class BiobuzzTeleOp extends OpMode {
 
     // ------------------------------------------------------------------
@@ -263,10 +280,11 @@ public class BiobuzzTeleOp extends OpMode {
     // or more, so there is no need to chase every fraction of a degree.
     private static final double ALIGN_REAIM_THRESHOLD_DEGREES = 1.0;
 
-    // When we follow the Pinpoint heading, the turret keeps the target inside its soft limits. If
-    // it had to change our answer by more than this many degrees, we say the hive is OUT of the
-    // turret's range. (Just for the screen.)
-    private static final double OUT_OF_RANGE_TOLERANCE_DEGREES = 0.5;
+    // The Pinpoint's heading should never change by more than this many degrees from one loop to
+    // the next (a loop is about 20 milliseconds, and 45 degrees in that time would be over 2000
+    // degrees per second, far faster than the robot can turn). A bigger jump means the Pinpoint
+    // restarted or glitched, so the remembered hive direction can no longer be trusted.
+    private static final double MAX_PINPOINT_HEADING_JUMP_DEGREES = 45.0;
 
     // The target counts as "aimed at" when tx is within this many degrees of zero.
     private static final double AIMED_TOLERANCE_DEGREES = 2.0;
@@ -320,6 +338,7 @@ public class BiobuzzTeleOp extends OpMode {
     private VisionSubsystem visionSubsystem;
     private PinpointSubsystem pinpointSubsystem;
     private HiveBearingMemory hiveMemory;
+    private HubPowerSubsystem hubPowerSubsystem;
     private ShotTable shotTable;
 
     // The shooter dials, in whole numbers.
@@ -363,6 +382,11 @@ public class BiobuzzTeleOp extends OpMode {
 
     // The push the turret got this loop to follow the robot's spin, for the screen.
     private double turretFeedforward = 0.0;
+
+    // The Pinpoint's heading from the last loop, so we can spot a jump (see
+    // MAX_PINPOINT_HEADING_JUMP_DEGREES). haveLastPinpointHeading is false until we have one.
+    private double lastPinpointHeadingDegrees = 0.0;
+    private boolean haveLastPinpointHeading = false;
 
     /*
      * True only on the loop where a button goes from "not pressed" to "pressed".
@@ -492,20 +516,50 @@ public class BiobuzzTeleOp extends OpMode {
             return "AUTO-ALIGN (NO TARGET - memory STALE, holding)";
         }
 
+        double wantedAngle = hiveMemory.getTurretAngleDegrees(pinpointSubsystem.getHeadingDegrees());
+
+        // The turret cannot go past its soft limits. If the hive is somewhere it cannot reach (for
+        // example behind the robot), HOLD where we are. We do NOT push the target to the nearest
+        // limit, because when the hive is behind the robot a tiny turn flips the answer from one
+        // side to the other, and the turret would swing all the way across between the limits.
+        if (wantedAngle < turretSubsystem.getMinAngleDegrees()
+                || wantedAngle > turretSubsystem.getMaxAngleDegrees()) {
+            turretSubsystem.holdCurrentAngle();
+            return "AUTO-ALIGN (NO TARGET - hive is OUT OF the turret's range, holding)";
+        }
+
         // Follow the robot's spin, the same as when the camera sees the hive, so the turret
         // does not trail behind. The target below moves with the heading every loop.
         turretFeedforward = -driveSubsystem.getTurnPower() * TURRET_FEEDFORWARD_GAIN;
         turretSubsystem.setFeedforwardPower(turretFeedforward);
-
-        double wantedAngle = hiveMemory.getTurretAngleDegrees(pinpointSubsystem.getHeadingDegrees());
         turretSubsystem.setTargetAngle(wantedAngle);
-
-        // The turret keeps its target inside its soft limits. If it had to change our answer, the
-        // hive is somewhere the turret cannot reach (for example directly behind the robot).
-        if (Math.abs(turretSubsystem.getTargetAngleDegrees() - wantedAngle) > OUT_OF_RANGE_TOLERANCE_DEGREES) {
-            return "AUTO-ALIGN (NO TARGET - following Pinpoint heading, hive is OUT OF the turret's range)";
-        }
         return "AUTO-ALIGN (NO TARGET - following Pinpoint heading)";
+    }
+
+    /*
+     * Throws away the remembered hive direction when the Pinpoint cannot be trusted. Call it once
+     * per loop, right after pinpointSubsystem.update().
+     *   - Pinpoint not READY: it is missing, still calibrating, or faulted.
+     *   - Heading jumped: it changed by more than a robot can turn in one loop, so the Pinpoint
+     *     restarted or glitched (a power dip can do this). Its heading is back at some new zero,
+     *     so the remembered direction, which was measured against the OLD zero, is now wrong.
+     */
+    private void checkPinpointHealth() {
+        if (!pinpointSubsystem.isReady()) {
+            hiveMemory.clear();
+            haveLastPinpointHeading = false;
+            return;
+        }
+
+        double heading = pinpointSubsystem.getHeadingDegrees();
+        if (haveLastPinpointHeading) {
+            double jump = Math.abs(HiveBearingMemory.wrapDegrees(heading - lastPinpointHeadingDegrees));
+            if (jump > MAX_PINPOINT_HEADING_JUMP_DEGREES) {
+                hiveMemory.clear();
+            }
+        }
+        lastPinpointHeadingDegrees = heading;
+        haveLastPinpointHeading = true;
     }
 
     /*
@@ -593,6 +647,8 @@ public class BiobuzzTeleOp extends OpMode {
         // STILL during INIT. If the config has no "pinpoint", this does not stop the OpMode.
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
         hiveMemory = new HiveBearingMemory();
+        // Finds both hubs by itself. It needs no name in the robot configuration.
+        hubPowerSubsystem = new HubPowerSubsystem(hardwareMap);
         shotTable = new ShotTable();
 
         telemetry.addData("Status", "Initialized");
@@ -618,6 +674,9 @@ public class BiobuzzTeleOp extends OpMode {
         visionSubsystem.addTelemetry(telemetry);
         // Check that the Pinpoint says READY before START. (The robot must be still until then.)
         pinpointSubsystem.addTelemetry(telemetry);
+        // The resting battery voltage, before the robot has done anything.
+        hubPowerSubsystem.update();
+        hubPowerSubsystem.addTelemetry(telemetry);
         addRawGamepadTelemetry();
         addControlsTelemetry();
 
@@ -638,6 +697,8 @@ public class BiobuzzTeleOp extends OpMode {
     public void start() {
         runtime.reset();
         loopTimer.reset();
+        // "Lowest" voltage and "highest" current should be about the RUN, not about INIT.
+        hubPowerSubsystem.resetLowestAndHighest();
     }
 
     /*
@@ -663,6 +724,8 @@ public class BiobuzzTeleOp extends OpMode {
         intakeSubsystem.update();
         visionSubsystem.update();
         pinpointSubsystem.update();
+        checkPinpointHealth();
+        hubPowerSubsystem.update();
 
         // 2. Read the gamepads and decide what to do.
         checkModeButtons();
@@ -939,6 +1002,9 @@ public class BiobuzzTeleOp extends OpMode {
         }
         // Always on the screen: aiming at the wrong alliance's hive is not an obvious failure.
         telemetry.addData("Alliance (gamepad2 Back)", visionSubsystem.getAlliance());
+
+        // Battery voltage and current. Watch the LOWEST voltage to compare batteries.
+        hubPowerSubsystem.addTelemetry(telemetry);
 
         telemetry.addLine("--- DRIVE ---");
         telemetry.addData("Drive Control", driveControl);

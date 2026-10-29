@@ -69,7 +69,7 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
  *   (Home switch, Digital Device "turret_home_sensor": not installed yet, so not needed.)
  *
  * HIDDEN FROM THE DRIVER STATION LIST
- *   TeleOp - Alpha 9 has the turret stick, the presets and ALWAYS-TRACK built in, so this
+ *   TeleOp - Alpha 10 has the turret stick, the presets and ALWAYS-TRACK built in, so this
  *   OpMode is @Disabled to keep the list short. The code is all still here. To bring it back
  *   (for example to recheck the turret direction, limits or speed, issue #35), put // in front
  *   of the @Disabled line below and redeploy.
