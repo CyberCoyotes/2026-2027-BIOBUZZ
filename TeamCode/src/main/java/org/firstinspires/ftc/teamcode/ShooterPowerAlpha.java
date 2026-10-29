@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -79,7 +80,14 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  *   Motor name: intake        (IntakeSubsystem,        goBILDA 5202/3/4 series)
  *   Servo name: shooter_servo (ShooterServoSubsystem,  goBILDA dual mode servo, POSITIONAL mode)
  * The motor directions are set inside the subsystems, not in this file.
+ *
+ * HIDDEN FROM THE DRIVER STATION LIST
+ *   The shooter now runs on speed control (RPM), and ShooterRPMAlpha and TeleOp - Alpha 8 cover
+ *   everything this open-loop POWER test did, so this OpMode is @Disabled to keep the list short.
+ *   The code is all still here. To bring it back (for example for the raw ticks/sec jitter test
+ *   in issue #43), put // in front of the @Disabled line below and redeploy.
  */
+@Disabled
 @TeleOp(name = "Shooter Power - Alpha", group = "Testing")
 public class ShooterPowerAlpha extends OpMode {
 

@@ -7,13 +7,13 @@ Print this and keep it at the driver station. It lists **what every button does 
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
 - **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward.
 
-**Names on the Driver Station:** `TeleOp - Alpha 7`, `Shooter RPM - Alpha 2`, `Shooter Power - Alpha`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Turret Testing`, `Vision - Alpha`. **Hidden** (`@Disabled`, remove that line and redeploy to bring them back): `Drive Alpha`, `Intake Testing - Alpha`.
+**Names on the Driver Station:** `TeleOp - Alpha 8`, `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Pinpoint - Alpha`. **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
 ---
 
-## 1. TeleOp - Alpha 7 (the real TeleOp)
+## 1. TeleOp - Alpha 8 (the real TeleOp)
 
 Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, starts ON).
 
@@ -79,7 +79,7 @@ Priority, highest first: bumpers, RT (encoder check), Y / X. The gate buttons ar
 
 ---
 
-## 3. Shooter Power - Alpha (two controllers)
+## 3. Shooter Power - Alpha (two controllers) (hidden)
 
 Plain **power**, no speed control. Note: with the 1620 RPM flywheel motor, the same power is now a **much slower** flywheel, so these are not the old shots.
 
@@ -151,7 +151,7 @@ Priority: LB, then RT, then LT. Copy the saved rows into `ShotTable` before you 
 
 ---
 
-## 6. Turret Testing (gamepad 2 only)
+## 6. Turret Testing (gamepad 2 only) (hidden)
 
 | Control | What it does |
 |---|---|
@@ -167,7 +167,7 @@ Priority: stick, D-pad Left / Right, Y / X / B, then A. Letting go of the stick 
 
 ---
 
-## 7. Vision - Alpha
+## 7. Vision - Alpha (hidden)
 
 Step 1 is camera only (no controls, just INIT and watch). Step 2 aims the turret.
 
@@ -203,9 +203,20 @@ Letting go of RB or the stick holds the turret.
 
 ---
 
+## 9. Pinpoint - Alpha (gamepad 1 only)
+
+The robot does **not** drive. Push it around **by hand** and watch the odometry numbers. The test order is in the OpMode's header and in `pinpoint-setup-guide.md`.
+
+| Control | What it does |
+|---|---|
+| **A** | Make the robot's current spot the new start (X = 0, Y = 0, heading = 0) |
+| **B** | Recalibrate the gyro **and** zero the position. Hold the robot **still** |
+
+---
+
 ## Quick "which OpMode am I in" differences
 
-| Job | TeleOp Alpha 7 | The test OpModes |
+| Job | TeleOp Alpha 8 | The test OpModes |
 |---|---|---|
 | Shoot | Driver **RT** (hold) | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
 | Gate | Driver **X** closed / **B** opened / **Y** lifted, and operator **RT** opened / **LT** closed | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |

@@ -28,13 +28,13 @@ We still organize the robot into **subsystems**, the same idea as in FRC: one cl
 
 ```
 org.firstinspires.ftc.teamcode
-├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DriveSubsystem, VisionSubsystem …
+├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DriveSubsystem, VisionSubsystem, PinpointSubsystem …
 ├── testing/        test OpModes (the *Alpha files)   [CONFIRM]
 ├── pedroPathing/   Pedro Pathing constants and tuning (per Pedro's setup guide)
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`, `VisionAlpha`, `ShotTableAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 7"; gamepad1 is the driver, gamepad2 is the operator, and every button always does the same thing, see its header). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`, `VisionAlpha`, `ShotTableAlpha`, `PinpointAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 8"; gamepad1 is the driver, gamepad2 is the operator, and every button always does the same thing, see its header). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
 
 ### OpModes
 
@@ -43,7 +43,7 @@ The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `I
 - Always stop every motor in `stop()`.
 - Put all tunable numbers at the top as `private static final` constants with a comment explaining how to change them. The Alpha test OpModes are the model.
 - Annotate with `@TeleOp(name = "…", group = "…")` or `@Autonomous(...)`. Test OpModes use `group = "Testing"`.
-- **Keep the Driver Station list short.** Once a subsystem is well tested, add `@Disabled` above its Alpha's `@TeleOp` line. Never delete the file. To bring it back, comment out the `@Disabled` line and redeploy. Currently hidden: `DriveAlpha`, `IntakeAlpha`. The shooter and turret Alphas stay visible while those subsystems are being worked on.
+- **Keep the Driver Station list short.** Once a subsystem is well tested, add `@Disabled` above its Alpha's `@TeleOp` line. Never delete the file. To bring it back, comment out the `@Disabled` line and redeploy. Currently hidden: `DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `TurretAlpha`, `VisionAlpha`. The shooter RPM, ratio and shot table Alphas, and `PinpointAlpha`, stay visible while those subsystems are being worked on.
 
 ### Subsystem classes (one per mechanism)
 
@@ -156,6 +156,7 @@ Names already in use:
 | `turret_home_switch` | REV magnetic limit switch (active-low) that re-zeros the turret angle (digital port). Name approved. |
 | `shooter_servo` | Shooter gate: goBILDA dual mode 300° torque servo, set to positional mode. Has three positions: CLOSED, OPENED and LIFTED (about 90° between CLOSED and OPENED, and the whole travel to LIFTED). |
 | `limelight` | Limelight 3A (Ethernet device) |
+| `pinpoint` | goBILDA Pinpoint Odometry Computer (I2C device, Control Hub bus 1, 2 or 3). Last season's name was `odo`, so each robot's config needs a one-time rename. |
 
 Add new names here when you add hardware. Names in code must match the configuration exactly.
 
@@ -264,7 +265,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Speed cap:** the flywheel is the 1620 RPM motor, so `FLYWHEEL_MAX_TARGET_RPM` is **1458**. **Keep every flywheel RPM at 1458 or below.** Above that the flywheel is cut off and the hood wheel (twice what you asked) is off ratio. **The farthest spot (1425 RPM) is within 33 RPM of the cap, and these rows were measured with the old 6000 RPM flywheel motor, so recheck them on the robot.**
 - **Test OpMode:** `ShotTableAlpha` ("Shot Table - Alpha", gamepad1). Minimal on purpose: no drive, turret, or gate. Move the robot **by hand** and load balls into the intake. Right Trigger shoots at a dial RPM (D-pad Up/Down) to find the slowest speed that scores; A saves a row (`ty` + RPM) to the screen; Left Trigger shoots at the table's RPM to check it; Left Bumper reverses both wheels and the intake; START switches alliance. **Both shoot triggers also run `IntakeSubsystem`, but only once `ShooterSubsystem.isAtSpeed()` is true** (`INTAKE_WAITS_FOR_SPEED`), so each ball is fed at the speed being measured. A ball slows the wheels, the intake pauses until they recover, and balls go one at a time. The gate servo is not touched. Nothing is saved to disk, so copy the rows into `ShotTable` before stopping.
 - **`[CONFIRM]` first-pass rows are in:** 5 spots measured with `ShotTableAlpha` (7 saves, repeats merged), from `ty` -16.8 (1425 RPM; 1400 made the shot and 1450 felt more comfortable) to `ty` -4.0 (1250 RPM). `ty` is negative on our camera; the rule that matters is that a bigger `ty` is closer and needs a lower RPM. The RPMs are only good to about ±50 (the dial's step). Check the table with Left Trigger at a spot that was not measured, and add rows where it misses.
-- **Wired into `BiobuzzTeleOp` ("TeleOp - Alpha 7"), not yet tested on the robot.**
+- **Wired into `BiobuzzTeleOp` ("TeleOp - Alpha 7", now Alpha 8), not yet tested on the robot.**
   - **Vision joins the TeleOp.** It creates a `VisionSubsystem` and calls `update()` once per loop. **Every robot's Driver Station config must have the `limelight` Ethernet device**, or the TeleOp stops at INIT.
   - **Auto-align** (same logic as `VisionAlpha`: new turret target = angle now − `tx`, re-aimed only when `|tx|` is over 1°) **runs all the time (ALWAYS-TRACK, new in Alpha 7)**. `alwaysTrack` starts ON (`ALWAYS_TRACK_AT_START`) and never runs during INIT. **gamepad2 Right Stick Button** switches it ON / OFF, and gamepad2 Y, X, B and A (presets and STOP) switch it OFF so the turret stays where they put it. The **driver's Right Trigger still aligns AND shoots together**, even when ALWAYS-TRACK is OFF. gamepad2 Right Bumper keeps its old job (reverse the flywheel only). The turret stick and A (STOP) beat auto-align. With no target it holds the current angle. It does not search. **`[CONFIRM]`: the alliance starts as BLUE, so a red-alliance robot tracks the wrong hive until the operator presses Back. Decide whether the starting alliance should be set per robot or per match.**
   - **Following the robot's spin (feedforward), not yet tested on the robot:** while auto-aligning, the TeleOp calls `turretSubsystem.setFeedforwardPower(-driveSubsystem.getTurnPower() × TURRET_FEEDFORWARD_GAIN)` every loop. Robot spins left, turret is pushed right. While the robot is turning it picks a new turret target **every loop** (otherwise position control would pull the turret back toward an old target). The push only happens while a target is visible. `TURRET_FEEDFORWARD_GAIN` starts at **0.30**, a safe guess that follows a little less than needed. **Tune it on the robot:** spin steadily while aligned and watch `tx`. If `tx` drifts to the side the robot is spinning, raise the gain. If it swings the other way, lower it. Change it about 0.05 at a time. The screen shows "Turret follows spin". Checked only in a simple simulation (the feedforward cut the lag in every case, and a too-high gain made the turret lead instead of going unstable). The simulation's turret and robot speeds were assumptions, not measurements.
@@ -274,6 +275,21 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
   - **Checked** by compiling and by running the real loop against fake subsystems (speed source, the 1.0 s hold, align priorities, alliance and mode toggles). Not run on the robot.
   - **Not in this session:** always-tracking (hold-to-align only), and gating the intake or gate on `isAtSpeed()` and "turret aimed".
 
+### PinpointSubsystem (`subsystems/PinpointSubsystem.java`): code written, not yet tested on the robot
+
+- **Hardware:** `pinpoint`, the goBILDA Pinpoint odometry computer (I2C device) with **two spring-loaded swingarm pods** (already wired). It is its own class, not part of `DriveSubsystem`, because it is a sensors-only device and `DriveSubsystem` owns only the drive motors. The config name changed from last season's `odo`, so each robot's config needs a one-time rename (steps in `TeamCode/docs/pinpoint-setup-guide.md`).
+- **Reads only.** No motors, no gamepad code. The OpMode calls `update()` once per loop.
+- **Convention (same as `DriveSubsystem`, `TurretSubsystem` and Pedro Pathing):** X is inches **forward**, Y is inches **left**, heading is degrees with **counterclockwise (turning left) positive**, so `shooterFieldHeading = robotHeading + turretAngle` still works. Zero is where the robot sat at INIT.
+- **Methods:** `update()`, `resetPose()` (zero here, safe any time), `recalibrate()` (zero and recalibrate the gyro, robot still), `getXInches()`, `getYInches()`, `getHeadingDegrees()`, `getXSpeedInchesPerSecond()`, `getYSpeedInchesPerSecond()`, `getHeadingSpeedDegreesPerSecond()`, `getForwardPodTicks()`, `getSidewaysPodTicks()`, `isAvailable()`, `isReady()`, `getDeviceStatus()`, `getPinpointFrequencyHz()`, `addTelemetry()`.
+- **Missing device is not fatal:** it uses `hardwareMap.tryGet`. With no `pinpoint` in the config the getters return 0, `isAvailable()` is false and the telemetry says NOT FOUND. (`VisionSubsystem` is different: no `limelight` stops the TeleOp at INIT.)
+- **Geometry copied from last season (same chassis, `2025-2026-Decode-ARCHIVE`):** swingarm pods, forward pod **3.75 in to the RIGHT** of the turning center (`-3.75`), sideways pod centered front to back (`0.0`), both encoder directions `FORWARD`. `[CONFIRM]` remeasure if either pod moved.
+- **Two last-season values were deliberately NOT copied, and are `[CONFIRM]` on the robot:**
+  - **Heading sign** (`INVERT_HEADING`, starts `false`). Last season's helper flipped it, but the Pedro Pathing config did not, and our convention needs counterclockwise positive. Test step 3 in `PinpointAlpha` decides it.
+  - **Distance multiplier** (`DISTANCE_CALIBRATION_MULTIPLIER`, starts `1.0`). Last season's helper used **1.5** (6 in shown for a real 9). 1.5 is exactly the ratio between goBILDA's two pod settings (19.894 / 13.263 ticks per mm), so it probably covered up a pod setting that was not taking effect. Measure with test step 4 instead.
+- **Test OpMode:** `PinpointAlpha` ("Pinpoint - Alpha", gamepad1: A zero here, B recalibrate). The robot does not drive. Push it by hand. The header has the six-step test order.
+- **Wired into `BiobuzzTeleOp` ("TeleOp - Alpha 8"):** created in `init()` (robot still at INIT), `update()` in step 1 of `loop()` and in `init_loop()`, telemetry under the DRIVE section and during INIT. **Nothing uses the pose yet.**
+- **Not in this class:** field-centric drive, feeding the heading to the turret, fusing the Limelight, and anything Pedro Pathing does in Auto (Pedro reads the Pinpoint itself, so never use this class and a Pedro `Follower` in one OpMode).
+
 ### DriveSubsystem (`subsystems/DriveSubsystem.java`): code written, not yet tested on the robot
 
 - **Hardware:** four drive motors named `left_front`, `left_rear`, `right_front`, `right_rear` (the same wiring on the practice bot, 11940 and 22091). The Driver Station config on each robot must use these names (one-time edit).
@@ -282,7 +298,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Wheel math:** leftFront = forward - strafe - turn, rightFront = forward + strafe + turn, leftRear = forward + strafe - turn, rightRear = forward - strafe + turn. If any wheel would pass 1.0, all four are scaled down together.
 - **Methods:** `drive`, `setSlowMode(boolean)` (slow mode; the 40% scale is `SLOW_MODE_POWER_SCALE` in the subsystem), `getTurnPower()` (how hard the robot is being told to spin, -1.0 to 1.0, + is counterclockwise, after slow mode; the TeleOp uses it to tell the turret how fast to follow the spin), `setWheelPowers` (raw, used by `drive` and the wheel tests), `stop`, `addTelemetry`. No `update()`, because there is no ongoing work.
 - **Zero-power behavior:** `BRAKE` (a named constant), for precise stops. The robot is tall, so watch for tipping.
-- **Robot-centric only** in the first version. Field-centric comes later, with a Pinpoint wrapper that supplies the heading.
+- **Robot-centric only** in the first version. Field-centric comes later, with `PinpointSubsystem` (below) supplying the heading.
 - **Test OpMode:** `DriveAlpha` (sticks drive; hold the right trigger for slow mode; X, A, Y and B each spin one wheel for the direction check).
 - **Starting values to check on the robot:** the direction constants (left motors `REVERSE`, right motors `FORWARD`, copied from the FTC sample), the slow-mode scale (40%), and `BRAKE`. Do the wheel test with the robot on blocks first.
 

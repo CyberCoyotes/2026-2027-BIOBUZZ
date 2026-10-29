@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShotTable;
@@ -13,14 +14,24 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
- * TeleOp Alpha 7
+ * TeleOp Alpha 8
  * An iterative OpMode with TWO controllers:
  *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to SHOOT.
  *              (The turret now AUTO-TRACKS the hive ALL THE TIME, see ALWAYS-TRACK below.)
  *   gamepad2 = the OPERATOR: sets the shooter speeds (RPM), aims the TURRET, and moves the GATE.
- * It is DriveAlpha, IntakeAlpha, ShooterRPMAlpha, TurretAlpha, VisionAlpha and ShotTableAlpha
- * put together, so each part has already been tested on its own. This OpMode owns NO hardware.
- * It only reads the gamepads and tells the subsystems what to do.
+ * It is DriveAlpha, IntakeAlpha, ShooterRPMAlpha, TurretAlpha, VisionAlpha, ShotTableAlpha and
+ * PinpointAlpha put together, so each part has already been tested on its own. This OpMode owns
+ * NO hardware. It only reads the gamepads and tells the subsystems what to do.
+ *
+ * NEW IN ALPHA 8: ODOMETRY ON THE SCREEN
+ *   PinpointSubsystem reads the goBILDA Pinpoint odometry computer once per loop, and the Driver
+ *   Station shows where the robot is: X (inches forward), Y (inches left), and heading (degrees,
+ *   turning left is positive), plus the speeds and the Pinpoint's status. The numbers are shown
+ *   during INIT too, so check the status says READY before START. The robot must be STILL during
+ *   INIT, because the Pinpoint calibrates its gyro then, and X, Y and heading start at 0 where the
+ *   robot sits at INIT. NOTHING USES THE POSITION YET. The drive is still robot-centric, and the
+ *   turret still aims with the camera. This only shows the numbers. If the config has no device
+ *   named "pinpoint", the screen says so and everything else still works.
  *
  * GAMEPAD 2 (the operator) has NO layers. Every button always does the same thing:
  *   Left Stick X     -> turn the turret (push RIGHT and the turret turns RIGHT)
@@ -145,8 +156,10 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Motor name:  turret_motor    (TurretSubsystem, with its encoder cable in the same port)
  *   Ethernet Device name: limelight   (VisionSubsystem, Limelight 3A. This robot's config MUST
  *                                      have it, or this OpMode stops at INIT.)
+ *   I2C Device name: pinpoint         (PinpointSubsystem, goBILDA Pinpoint Odometry Computer. If it
+ *                                      is missing, the screen says so and the OpMode still runs.)
  */
-@TeleOp(name = "TeleOp - Alpha 7", group = "Testing")
+@TeleOp(name = "TeleOp - Alpha 8", group = "Testing")
 public class BiobuzzTeleOp extends OpMode {
 
     // ------------------------------------------------------------------
@@ -277,6 +290,7 @@ public class BiobuzzTeleOp extends OpMode {
     private ShooterServoSubsystem shooterServoSubsystem;
     private TurretSubsystem turretSubsystem;
     private VisionSubsystem visionSubsystem;
+    private PinpointSubsystem pinpointSubsystem;
     private ShotTable shotTable;
 
     // The shooter dials, in whole numbers.
@@ -470,6 +484,9 @@ public class BiobuzzTeleOp extends OpMode {
         turretSubsystem = new TurretSubsystem(hardwareMap);
         // The Limelight starts polling here. It needs about 30 seconds to boot after power-up.
         visionSubsystem = new VisionSubsystem(hardwareMap);
+        // The Pinpoint zeros its position and calibrates its gyro here, so the robot must be
+        // STILL during INIT. If the config has no "pinpoint", this does not stop the OpMode.
+        pinpointSubsystem = new PinpointSubsystem(hardwareMap);
         shotTable = new ShotTable();
 
         telemetry.addData("Status", "Initialized");
@@ -484,6 +501,7 @@ public class BiobuzzTeleOp extends OpMode {
         // Read the camera and the operator's mode buttons now, so the alliance and the speed
         // source can be set (and checked) before START.
         visionSubsystem.update();
+        pinpointSubsystem.update();
         checkModeButtons();
 
         // The Driver Station clears its screen every loop, so we add the
@@ -492,6 +510,8 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addData("Alliance (gamepad2 Back)", visionSubsystem.getAlliance());
         telemetry.addData("Flywheel speed source (gamepad2 Start)", getModeText());
         visionSubsystem.addTelemetry(telemetry);
+        // Check that the Pinpoint says READY before START. (The robot must be still until then.)
+        pinpointSubsystem.addTelemetry(telemetry);
         addRawGamepadTelemetry();
         addControlsTelemetry();
 
@@ -536,6 +556,7 @@ public class BiobuzzTeleOp extends OpMode {
         //    The shooter reads its wheel encoders in its own update(), in step 3 below.)
         intakeSubsystem.update();
         visionSubsystem.update();
+        pinpointSubsystem.update();
 
         // 2. Read the gamepads and decide what to do.
         checkModeButtons();
@@ -804,6 +825,10 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addData("Drive inputs", "forward %.2f   strafe %.2f   turn %.2f",
                 forward, strafe, turn);
 
+        // The Pinpoint prints its own "--- ODOMETRY (Pinpoint) ---" heading, with its status, the
+        // robot's position (X, Y, heading) and its speeds. Nothing uses the position yet.
+        pinpointSubsystem.addTelemetry(telemetry);
+
         // The dials: what the operator has asked for. (They only take effect while the driver
         // holds the Right Trigger.)
         telemetry.addLine("--- SHOOTER DIALS (RPM) ---");
@@ -912,5 +937,6 @@ public class BiobuzzTeleOp extends OpMode {
         turretSubsystem.stop();
         // Stop polling the camera.
         visionSubsystem.stop();
+        // The Pinpoint only reads, so there is nothing to stop.
     }
 }

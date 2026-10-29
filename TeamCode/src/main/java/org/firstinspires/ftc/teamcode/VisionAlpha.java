@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -58,7 +59,14 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * Robot configuration (on the Driver Station):
  *   Ethernet Device name: limelight   (VisionSubsystem, Limelight 3A)
  *   Motor name:           turret_motor (TurretSubsystem, with its encoder cable in the same port)
+ *
+ * HIDDEN FROM THE DRIVER STATION LIST
+ *   The camera reading and the auto-align are tested, and TeleOp - Alpha 8 now has auto-align
+ *   (ALWAYS-TRACK) built in, so this OpMode is @Disabled to keep the list short.
+ *   The code is all still here. To bring it back (for example after moving the camera), put //
+ *   in front of the @Disabled line below and redeploy.
  */
+@Disabled
 @TeleOp(name = "Vision - Alpha", group = "Testing")
 public class VisionAlpha extends OpMode {
 
