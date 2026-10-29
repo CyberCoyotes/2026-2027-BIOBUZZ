@@ -12,7 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit
 /*
  * Pinpoint Subsystem
  * Owns the goBILDA PINPOINT odometry computer and its two odometry pods. It only READS. It never
- * moves a motor, and it has no gamepad code. Another class (for now TeleOp - Alpha 8 and
+ * moves a motor, and it has no gamepad code. Another class (for now TeleOp - Alpha 9 and
  * PinpointAlpha) asks it where the robot is.
  *
  * WHAT IT ANSWERS: "Where is the robot, and which way is it facing, compared to where it started?"
@@ -20,8 +20,10 @@ import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit
  *   getYInches()          -> how far LEFT of the start point. Left is POSITIVE.
  *   getHeadingDegrees()   -> which way the robot faces. Turning LEFT (counterclockwise) is POSITIVE.
  * Those are the same signs as DriveSubsystem and TurretSubsystem (forward +, left +, counter-
- * clockwise +), and the same as Pedro Pathing. So the turret's field direction is later just:
+ * clockwise +), and the same as Pedro Pathing. So the turret's field direction is just:
  *   shooterFieldHeading = robotHeading + turretAngle
+ * (HiveBearingMemory uses this, so the turret can keep pointing at the hive when the camera
+ * loses it.)
  *
  * HOW IT WORKS: two spring-loaded (swingarm) odometry pods ride on the floor. One pod faces
  * forward (it counts when the robot drives forward or backward) and one faces sideways (it counts
