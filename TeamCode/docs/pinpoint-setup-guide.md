@@ -33,7 +33,7 @@ If you skip this, nothing breaks. `TeleOp - Alpha 8` and `Pinpoint - Alpha` stil
 | Test | What you do | What you should see |
 |---|---|---|
 | 1. Status | Look at the screen after INIT | `READY` |
-| 2. Pod directions | Press **A**, push the robot **forward**, then push it **left** | Forward pod ticks go **up** and **X** goes up. Sideways pod ticks go **up** and **Y** goes up |
+| 2. Pod directions | Press **A**, push the robot **forward**, then push it **left** | **X** goes up when pushed forward, and **Y** goes up when pushed left. (The pod tick lines are raw counts before the direction setting, so judge by X and Y. They only need to change when you push.) |
 | 3. Heading sign | Press **B** (robot still), then turn the robot **left** by hand | **Heading** goes **up** |
 | 4. Distance | Press **A**, push the robot 48 inches along a tape measure | **X** shows about 48 |
 | 5. Turn in place | Press **A**, spin the robot 360 degrees left around its middle | Heading, X and Y all end near 0 |
@@ -45,7 +45,7 @@ Every fix is one constant at the top of `PinpointSubsystem.java`. Change it, red
 
 | Problem | Constant to change |
 |---|---|
-| A pod's count goes **down** when it should go up | `FORWARD_POD_DIRECTION` or `SIDEWAYS_POD_DIRECTION`: change `FORWARD` to `REVERSED` for that pod |
+| **X** or **Y** goes **down** when it should go up | `FORWARD_POD_DIRECTION` or `SIDEWAYS_POD_DIRECTION`: change `FORWARD` to `REVERSED` for that pod |
 | Heading goes **down** when you turn left | `INVERT_HEADING`: change `false` to `true` |
 | X or Y is off by a steady amount (for example it shows 32 for a real 48) | `DISTANCE_CALIBRATION_MULTIPLIER`: real distance divided by shown distance (48 / 32 = 1.5) |
 | X and Y wander when you only spin the robot | `FORWARD_POD_SIDEWAYS_OFFSET_INCHES` and `SIDEWAYS_POD_FORWARD_OFFSET_INCHES`: remeasure with a tape measure (see below) |

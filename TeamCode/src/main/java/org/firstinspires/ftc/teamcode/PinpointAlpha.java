@@ -18,12 +18,14 @@ import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
  * THE TEST ORDER (do these in order, and stop at the first one that fails)
  *   1. STATUS. After INIT, "Pinpoint status" must say READY. If it says NOT FOUND, the name in the
  *      robot configuration is wrong. If it says FAULT, check the cable it names.
- *   2. POD DIRECTIONS. Press A, then push the robot FORWARD by hand.
- *        "Forward pod ticks" must go UP, and X must go UP.
- *      Now push it LEFT (strafe).
- *        "Sideways pod ticks" must go UP, and Y must go UP.
- *      If one goes the wrong way, change that pod's direction to REVERSED in PinpointSubsystem
- *      (FORWARD_POD_DIRECTION or SIDEWAYS_POD_DIRECTION).
+ *   2. POD DIRECTIONS. Press A, then push the robot FORWARD by hand. X must go UP.
+ *      Now push it LEFT (strafe). Y must go UP.
+ *      If X or Y goes the wrong way, change that pod's direction in PinpointSubsystem
+ *      (FORWARD_POD_DIRECTION or SIDEWAYS_POD_DIRECTION) from FORWARD to REVERSED, or back.
+ *      Judge it by X and Y ONLY. The pod tick lines are RAW counts from the pod, before the
+ *      direction setting is used, so they do not change when you reverse a pod (a pod that is
+ *      set to REVERSED will show ticks going DOWN when it is correct). Use the ticks only to see
+ *      that each pod is counting at all: the numbers must change when you push the robot.
  *   3. HEADING SIGN. Press B (robot still), then turn the robot LEFT by hand (counterclockwise,
  *      seen from above). "Heading" must go UP. If it goes DOWN, set INVERT_HEADING to true in
  *      PinpointSubsystem.
@@ -120,9 +122,10 @@ public class PinpointAlpha extends OpMode {
     private void addPinpointTelemetry() {
         pinpointSubsystem.addTelemetry(telemetry);
         if (pinpointSubsystem.isAvailable()) {
-            telemetry.addData("Forward pod ticks (must go UP when pushed forward)",
+            // These are RAW counts (before the direction setting), so only check that they change.
+            telemetry.addData("Forward pod ticks (raw: must change when pushed forward/back)",
                     pinpointSubsystem.getForwardPodTicks());
-            telemetry.addData("Sideways pod ticks (must go UP when pushed left)",
+            telemetry.addData("Sideways pod ticks (raw: must change when pushed left/right)",
                     pinpointSubsystem.getSidewaysPodTicks());
             telemetry.addData("Pinpoint update rate", "%.0f Hz", pinpointSubsystem.getPinpointFrequencyHz());
         }

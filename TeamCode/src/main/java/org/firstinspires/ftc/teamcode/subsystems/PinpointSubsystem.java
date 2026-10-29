@@ -257,9 +257,10 @@ public class PinpointSubsystem {
 
     /*
      * The raw tick counts of the two pods. They ignore every correction in this class (the
-     * offsets, the multiplier, the heading flip), so they are the best way to check the pod
-     * DIRECTIONS: the forward pod's count must go UP when you push the robot forward, and the
-     * sideways pod's count must go UP when you push it left. Zero when there is no Pinpoint.
+     * offsets, the multiplier, the heading flip) AND the pod direction setting. Tested on the
+     * robot: a sideways pod set to REVERSED, with Y correct (+ going left), shows its ticks going
+     * DOWN. So use them only to see that each pod is counting at all. Judge the DIRECTIONS by
+     * getXInches() and getYInches(). Zero when there is no Pinpoint.
      */
     public int getForwardPodTicks() {
         if (pinpoint == null) {
