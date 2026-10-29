@@ -312,6 +312,15 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Starting values to check on the robot:** the motor direction (starts `REVERSE`, copied from the old `IntakeAlpha`), the default power, and `FLOAT` vs `BRAKE`.
 - **Not in this class:** a feed-to-shooter mode or ball counting. The firing gate and any different feed power are a later session.
 
+### BatterySubsystem (`subsystems/BatterySubsystem.java`): code written, not yet tested on the robot
+
+- **Hardware:** none to configure. It uses `hardwareMap.voltageSensor`, which lists the Control Hub and each Expansion Hub on its own, so there is **no config name** to add (and no entry in the config-names table).
+- **Reads only.** No motors, no gamepad code. It shows the voltage **each hub** sees and the **lowest** each has seen, because a battery dips for only a moment and the Driver Station's own warning is gone before anyone reads it. Why it exists: the 10-26 robot log showed **Expansion Hub 2** warning "battery too low to run motors and servos" about 20 times during a `TeleOp - Alpha 7` run, while the Control Hub did not. Compare the two hubs' lowest numbers: one much lower than the other points at that hub's power wire or connector, not the battery.
+- **Methods:** `update()` (once per loop; it only really reads every `READ_INTERVAL_SECONDS` = 0.10, because each read is a message over USB to the hub), `resetLowestVoltages()`, `getLowestVoltage()`, `isLow()`, `addTelemetry()` (one line, to save room on the screen).
+- **Wired into `BiobuzzTeleOp` ("TeleOp - Alpha 8"):** created in `init()`, `update()` in `init_loop()` and in step 1 of `loop()`, `resetLowestVoltages()` in `start()`, and the one-line telemetry during INIT and under the Alliance line while running.
+- **`[CONFIRM]` `LOW_VOLTAGE_WARNING_VOLTS` (11.0) is a starting guess**, not from a spec sheet or the manual. Watch a healthy robot with the flywheel spinning up, then set it a little under what it shows.
+- **Open:** whether the 0.10 s read interval is fast enough to catch a short stall dip. If the hub's own "battery too low" warning appears but our lowest number stays high, shorten it and check the loop time on the screen.
+
 ## 7. Session protocol (for Claude Code)
 
 > Read `ARCHITECTURE.md` and `CLAUDE.md`. Read the reference code in section 4 and the closest SDK sample. Then do the task. Modify only the files the task lists. Propose before coding unless the task already says the design is approved. Ask before adding dependencies, changing hardware config names, or inventing new conventions. **If you hit a `[CONFIRM]` marker relevant to the task, stop and ask.**

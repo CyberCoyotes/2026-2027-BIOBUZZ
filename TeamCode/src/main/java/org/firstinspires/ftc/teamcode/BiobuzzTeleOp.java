@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.subsystems.BatterySubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
@@ -32,6 +33,12 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   robot sits at INIT. NOTHING USES THE POSITION YET. The drive is still robot-centric, and the
  *   turret still aims with the camera. This only shows the numbers. If the config has no device
  *   named "pinpoint", the screen says so and everything else still works.
+ *
+ * ALSO ON THE SCREEN: BATTERY VOLTAGE
+ *   BatterySubsystem shows ONE line with the voltage each hub sees now, and the lowest it has been
+ *   since START. The robot log from 10-26 showed the Expansion Hub reporting "battery too low" in
+ *   short dips that were gone before anyone could read the warning. The lowest number stays on the
+ *   screen. It needs no robot configuration. The LOW number (11 V) is a starting guess.
  *
  * GAMEPAD 2 (the operator) has NO layers. Every button always does the same thing:
  *   Left Stick X     -> turn the turret (push RIGHT and the turret turns RIGHT)
@@ -291,6 +298,7 @@ public class BiobuzzTeleOp extends OpMode {
     private TurretSubsystem turretSubsystem;
     private VisionSubsystem visionSubsystem;
     private PinpointSubsystem pinpointSubsystem;
+    private BatterySubsystem batterySubsystem;
     private ShotTable shotTable;
 
     // The shooter dials, in whole numbers.
@@ -487,6 +495,8 @@ public class BiobuzzTeleOp extends OpMode {
         // The Pinpoint zeros its position and calibrates its gyro here, so the robot must be
         // STILL during INIT. If the config has no "pinpoint", this does not stop the OpMode.
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
+        // The battery reader needs no config entry. It finds both hubs by itself.
+        batterySubsystem = new BatterySubsystem(hardwareMap);
         shotTable = new ShotTable();
 
         telemetry.addData("Status", "Initialized");
@@ -502,11 +512,14 @@ public class BiobuzzTeleOp extends OpMode {
         // source can be set (and checked) before START.
         visionSubsystem.update();
         pinpointSubsystem.update();
+        batterySubsystem.update();
         checkModeButtons();
 
         // The Driver Station clears its screen every loop, so we add the
         // button map again here. That keeps it on the screen until START.
         telemetry.addData("Status", "Ready to start!");
+        // Check the battery before START. A tired battery at rest will sag a lot under load.
+        batterySubsystem.addTelemetry(telemetry);
         telemetry.addData("Alliance (gamepad2 Back)", visionSubsystem.getAlliance());
         telemetry.addData("Flywheel speed source (gamepad2 Start)", getModeText());
         visionSubsystem.addTelemetry(telemetry);
@@ -532,6 +545,8 @@ public class BiobuzzTeleOp extends OpMode {
     public void start() {
         runtime.reset();
         loopTimer.reset();
+        // The quiet time during INIT should not count as the "lowest" battery voltage.
+        batterySubsystem.resetLowestVoltages();
     }
 
     /*
@@ -557,6 +572,7 @@ public class BiobuzzTeleOp extends OpMode {
         intakeSubsystem.update();
         visionSubsystem.update();
         pinpointSubsystem.update();
+        batterySubsystem.update();
 
         // 2. Read the gamepads and decide what to do.
         checkModeButtons();
@@ -819,6 +835,8 @@ public class BiobuzzTeleOp extends OpMode {
         }
         // Always on the screen: aiming at the wrong alliance's hive is not an obvious failure.
         telemetry.addData("Alliance (gamepad2 Back)", visionSubsystem.getAlliance());
+        // One line: each hub's voltage now, and the lowest it has been since START.
+        batterySubsystem.addTelemetry(telemetry);
 
         telemetry.addLine("--- DRIVE ---");
         telemetry.addData("Drive Control", driveControl);
@@ -937,6 +955,6 @@ public class BiobuzzTeleOp extends OpMode {
         turretSubsystem.stop();
         // Stop polling the camera.
         visionSubsystem.stop();
-        // The Pinpoint only reads, so there is nothing to stop.
+        // The Pinpoint and the battery reader only read, so there is nothing to stop.
     }
 }
