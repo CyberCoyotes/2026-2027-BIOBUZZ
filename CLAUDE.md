@@ -71,6 +71,11 @@ These cost us time before, so don't repeat them:
 - `TeamCode/docs/biobuzz-game-essentials.md`: scoring, ranking points, and the rules that affect code and design
 - `TeamCode/docs/biobuzz-hive-apriltag-geometry.md`: hive and cell dimensions, tag IDs and layout, camera math
 - `TeamCode/docs/biobuzz-robot-design.md`: current robot concept (turret shooter + Limelight), build order, and open decisions
+- `TeamCode/docs/biobuzz-auto-strategy.md`: Autonomous plan (the build ladder A-0 to A-5), what AUTO is worth, and facts still needed
+- `TeamCode/docs/biobuzz-game-strategy.md`: match strategy, ranking points, scoring cycle, timeline, and drive team roles
+- `TeamCode/docs/biobuzz-match-day-checklists.md`: pit, field, and match checklists
+- `TeamCode/docs/biobuzz-troubleshooting.md`: symptom, cause, and what to check
+- `TeamCode/docs/biobuzz-test-and-match-log.md`: where tuned numbers live, plus test, match, and scouting log templates
 
 ## Heads up
 

@@ -1,0 +1,72 @@
+# BIOBUZZ Troubleshooting Guide
+
+*DRAFT. Symptom, likely cause, what to check. Everything here comes from notes already in this repo (`CLAUDE.md`, `ARCHITECTURE.md`, the other docs). Status as of 2026-11-03. When something new goes wrong and we fix it, add a row. Cause marked **(untested)** is a good guess that nobody has confirmed on the robot.*
+
+**First rule: check the cables, ports, and config names before touching code.**
+
+## Driver Station and config
+
+| Symptom | Likely cause | Check |
+|---|---|---|
+| TeleOp stops at INIT with a hardware error | A device name in the robot config does not match the code. Most often `limelight` is missing: **every** robot config must have the Limelight Ethernet device. | Compare the config to the table in `ARCHITECTURE.md` section 2. |
+| Pinpoint says NOT FOUND, all numbers 0 | The config still uses last season's name `odo`. | Rename it to `pinpoint` (steps in `pinpoint-setup-guide.md`). |
+| Home switch always reads the wrong way or the code cannot read it | Configured as "REV Touch Sensor" instead of **Digital Device**. | Reconfigure as a Digital Device. |
+| Gamepads do nothing | Not paired. | **Start + A** (driver) and **Start + B** (operator). Logitech switch on **X**. |
+| Operator pairs gamepad 2 and the speed source changes | Start + B pairs the pad **and** is the DIAL/TABLE button, so pairing while the OpMode runs flips it. | Check the speed source on the screen. |
+| Driver pressed B and the gate opened | **B** on gamepad 1 is also the gate-OPENED button. | Same: pairing with Start + B while the OpMode is running. |
+
+## Shooting
+
+| Symptom | Likely cause | Check |
+|---|---|---|
+| Turret tracks the wrong hive | Alliance is wrong. TeleOp **starts BLUE**. | Screen alliance line; operator presses **Back** to switch. |
+| Turret does not move on its own | No target (the turret holds when it sees nothing), or ALWAYS-TRACK is off. | Screen says **NO TARGET**? Point the robot at the hive. Right Stick Button on gamepad 2 toggles ALWAYS-TRACK. Y, X, B and A turn it off. |
+| Turret hits a limit in the wrong place, or the zero is off | Power-up position was not "on the home switch, pointing straight ahead". 0 degrees is wherever the turret sat at power-up if the switch did not re-zero it. | Reset the turret by hand on the switch and power cycle. |
+| Turret coasts further than expected past +/-120 degrees | Turret power is now 100%, and stopping distance grows with speed squared. | Ease the stick into a limit. (Not yet tested at 100%.) |
+| "OK to shoot? YES" flickers | RPM readings jump around by more than about 15 RPM. | Smoothing (`RPM_FILTER_TIME_CONSTANT_SECONDS`), the PIDF numbers, or the speed reading. Do not loosen the tolerance without asking the coach. |
+| Wheel RPM looks about 4x too low or high | Wrong ticks-per-rev. The right numbers are **28 / 103.8 / 384.5** per output revolution (hood wheel / flywheel / turret). **Not 112.** | `CLAUDE.md` "Known gotchas". Quick check: at full power every goBILDA 5203 reads about 2,800 ticks/sec. |
+| Flywheel slows down when the robot stops | Zero-power behavior is `BRAKE` on a heavy flywheel. | Flywheels use `FLOAT`, never `BRAKE`. |
+| Shot misses left or right consistently | Aim offset needs tuning. | `AIM_OFFSET_DEGREES` in `VisionSubsystem`. Shots landing right of the hole: more negative. Left: more positive. Change by about 0.5 degrees at a time. |
+| Wrong RPM at a spot between the measured ones | The shot table is a straight line between rows and was measured at 5 spots, with the old 6000 RPM flywheel motor. | Re-measure with `ShotTableAlpha`. Every flywheel RPM must stay at **1458 or below**. |
+| Table RPM looks wrong after the camera was bumped | The table is keyed on `ty`, which depends on where the camera sits. | If the camera is moved or re-tilted, measure the table again. |
+| Vision shows old data | Result is older than `MAX_RESULT_AGE_MS`, so it counts as no target. | Limelight cable and the 30 second boot. |
+| Camera finds no tags | Exposure and gain may be too dark under arena lights. | Starting point exposure 1000 and gain 8. Retune under the real lights, since the tags sit in the cell's shadow. |
+| Limelight cannot be reached from a laptop | It is at **172.29.0.1** on the Control Hub's internal subnet, not 192.168.1.11. | Check that address first. |
+| Old AprilTag code will not compile | FTC SDK 12.0 can return a cluster. | Check `instanceof AprilTagSingleDetection` / `AprilTagClusterDetection`. (Only matters for the SDK `VisionPortal` path, not the Limelight.) |
+
+## Driving and position
+
+| Symptom | Likely cause | Check |
+|---|---|---|
+| A wheel spins the wrong way | Motor direction. | `DriveAlpha`: X, A, Y, B each spin one wheel. Do it with the robot on blocks. |
+| Robot tips on a hard stop | Tall robot with `BRAKE`. | Slow mode (hold driver's Left Trigger, 40%). Consider easing the stop. |
+| Pinpoint heading or distance looks wrong | Pod directions and the distance multiplier. First robot test: heading sign is correct (`INVERT_HEADING` false), sideways pod is REVERSED. The distance multiplier is still being confirmed, and last season's 1.5 was probably covering a pod setting. | `PinpointAlpha`, six-step test order in its header. |
+| Pinpoint drifts or starts wrong | Robot moved during INIT. | Keep the robot still until the screen says **READY**. |
+| Pedro path ends in the wrong place **(untested)** | Pedro's motor names or directions do not match ours, or the pod offsets are off. | `ARCHITECTURE.md`, Autonomous section. (Pedro is not set up yet.) |
+
+## Power
+
+| Symptom | Likely cause | Check |
+|---|---|---|
+| "Battery too low to run motors and servos" from the Expansion Hub, while the Control Hub is fine | One hub's power wire or connector, not the battery. This was seen on **Expansion Hub 2** in the 10-26 robot log. | Compare the two hubs' lowest voltages on the screen (`BatterySubsystem`). The warning threshold `LOW_VOLTAGE_WARNING_VOLTS` (11.0) is a starting guess, not from a spec sheet. |
+| Hub resets or motors cut out when the flywheel spins up **(untested)** | Weak battery or a loose power connector. | Swap batteries. Check the battery and hub power wires and connectors. |
+
+## Servos
+
+| Symptom | Likely cause | Check |
+|---|---|---|
+| Gate servo does not go where expected | Servo not in **positional** mode. | Set it with the goBILDA Servo Programmer, and configure it as a plain "Servo". |
+| A continuous servo creeps or runs the wrong way | Continuous rotation servos: 0.0 is full reverse, **0.5 is stop**, 1.0 is full forward. `setDirection(REVERSE)` has caused problems. | Set the power numbers directly instead of using `REVERSE`. |
+
+## Building and deploying
+
+| Symptom | Likely cause | Check |
+|---|---|---|
+| Android Studio will not deploy on Windows | Needs more permission. | Run Android Studio as administrator. Permanent fix: set the `GRADLE_USER_HOME` environment variable. |
+| `compileSdk` mismatch | `build.common.gradle` disagrees. | TeamCode `build.gradle` may need `compileSdk 36`. |
+| Android Studio offers to downgrade AGP | Do not accept. | The SDK needs AGP 8.13.2 and Gradle 9.1. |
+| Wrong robot's code deployed | Build flavors are not set up in this repo yet. | See `ARCHITECTURE.md` section 5. |
+
+## When it is not in this table
+
+1. Check cables and ports. 2. Check the config name. 3. Read the telemetry on the screen, both what we **told** the subsystem to do (state) and what the sensor says (status). 4. Run the matching `*Alpha` test OpMode (list in `biobuzz-opmode-controls.md`). 5. Write what you find here.
