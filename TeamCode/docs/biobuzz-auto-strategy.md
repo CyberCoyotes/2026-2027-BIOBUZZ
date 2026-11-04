@@ -1,6 +1,6 @@
 # BIOBUZZ Autonomous Strategy
 
-*DRAFT for the coach to review. Status as of 2026-11-03: **there is no Auto code yet.** Pedro Pathing is not added to the project (`ARCHITECTURE.md` section 5), and there are no `@Autonomous` OpModes. This doc says what Auto is allowed to do, what it is worth, and the order we build it in. Facts come from the Competition Manual (TU02) sections 9-11 and `biobuzz-game-essentials.md`. If the manual and this file disagree, the manual wins. `[CONFIRM]` marks a decision or measurement nobody has made yet: ask the coach before building anything that depends on it.*
+*DRAFT for the coach to review. Status as of 2026-11-04: **Pedro Pathing 3 is added to the project and there is one test Auto, `PedroForwardBackAlpha`, but nothing has run on a robot yet and no rung of the ladder below is written.** Setup, tuning and Auto-writing rules: `pedro-setup-and-auto-guide.md`. This doc says what Auto is allowed to do, what it is worth, and the order we build it in. Facts come from the Competition Manual (TU02) sections 9-11 and `biobuzz-game-essentials.md`. If the manual and this file disagree, the manual wins. `[CONFIRM]` marks a decision or measurement nobody has made yet: ask the coach before building anything that depends on it.*
 
 ## 1. What the rules say about AUTO
 

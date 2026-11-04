@@ -30,7 +30,8 @@ We still organize the robot into **subsystems**, the same idea as in FRC: one cl
 org.firstinspires.ftc.teamcode
 ├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DriveSubsystem, VisionSubsystem, PinpointSubsystem, HubPowerSubsystem, HiveBearingMemory …
 ├── testing/        test OpModes (the *Alpha files)   [CONFIRM]
-├── pedroPathing/   Pedro Pathing constants and tuning (per Pedro's setup guide)
+├── pedro/          Pedro Pathing 3 constants and tuning (per Pedro's setup guide; named `pedro/`, as in Pedro's Quickstart)
+│   └── procedures/ Pedro's own AutoTune code, copied unchanged from the Quickstart. Do not edit.
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
@@ -89,7 +90,7 @@ In FRC a `Constants` file is common. In FTC we keep each number with the class t
 Rules:
 - **Don't copy a number into two files.** When a test OpMode finds a good value (the best intake power, a servo position), copy it into the subsystem's constant. The OpMode does not keep the real value, or the competition TeleOp would never see the tuning.
 - **Hardware names live only in the subsystem that owns the hardware.** OpModes never call `hardwareMap.get`, so each name has exactly one home.
-- **A shared constants class is created only when a second class needs the value.** Do not make a constants file with empty sections "just in case". Name it for what it holds (`FieldConstants`, `RobotConstants`). **Never call it plain `Constants`**: Pedro Pathing's setup puts its own `Constants` class in `pedroPathing/`, and two classes with the same name are confusing to import.
+- **A shared constants class is created only when a second class needs the value.** Do not make a constants file with empty sections "just in case". Name it for what it holds (`FieldConstants`, `RobotConstants`). **Never call it plain `Constants`**: Pedro Pathing's setup puts its own `Constants` class in `pedro/`, and two classes with the same name are confusing to import.
 - **Per-robot values** (practice bot, 11940, 22091 will differ) wait until the build flavors are set up (section 5).
 
 ### Typical TeleOp shape
@@ -123,7 +124,7 @@ Keep that four-step order in every TeleOp `loop()`.
 
 ### Autonomous
 
-- **Pedro Pathing** for paths. Follow Pedro's example pattern: an iterative OpMode with `follower.update()` in `loop()` and a `pathState` switch that moves from step to step.
+- **Pedro Pathing 3** for paths. Follow Pedro's example pattern: an iterative OpMode with `follower.update()` in `loop()` and a `pathState` switch that moves from step to step. Use an `enum` for the steps. Pedro's docs recommend their command library "Ivy" for this; we do **not** use it (no command-based code). Rules and a template: `TeamCode/docs/pedro-setup-and-auto-guide.md`.
 - Auto uses the **same subsystem classes** as TeleOp, **except the drivetrain**. Pedro's `Follower` drives the four drive motors in Auto, and only one class may control a motor, so `DriveSubsystem` is for TeleOp and Pedro drives in Auto. Never use both in one OpMode. Pedro's motor names and directions in its `Constants` must match ours. If we later want Pedro path-following inside TeleOp (a lower priority), `DriveSubsystem` would wrap the `Follower` and keep the same public methods, so TeleOp OpModes would not change.
 
 ### Naming
@@ -162,7 +163,7 @@ Add new names here when you add hardware. Names in code must match the configura
 
 ### Dependencies
 
-- Two outside libraries are approved: **Pedro Pathing** (autonomous) and **Panels** (`com.bylazar:fullpanels`, a live dashboard for tuning and telemetry; added to `build.dependencies.gradle` with the same version and repositories as the Panels quickstart). **Ask before adding any other dependency.**
+- Two outside libraries are approved: **Pedro Pathing** (autonomous; `com.pedropathing:revhub:3.0.2` and `com.pedropathing:tuning:1.0.3`, copied from Pedro's Quickstart) and **Panels** (`com.bylazar:fullpanels`, a live dashboard for tuning and telemetry; added to `build.dependencies.gradle` with the same version and repositories as the Panels quickstart). **Ask before adding any other dependency.**
 - **Do not modify:** anything under `FtcRobotController/`, the Gradle wrapper, or root-level Gradle files, unless the task explicitly says so.
 
 ## 3. MUST NOT: anti-patterns
@@ -184,13 +185,24 @@ Add new names here when you add hardware. Names in code must match the configura
 ## 5. Setup still needed
 
 - [ ] Port the **build flavors** (`practiceBot`, `team11940`, `team22091`) from last season's `TeamCode/build.gradle`. They're not in this repo yet.
-- [ ] Add **Pedro Pathing** to the Gradle files and set up its constants/tuning.
+- [ ] **Pedro Pathing 3:** the dependency, `pedro/Constants.java`, `pedro/Tuning.java` and `PedroForwardBackAlpha` are written and compile against the real libraries (checked on a laptop with `javac`). Still to do: do a Gradle sync in Android Studio and confirm the build is clean, then run the AutoTune steps on **each robot** (see "Pedro Pathing setup" in section 6), paste each robot's Foresight numbers into `Constants.java`, and only then set `FORESIGHT_TUNED = true`.
 - [ ] **Panels:** the dependency is in `build.dependencies.gradle` (`fullpanels:1.0.19`). Still to do: deploy and confirm the build is clean and the Panels page opens, check whether the `repo.dairy.foundation` repository is really needed, and write the usage (telemetry, graphs, tunable variables) from the Panels docs once we have them. Nothing in `TeamCode` uses Panels yet.
 - [ ] `[CONFIRM]` Which git branch is the main one: `main` or `master`? The repo has both, and the claude.ai Project syncs `master`.
 
 ## 6. Hardware and behavior
 
 The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` for the concept (turret shooter, hood wheel, Limelight aiming) and its open decisions. Add each subsystem's hardware and behavior to this section once its design is approved.
+
+### Pedro Pathing setup (`pedro/`) and `PedroForwardBackAlpha`: code written, not yet run on a robot
+
+- **What it is:** Pedro Pathing **3.0.2** (a full rewrite of Pedro 2: `Paths.line()`, `follower.follow(path)`, `PoseFactory`, the Foresight algorithm, and the AutoTune web page; old Pedro 2 code and tutorials do not work). Dependencies are in `build.dependencies.gradle`. Full setup, tuning order and the rules for future Autos: `TeamCode/docs/pedro-setup-and-auto-guide.md`.
+- **`pedro/Constants.java`:** holds the drivetrain config (our `left_front` / `left_rear` / `right_front` / `right_rear`, with the same directions as `DriveSubsystem`), the Pinpoint config (`pinpoint`, **swingarm** pods, forward pod `-3.75` in and `FORWARD`, sideways pod `0.0` and `REVERSED`, copied from `PinpointSubsystem`), the Foresight config, and `create(hardwareMap)`, which builds the `Follower`. **The pod values now live in two places** (`PinpointSubsystem` for TeleOp, `Constants` for Auto) because the two use different libraries. Change both together. It is the one allowed exception to "don't copy a number into two files". The `c -> { }` lambdas in `Constants` are how Pedro wants its settings written; they are the only lambdas in our code.
+- **`FORESIGHT_TUNED` safety switch:** the Foresight numbers in `Constants` are an **example from another team's robot**, only there so the code compiles. `FORESIGHT_TUNED` is `false` until each robot's own AutoTune numbers are pasted in. While it is `false`, Auto OpModes must refuse to drive. `PedroForwardBackAlpha` does, and says so on the screen. Each robot (practice bot, 11940, 22091) needs its own numbers; **per-robot values wait for the build flavors** (section 5).
+- **`pedro/Tuning.java` and `pedro/procedures/`:** the `@Tuner` menu for AutoTune (http://192.168.43.1:10158 while on the robot's wifi) and Pedro's own tuner code, copied unchanged from Pedro's Quickstart so it can be diffed against updates. Not our code; it uses lambdas and `sleep()`. Only the four procedures we use are copied (Mecanum, Pinpoint, Foresight, Tests).
+- **`PedroForwardBackAlpha` ("Pedro Forward Back - Alpha", group Testing):** forward 24 in, hold 1 s, back to the start. States `DRIVE_FORWARD`, `PAUSE`, `DRIVE_BACK`, `DONE` in an `enum` and a `switch`. The pause is an `ElapsedTime`, never `sleep()`. It owns no motors (Pedro's Follower drives them and reads the Pinpoint). Settings at the top: `DRIVE_DISTANCE_INCHES` (24.0), `PAUSE_SECONDS` (1.0), and the start pose (0, 0, 0 degrees). Pass test: back within about 1 inch, 5 runs in a row, logged in `biobuzz-test-and-match-log.md`.
+- **Checked on a laptop, not on a robot:** all the new files compile with `javac` against Pedro 3.0.2, tuning 1.0.3 and FTC SDK 12.0.0. A simulation (Pedro's real `Follower` and `Foresight` with a fake robot) ran the same step sequence and returned to (0, 0) at 0 degrees. The Gradle build was **not** run (no Android SDK here), so do a Gradle sync first.
+- **`[CONFIRM]`:** the Gradle sync works on the team laptop; the Foresight AutoTune on each robot; whether the Pinpoint AutoTune agrees with the pod values copied from `PinpointSubsystem`; how our field's coordinates and start spots map to Pedro's (bottom-left origin) before A-1.
+- **Not here yet:** any scoring Auto (A-1 and up, see `biobuzz-auto-strategy.md`), alliance mirroring, and using Pedro inside TeleOp.
 
 ### ShooterSubsystem (`subsystems/ShooterSubsystem.java`)
 

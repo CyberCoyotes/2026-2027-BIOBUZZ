@@ -68,4 +68,4 @@ Without it, turret 0° is wherever the turret pointed when the hub powered on, s
 
 ## Not wired in code yet
 
-- **Pedro Pathing** drive/localizer config: not set up yet
+- **Pedro Pathing** drive/localizer config: written in `pedro/Constants.java` (it uses the same names as above, so no new config entries). Each robot still needs its own AutoTune; see `pedro-setup-and-auto-guide.md`
