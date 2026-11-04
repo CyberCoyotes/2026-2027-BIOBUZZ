@@ -5,6 +5,7 @@ import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -27,6 +28,16 @@ import java.util.List;
  *   1. Throw away every tag that is not on OUR alliance's hive (see setAlliance()).
  *   2. Both of our cells can be in view at once. The RAISED cell is the higher one, and the
  *      higher one is the one with the larger ty, so we pick the cell holding the highest tag.
+ *      THE LOCK: once we pick a cell we STAY on it, and only switch to our other cell when that
+ *      one is higher by CELL_SWITCH_MARGIN_DEGREES. Without this the target would flip back and
+ *      forth while the hive tips, when both cells are about the same height. If the cell we are
+ *      locked on drops out of view, we wait LOCK_RELEASE_SECONDS (reporting NO_TARGET, so the
+ *      turret holds) before we accept the other cell. A quick dropout, like the arm passing in
+ *      front of the tags, then does not throw the lock away. After a hive tip the robot drives
+ *      to the other side, so the old cell stays out of view, the lock releases, and the cell now
+ *      in view becomes the new target.
+ *      ONE LIMIT: if only the LOWERED cell is in view, ty alone cannot say it is lowered (that
+ *      needs a distance), so we would still aim at it.
  *   3. Average tx and ty over all the visible tags in that ONE cell. Each cell has four tags
  *      spread about 13 inches across, so aiming at a single tag would aim up to 6.5 inches off
  *      center. The average lands near the middle of the cluster, which is the middle of the cell
@@ -79,6 +90,16 @@ public class VisionSubsystem {
     private static final int RED_FIRST_CELL = 0;
     private static final int BLUE_FIRST_CELL = 2;
 
+    // How many cells there are in all (4, so cells 0 to 3).
+    private static final int TOTAL_CELLS = (LAST_TAG_ID - FIRST_TAG_ID + 1) / TAGS_PER_CELL;
+
+    // Which cells are on the FAR side of the field (the manual calls it the far, scoring side).
+    // The other cell of each hive is on the AUDIENCE side. Red: cell 0 is far, cell 1 is audience.
+    // Blue: cell 2 is audience, cell 3 is far. (Tags 30-33 red far, 34-37 red audience,
+    // 38-41 blue audience, 42-45 blue far.)
+    private static final int RED_FAR_CELL = 0;
+    private static final int BLUE_FAR_CELL = 3;
+
     // This means "no cell". Real cells are numbered 0 to 3.
     private static final int NO_CELL = -1;
 
@@ -96,6 +117,21 @@ public class VisionSubsystem {
     // (0.5 degrees), because 1 degree is about 1 inch of sideways miss for every 5 feet of range.
     // It is only applied when there is a target.
     private static final double AIM_OFFSET_DEGREES = 0.0;
+
+    // ------------------------------------------------------------------
+    // The lock on one cell (see "THE LOCK" at the top)
+    // ------------------------------------------------------------------
+    // Our other cell has to be higher than the locked cell by this many degrees of ty before we
+    // switch to it. Why 3: with the camera 10 inches off the floor, the raised and lowered
+    // clusters are about 7 degrees apart at 10 feet and more than 12 degrees apart at 6 feet, so a
+    // real switch is far bigger than 3, while noise in ty is only a degree or so.
+    // [CONFIRM] Raise it if the target flips during a tip. Lower it if it is slow to switch.
+    private static final double CELL_SWITCH_MARGIN_DEGREES = 3.0;
+
+    // If the locked cell is out of view, wait this many seconds before we accept our other cell.
+    // [CONFIRM] Long enough to ride out the arm hiding the tags, short enough to be ready
+    // quickly once the robot has driven to the other side of the hive.
+    private static final double LOCK_RELEASE_SECONDS = 0.5;
 
     // The alliance we start with. An OpMode can change it any time with setAlliance().
     private static final Alliance DEFAULT_ALLIANCE = Alliance.BLUE;
@@ -128,6 +164,16 @@ public class VisionSubsystem {
     private int targetCell = NO_CELL;
     private long resultAgeMs = -1;
 
+    // The cell we are locked onto, or NO_CELL. lockedCellUnseenTimer counts the seconds since we
+    // last saw the locked cell.
+    private int lockedCell = NO_CELL;
+    private final ElapsedTime lockedCellUnseenTimer = new ElapsedTime();
+
+    // For each cell: is any of its tags in view this update, and how high is its highest tag
+    // (the largest ty)? They are filled in by every update(), so we do not make new ones each loop.
+    private final boolean[] cellVisible = new boolean[TOTAL_CELLS];
+    private final double[] highestTyInCell = new double[TOTAL_CELLS];
+
     // The Limelight may still be booting when we are constructed, and then the pipeline switch
     // does not work. So update() keeps trying until it works once.
     private boolean pipelineSet = false;
@@ -155,6 +201,8 @@ public class VisionSubsystem {
      */
     public void setAlliance(Alliance newAlliance) {
         alliance = newAlliance;
+        // The cell we were locked on belongs to the OTHER hive now, so let go of it.
+        lockedCell = NO_CELL;
     }
 
     /*
@@ -188,19 +236,39 @@ public class VisionSubsystem {
 
         List<LLResultTypes.FiducialResult> tags = result.getFiducialResults();
 
-        // Pass 1: find the cell that holds the HIGHEST tag (largest ty) among OUR tags.
-        int bestCell = NO_CELL;
-        double highestTy = -Double.MAX_VALUE;
+        // Pass 1: for each cell, note whether we can see it and how high its HIGHEST tag is
+        // (the largest ty). We only keep OUR alliance's cells.
+        for (int cell = 0; cell < TOTAL_CELLS; cell++) {
+            cellVisible[cell] = false;
+            highestTyInCell[cell] = -Double.MAX_VALUE;
+        }
         for (LLResultTypes.FiducialResult tag : tags) {
             int cell = getCellNumber(tag.getFiducialId());
             if (!isOurCell(cell)) {
                 continue;
             }
-            if (tag.getTargetYDegrees() > highestTy) {
-                highestTy = tag.getTargetYDegrees();
-                bestCell = cell;
+            cellVisible[cell] = true;
+            if (tag.getTargetYDegrees() > highestTyInCell[cell]) {
+                highestTyInCell[cell] = tag.getTargetYDegrees();
             }
         }
+
+        // The highest of OUR cells in view is the one we would pick with no lock at all.
+        int highestCell = NO_CELL;
+        for (int cell = 0; cell < TOTAL_CELLS; cell++) {
+            if (cellVisible[cell]) {
+                if (highestCell == NO_CELL || highestTyInCell[cell] > highestTyInCell[highestCell]) {
+                    highestCell = cell;
+                }
+            }
+        }
+
+        // The locked cell is timed whenever it is in view, so we know how long it has been gone.
+        if (lockedCell != NO_CELL && cellVisible[lockedCell]) {
+            lockedCellUnseenTimer.reset();
+        }
+
+        int bestCell = chooseCell(highestCell);
 
         if (bestCell == NO_CELL) {
             clearTarget();
@@ -265,6 +333,20 @@ public class VisionSubsystem {
         return targetCell;
     }
 
+    /*
+     * Which side of our hive the target cell is on, for the screen: "FAR", "AUDIENCE", or "none"
+     * when there is no target.
+     */
+    public String getTargetSideText() {
+        if (targetCell == NO_CELL) {
+            return "none";
+        }
+        if (targetCell == RED_FAR_CELL || targetCell == BLUE_FAR_CELL) {
+            return "FAR";
+        }
+        return "AUDIENCE";
+    }
+
     public Alliance getAlliance() {
         return alliance;
     }
@@ -308,7 +390,8 @@ public class VisionSubsystem {
 
         telemetry.addData("Vision State", state);
         if (state == VisionState.TARGET_VISIBLE) {
-            telemetry.addData("Target cell", "%d   (%d tags used)", targetCell, tagCount);
+            telemetry.addData("Aiming at", "%s %s side   (cell %d, %d tags used)",
+                    alliance, getTargetSideText(), targetCell, tagCount);
             telemetry.addData("tx", "%.1f deg  (+ = target is to the RIGHT)", txDegrees);
             telemetry.addData("tx raw / offset", "%.1f deg camera,  %+.1f deg AIM_OFFSET",
                     rawTxDegrees, AIM_OFFSET_DEGREES);
@@ -320,6 +403,42 @@ public class VisionSubsystem {
     // ==================================================================
     // PRIVATE HELPERS
     // ==================================================================
+
+    /*
+     * Picks the cell to aim at, using the lock. highestCell is the highest of OUR cells in view,
+     * or NO_CELL if none is. Returns NO_CELL when we should report no target.
+     */
+    private int chooseCell(int highestCell) {
+        if (highestCell == NO_CELL) {
+            // None of our cells is in view. The lock stays, so a short dropout does not lose it.
+            return NO_CELL;
+        }
+
+        if (lockedCell == NO_CELL) {
+            // Nothing locked yet: take the highest cell and lock on it.
+            lockedCell = highestCell;
+            lockedCellUnseenTimer.reset();
+            return lockedCell;
+        }
+
+        if (cellVisible[lockedCell]) {
+            // The locked cell is in view. Switch only if the other cell is clearly higher.
+            if (highestCell != lockedCell
+                    && highestTyInCell[highestCell] > highestTyInCell[lockedCell] + CELL_SWITCH_MARGIN_DEGREES) {
+                lockedCell = highestCell;
+            }
+            return lockedCell;
+        }
+
+        // The locked cell is out of view but our other cell is in view. Wait a moment before we
+        // give up the lock, and report no target until then (so the turret holds its angle).
+        if (lockedCellUnseenTimer.seconds() < LOCK_RELEASE_SECONDS) {
+            return NO_CELL;
+        }
+        lockedCell = highestCell;
+        lockedCellUnseenTimer.reset();
+        return lockedCell;
+    }
 
     private void clearTarget() {
         state = VisionState.NO_TARGET;

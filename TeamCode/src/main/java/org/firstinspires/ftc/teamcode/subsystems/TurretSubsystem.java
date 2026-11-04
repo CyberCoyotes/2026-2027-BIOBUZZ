@@ -443,6 +443,18 @@ public class TurretSubsystem {
         return angleDegrees;
     }
 
+    /*
+     * The soft limits, in degrees. The OpMode can use them to tell whether an angle is somewhere
+     * the turret can go, so it never has to copy these numbers.
+     */
+    public double getMinAngleDegrees() {
+        return MIN_ANGLE_DEGREES;
+    }
+
+    public double getMaxAngleDegrees() {
+        return MAX_ANGLE_DEGREES;
+    }
+
     public double getTargetAngleDegrees() {
         return targetAngleDegrees;
     }
