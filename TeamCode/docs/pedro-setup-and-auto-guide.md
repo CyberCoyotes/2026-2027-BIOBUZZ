@@ -7,7 +7,7 @@
 | Piece | Where | Notes |
 |---|---|---|
 | Pedro libraries | `build.dependencies.gradle` | `com.pedropathing:revhub:3.0.2` (path follower and REV hub support) and `com.pedropathing:tuning:1.0.3` (AutoTune). Copied from the official Quickstart. |
-| `Constants.java` | `teamcode/pedro/` | Our drive motors, Pinpoint settings, and Foresight numbers, plus `Constants.create(hardwareMap)` that builds the Follower. |
+| `Constants.java` | `teamcode/pedro/` | The Foresight numbers, plus the drivetrain and Pinpoint settings **read from** `DriveSubsystem` and `PinpointSubsystem`, and `Constants.create(hardwareMap)` that builds the Follower. |
 | `Tuning.java` | `teamcode/pedro/` | The menu for the AutoTune web page. |
 | `procedures/` | `teamcode/pedro/procedures/` | Pedro's own tuning code, copied unchanged from the Quickstart. **Do not edit it.** It uses lambdas and `sleep()`; that is fine, it is not our code. |
 | `PedroForwardBackAlpha` | `teamcode/` | The first Auto: forward 24 in, pause 1 s, back to the start. |
@@ -27,12 +27,12 @@
 
 ## 3. Tuning order
 
-Do these in order. Stop and fix the first one that fails. After each one that gives you a "Java" tab, paste the result into `Constants.java`.
+Do these in order. Stop and fix the first one that fails. Only the Foresight procedure's "Java" tab gets pasted into `Constants.java`. The drivetrain and Pinpoint settings live in `DriveSubsystem` and `PinpointSubsystem`.
 
 | # | AutoTune procedure | What it checks | What to paste |
 |---|---|---|---|
-| 1 | **Mecanum Procedure** | Each wheel spins the right way. | `drivetrainConfig`. It should come out the same as what is already there. |
-| 2 | **Pinpoint Procedure** | Pod type, directions, and pod offsets. When asked, choose **Swing Arm**. | `localizerConfig`. It should match what is there (offsets -3.75 and 0.0, forward pod FORWARD, sideways pod REVERSED). If it finds different numbers, change `PinpointSubsystem` too so TeleOp and Auto agree. |
+| 1 | **Mecanum Procedure** | Each wheel spins the right way. | Nothing, if it agrees with `DriveSubsystem`. If it finds different directions, change them **in `DriveSubsystem`** (the one place). |
+| 2 | **Pinpoint Procedure** | Pod type, directions, and pod offsets. When asked, choose **Swing Arm**. | Nothing, if it agrees with `PinpointSubsystem` (offsets -3.75 and 0.0, forward pod FORWARD, sideways pod REVERSED). If it finds different numbers, change them **in `PinpointSubsystem`** (the one place); TeleOp and Auto both read from there. |
 | 3 | **Tests > Localization** | Push the robot by hand: forward must make X go up, left must make Y go up, turning left must make heading go up. Push it 48 inches and check X. | Nothing. This also settles the open `DISTANCE_CALIBRATION_MULTIPLIER` question in `PinpointSubsystem`. |
 | 4 | **Foresight Procedure** | The long one. **The robot drives itself.** Measures top speed, braking, and the correction gains. | `foresightConfig`: replace the whole example block. |
 | 5 | Set `FORESIGHT_TUNED = true` in `Constants.java` | | Only after step 4 is pasted. |
@@ -73,7 +73,8 @@ These add to `ARCHITECTURE.md` and `biobuzz-auto-strategy.md`.
 ## 6. Open items `[CONFIRM]`
 
 - Everything above is untested on a robot. The first real run may show that a number or step here needs fixing; update this doc when it does.
-- `PinpointSubsystem` and `pedro/Constants.java` both hold the pod offsets and directions. That is a deliberate exception to "don't copy a number into two files", because TeleOp and Auto use different libraries. If one changes, change both.
+- **One place for each number.** The motor names and directions are in `DriveSubsystem`, and the Pinpoint name, pod offsets, pod type and pod directions are in `PinpointSubsystem`. `pedro/Constants.java` reads them (they are `public static final` for that reason). Only the Foresight numbers are typed in `Constants.java`.
+- `PinpointSubsystem` also has `DISTANCE_CALIBRATION_MULTIPLIER` and `INVERT_HEADING`, which fix readings in software. **Pedro does not use those two.** They are 1.0 and false now, which changes nothing. If the 48 inch push test says the distance is off, do not just change the multiplier: Pedro would not see it. Ask the coach (Pedro's Pinpoint config has a ticks-per-unit setting for that).
 - The Foresight numbers in `Constants.java` are an **example from another robot** until each robot is tuned. `FORESIGHT_TUNED` stops the Auto from using them.
 - Which start spots and which field coordinates each robot will use (see `biobuzz-auto-strategy.md` section 8).
 
