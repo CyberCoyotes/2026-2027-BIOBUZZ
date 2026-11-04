@@ -1,6 +1,9 @@
 repositories {
     mavenCentral()
     google() // Needed for androidx
+    // Panels (the live dashboard). These two repositories are copied from the Panels quickstart.
+    maven { url = "https://mymaven.bylazar.com/releases" }
+    maven { url = "https://repo.dairy.foundation/releases" }
 }
 
 dependencies {
@@ -13,5 +16,7 @@ dependencies {
     implementation 'org.firstinspires.ftc:FtcCommon:12.0.0'
     implementation 'org.firstinspires.ftc:Vision:12.0.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
+    // Panels: a live dashboard you open in a browser on the laptop. Same version as the quickstart.
+    implementation "com.bylazar:fullpanels:1.0.19"
 }
 

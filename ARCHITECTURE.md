@@ -162,7 +162,7 @@ Add new names here when you add hardware. Names in code must match the configura
 
 ### Dependencies
 
-- Pedro Pathing is the only planned outside library. **Ask before adding any other dependency.**
+- Two outside libraries are approved: **Pedro Pathing** (autonomous) and **Panels** (`com.bylazar:fullpanels`, a live dashboard for tuning and telemetry; added to `build.dependencies.gradle` with the same version and repositories as the Panels quickstart). **Ask before adding any other dependency.**
 - **Do not modify:** anything under `FtcRobotController/`, the Gradle wrapper, or root-level Gradle files, unless the task explicitly says so.
 
 ## 3. MUST NOT: anti-patterns
@@ -185,6 +185,7 @@ Add new names here when you add hardware. Names in code must match the configura
 
 - [ ] Port the **build flavors** (`practiceBot`, `team11940`, `team22091`) from last season's `TeamCode/build.gradle`. They're not in this repo yet.
 - [ ] Add **Pedro Pathing** to the Gradle files and set up its constants/tuning.
+- [ ] **Panels:** the dependency is in `build.dependencies.gradle` (`fullpanels:1.0.19`). Still to do: deploy and confirm the build is clean and the Panels page opens, check whether the `repo.dairy.foundation` repository is really needed, and write the usage (telemetry, graphs, tunable variables) from the Panels docs once we have them. Nothing in `TeamCode` uses Panels yet.
 - [ ] `[CONFIRM]` Which git branch is the main one: `main` or `master`? The repo has both, and the claude.ai Project syncs `master`.
 
 ## 6. Hardware and behavior
