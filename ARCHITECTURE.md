@@ -28,7 +28,7 @@ We still organize the robot into **subsystems**, the same idea as in FRC: one cl
 
 ```
 org.firstinspires.ftc.teamcode
-├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DriveSubsystem, VisionSubsystem, PinpointSubsystem, HubPowerSubsystem, HiveBearingMemory …
+├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DriveSubsystem, VisionSubsystem, PinpointSubsystem, HiveBearingMemory …
 ├── testing/        test OpModes (the *Alpha files)   [CONFIRM]
 ├── pedro/          Pedro Pathing 3 constants and tuning (per Pedro's setup guide; named `pedro/`, as in Pedro's Quickstart)
 │   └── procedures/ Pedro's own AutoTune code, copied unchanged from the Quickstart. Do not edit.
@@ -322,15 +322,6 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Limit:** if only the **lowered** cell is in view, `ty` alone cannot say it is lowered (that needs a distance), so it would still aim at it.
 - **Checked** by running the real `chooseCell()` on a laptop (first lock, hysteresis, the wait, release, alliance change), not on the robot.
 
-### HubPowerSubsystem (`subsystems/HubPowerSubsystem.java`): code written, not yet tested on the robot
-
-- **What it is:** a sensors-only class (like `PinpointSubsystem`) that reads the **power sensors inside the Control Hub and the Expansion Hub**. It finds every hub by itself with `hardwareMap.getAll(LynxModule.class)`, so it needs **no name in the robot configuration**. It only reads. It was added to help find the **battery sag and Expansion Hub dropouts** seen on the 22091 robot (they were already there in Alpha 7, so they are a battery or wiring problem, not a code problem). The batteries are 3+ year old NiMH packs `[CONFIRM]`.
-- **What it shows**, for each hub: battery voltage now and the **lowest since START**, total current now and the **highest since START**, the **I2C bus current** (the Pinpoint is powered from there, so a short or a bad cable shows up here), `NOT RESPONDING` when the hub stops answering, and a **dropout count**. A hub under `LOW_VOLTAGE_WARNING_VOLTS` (10.5, `[CONFIRM]`, set it between a good battery's and a worn battery's lowest voltage) says LOW BATTERY.
-- **Cost:** each reading is a trip over the hub's cable, so `update()` reads only every `READ_INTERVAL_SECONDS` (0.25 s, four times a second), not every loop. A hub that is not responding is skipped. If the TeleOp's "Loop time" gets worse, raise that number.
-- **Methods:** `update()`, `resetLowestAndHighest()` (called at START), `getLowestVoltageVolts()`, `getDropoutCount()`, `addTelemetry()`.
-- **In `BiobuzzTeleOp` (Alpha 10):** `update()` in step 1 of `loop()` and in `init_loop()`, so the resting voltage is on the screen before START. The block is under the alliance line.
-- **How to use it to compare batteries:** run the same drive, shooter and turret moves with each battery and compare the lowest voltage. The weak battery's lowest is much lower. Also push the robot against a wall at full drive power for 2 to 3 seconds and compare.
-
 ### DriveSubsystem (`subsystems/DriveSubsystem.java`): code written, not yet tested on the robot
 
 - **Hardware:** four drive motors named `left_front`, `left_rear`, `right_front`, `right_rear` (the same wiring on the practice bot, 11940 and 22091). The Driver Station config on each robot must use these names (one-time edit).
@@ -352,15 +343,6 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Test OpMode:** `IntakeAlpha` (Right Bumper = intake, Left Bumper = reverse and wins, D-pad Up/Down = dial +/-5% per press). The D-pad dial is for testing only; the best number found goes into `DEFAULT_INTAKE_POWER`.
 - **Starting values to check on the robot:** the motor direction (starts `REVERSE`, copied from the old `IntakeAlpha`), the default power, and `FLOAT` vs `BRAKE`.
 - **Not in this class:** a feed-to-shooter mode or ball counting. The firing gate and any different feed power are a later session.
-
-### BatterySubsystem (`subsystems/BatterySubsystem.java`): code written, not yet tested on the robot
-
-- **Hardware:** none to configure. It uses `hardwareMap.voltageSensor`, which lists the Control Hub and each Expansion Hub on its own, so there is **no config name** to add (and no entry in the config-names table).
-- **Reads only.** No motors, no gamepad code. It shows the voltage **each hub** sees and the **lowest** each has seen, because a battery dips for only a moment and the Driver Station's own warning is gone before anyone reads it. Why it exists: the 10-26 robot log showed **Expansion Hub 2** warning "battery too low to run motors and servos" about 20 times during a `TeleOp - Alpha 7` run, while the Control Hub did not. Compare the two hubs' lowest numbers: one much lower than the other points at that hub's power wire or connector, not the battery.
-- **Methods:** `update()` (once per loop; it only really reads every `READ_INTERVAL_SECONDS` = 0.10, because each read is a message over USB to the hub), `resetLowestVoltages()`, `getLowestVoltage()`, `isLow()`, `addTelemetry()` (one line, to save room on the screen).
-- **Wired into `BiobuzzTeleOp` ("TeleOp - Alpha 8"):** created in `init()`, `update()` in `init_loop()` and in step 1 of `loop()`, `resetLowestVoltages()` in `start()`, and the one-line telemetry during INIT and under the Alliance line while running.
-- **`[CONFIRM]` `LOW_VOLTAGE_WARNING_VOLTS` (11.0) is a starting guess**, not from a spec sheet or the manual. Watch a healthy robot with the flywheel spinning up, then set it a little under what it shows.
-- **Open:** whether the 0.10 s read interval is fast enough to catch a short stall dip. If the hub's own "battery too low" warning appears but our lowest number stays high, shorten it and check the loop time on the screen.
 
 ## 7. Session protocol (for Claude Code)
 

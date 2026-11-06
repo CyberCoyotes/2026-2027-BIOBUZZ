@@ -48,7 +48,7 @@
 
 | Symptom | Likely cause | Check |
 |---|---|---|
-| "Battery too low to run motors and servos" from the Expansion Hub, while the Control Hub is fine | One hub's power wire or connector, not the battery. This was seen on **Expansion Hub 2** in the 10-26 robot log. | Compare the two hubs' lowest voltages on the screen (`BatterySubsystem`). The warning threshold `LOW_VOLTAGE_WARNING_VOLTS` (11.0) is a starting guess, not from a spec sheet. |
+| "Battery too low to run motors and servos" from the Expansion Hub, while the Control Hub is fine | One hub's power wire or connector, not the battery. This was seen on **Expansion Hub 2** in the 10-26 robot log. | Check that hub's power wire and connector. The Driver Station's own battery warning is the only reading we have; the TeleOp no longer shows hub voltages. |
 | Hub resets or motors cut out when the flywheel spins up **(untested)** | Weak battery or a loose power connector. | Swap batteries. Check the battery and hub power wires and connectors. |
 
 ## Servos

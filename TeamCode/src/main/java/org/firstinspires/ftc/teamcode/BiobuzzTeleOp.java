@@ -4,11 +4,9 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.subsystems.BatterySubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.HiveBearingMemory;
-import org.firstinspires.ftc.teamcode.subsystems.HubPowerSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
@@ -26,14 +24,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * PinpointAlpha put together, so each part has already been tested on its own. This OpMode owns
  * NO hardware. It only reads the gamepads and tells the subsystems what to do.
  *
- * NEW IN ALPHA 10: HUB POWER ON THE SCREEN, and safer Pinpoint heading follow
- *   1. HUB POWER. HubPowerSubsystem reads the battery voltage and the current of the Control Hub
- *      and the Expansion Hub four times a second and shows them under "--- HUB POWER ---": the
- *      voltage now and the LOWEST since START, the current now and the HIGHEST, the I2C bus
- *      current, and a count of hub DROPOUTS. It is here to find a worn battery or a bad
- *      connection: drive and shoot with two different batteries and compare the lowest voltage.
- *      It is also shown during INIT, so you can read the resting voltage before START.
- *   2. SAFER HEADING FOLLOW (after the first robot test, where the turret snapped around):
+ * NEW IN ALPHA 10: SAFER PINPOINT HEADING FOLLOW
+ *   (after the first robot test, where the turret snapped around):
  *      - The remembered hive direction is THROWN AWAY whenever the Pinpoint is not READY, or its
  *        heading jumps by more than MAX_PINPOINT_HEADING_JUMP_DEGREES in one loop (a robot cannot
  *        turn that fast, so the Pinpoint must have restarted, for example after a power dip).
@@ -73,12 +65,6 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   robot sits at INIT. The drive is still robot-centric. As of Alpha 9 the turret uses the
  *   heading and position (see above). If the config has no device named "pinpoint", the screen
  *   says so and everything else still works.
- *
- * ALSO ON THE SCREEN: BATTERY VOLTAGE
- *   BatterySubsystem shows ONE line with the voltage each hub sees now, and the lowest it has been
- *   since START. The robot log from 10-26 showed the Expansion Hub reporting "battery too low" in
- *   short dips that were gone before anyone could read the warning. The lowest number stays on the
- *   screen. It needs no robot configuration. The LOW number (11 V) is a starting guess.
  *
  * GAMEPAD 2 (the operator) has NO layers. Every button always does the same thing:
  *   Left Stick X     -> turn the turret (push RIGHT and the turret turns RIGHT)
@@ -345,8 +331,6 @@ public class BiobuzzTeleOp extends OpMode {
     private VisionSubsystem visionSubsystem;
     private PinpointSubsystem pinpointSubsystem;
     private HiveBearingMemory hiveMemory;
-    private HubPowerSubsystem hubPowerSubsystem;
-    private BatterySubsystem batterySubsystem;
     private ShotTable shotTable;
 
     // The shooter dials, in whole numbers.
@@ -655,10 +639,6 @@ public class BiobuzzTeleOp extends OpMode {
         // STILL during INIT. If the config has no "pinpoint", this does not stop the OpMode.
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
         hiveMemory = new HiveBearingMemory();
-        // Finds both hubs by itself. It needs no name in the robot configuration.
-        hubPowerSubsystem = new HubPowerSubsystem(hardwareMap);
-        // The battery reader needs no config entry. It finds both hubs by itself.
-        batterySubsystem = new BatterySubsystem(hardwareMap);
         shotTable = new ShotTable();
 
         telemetry.addData("Status", "Initialized");
@@ -674,22 +654,16 @@ public class BiobuzzTeleOp extends OpMode {
         // source can be set (and checked) before START.
         visionSubsystem.update();
         pinpointSubsystem.update();
-        batterySubsystem.update();
         checkModeButtons();
 
         // The Driver Station clears its screen every loop, so we add the
         // button map again here. That keeps it on the screen until START.
         telemetry.addData("Status", "Ready to start!");
-        // Check the battery before START. A tired battery at rest will sag a lot under load.
-        batterySubsystem.addTelemetry(telemetry);
         telemetry.addData("Alliance (gamepad2 Back)", visionSubsystem.getAlliance());
         telemetry.addData("Flywheel speed source (gamepad2 Start)", getModeText());
         visionSubsystem.addTelemetry(telemetry);
         // Check that the Pinpoint says READY before START. (The robot must be still until then.)
         pinpointSubsystem.addTelemetry(telemetry);
-        // The resting battery voltage, before the robot has done anything.
-        hubPowerSubsystem.update();
-        hubPowerSubsystem.addTelemetry(telemetry);
         addRawGamepadTelemetry();
         addControlsTelemetry();
 
@@ -710,10 +684,6 @@ public class BiobuzzTeleOp extends OpMode {
     public void start() {
         runtime.reset();
         loopTimer.reset();
-        // "Lowest" voltage and "highest" current should be about the RUN, not about INIT.
-        hubPowerSubsystem.resetLowestAndHighest();
-        // The quiet time during INIT should not count as the "lowest" battery voltage.
-        batterySubsystem.resetLowestVoltages();
     }
 
     /*
@@ -740,8 +710,6 @@ public class BiobuzzTeleOp extends OpMode {
         visionSubsystem.update();
         pinpointSubsystem.update();
         checkPinpointHealth();
-        hubPowerSubsystem.update();
-        batterySubsystem.update();
 
         // 2. Read the gamepads and decide what to do.
         checkModeButtons();
@@ -1018,11 +986,6 @@ public class BiobuzzTeleOp extends OpMode {
         }
         // Always on the screen: aiming at the wrong alliance's hive is not an obvious failure.
         telemetry.addData("Alliance (gamepad2 Back)", visionSubsystem.getAlliance());
-        // One line: each hub's voltage now, and the lowest it has been since START.
-        batterySubsystem.addTelemetry(telemetry);
-
-        // Battery voltage and current. Watch the LOWEST voltage to compare batteries.
-        hubPowerSubsystem.addTelemetry(telemetry);
 
         telemetry.addLine("--- DRIVE ---");
         telemetry.addData("Drive Control", driveControl);
@@ -1142,6 +1105,6 @@ public class BiobuzzTeleOp extends OpMode {
         turretSubsystem.stop();
         // Stop polling the camera.
         visionSubsystem.stop();
-        // The Pinpoint and the battery reader only read, so there is nothing to stop.
+        // The Pinpoint only reads, so there is nothing to stop.
     }
 }
