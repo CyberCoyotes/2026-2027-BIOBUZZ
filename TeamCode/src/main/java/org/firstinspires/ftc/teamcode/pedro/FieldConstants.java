@@ -18,14 +18,16 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     - X grows to the RIGHT (toward the blue side). Y grows UP (toward the top wall).
  *     - Heading 0 degrees faces +X (right). Turning LEFT (counterclockwise) is a positive heading.
  *       So facing UP the field is +90, facing LEFT is 180, and facing DOWN is -90.
- *     - Each tile is 24 inches. Column D is X 72 to 96. Row 6 is Y 120 to 144.
+ *     - The field is 141.5 inches square (the picture TeamCode/docs/fieldcoordinates-dark.png shows
+ *       Pedro's corners (0, 0) to (141.5, 141.5) and the middle at (70.75, 70.75)). Each tile is
+ *       about 23.6 inches. Column D is X about 70.75 to 94.3. Row 6 is Y about 117.9 to 141.5.
  *
  * OUR BLUE PLAN (the numbers below)
  *   START  : tile D6, touching the TOP wall, facing DOWN (-90 degrees) toward the hive. The intake
  *            (front of the robot) and the turret both point at the hive, so the camera can lock
  *            on right away.
  *   PARK   : our LOADING ZONE, tile F2 on the RIGHT wall. The zone is about 11 inches deep (from
- *            the wall) and 23 inches wide (Y about 24 to 48).
+ *            the wall) and 23 inches wide (Y about 23.6 to 47.2).
  *   WAYPOINT: a stop on the way, to the right of the hive, so the robot does not clip the hive.
  *
  * RED IS A ROTATION, NOT A MIRROR
@@ -44,8 +46,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   inside the zone line. Odometry drifts a few inches, and this way a small miss in either
  *   direction still scores both.
  *
- * [CONFIRM] These are estimates read from the field pictures. Before trusting them at an event:
- *   - measure the real inside width of the field (FIELD_SIZE_INCHES),
+ * [CONFIRM] The field size comes from Pedro's field picture, and the other numbers are estimates
+ *   read from the field pictures. Before trusting them at an event:
+ *   - check the real inside width of the field with a tape measure (FIELD_SIZE_INCHES, 141.5),
  *   - measure the robot (ROBOT_WIDTH / LENGTH) and where its center of turning is,
  *   - check the loading zone's real depth,
  *   - drive the Auto and look at where the robot really ends up.
@@ -56,10 +59,11 @@ public class FieldConstants {
     // ------------------------------------------------------------------
     // The field
     // ------------------------------------------------------------------
-    // The inside width and length of the field, in inches. Six 24 inch tiles is 144. The real
-    // field may be a little smaller (Pedro's example uses 141.5). [CONFIRM] measure it wall to
-    // wall. This matters for the RED rotation and for the parking spot next to the far wall.
-    public static final double FIELD_SIZE_INCHES = 144.0;
+    // The inside width and length of the field, in inches: 141.5, from Pedro's field picture
+    // (TeamCode/docs/fieldcoordinates-dark.png). It is a little under six 24 inch tiles (144).
+    // [CONFIRM] check it wall to wall on the real field. This matters for the RED rotation and for
+    // the parking spot next to the far wall.
+    public static final double FIELD_SIZE_INCHES = 141.5;
 
     // ------------------------------------------------------------------
     // The robot
@@ -77,8 +81,9 @@ public class FieldConstants {
     // How deep the zone is, measured out from the wall.
     public static final double LOADING_ZONE_DEPTH_INCHES = 11.0;
 
-    // Where the middle of the zone is along the wall (the zone covers Y about 24 to 48).
-    public static final double LOADING_ZONE_CENTER_Y_INCHES = 36.0;
+    // Where the middle of the zone is along the wall. It is tile row 2, which covers Y about 23.6
+    // to 47.2 (read from Pedro's field picture), so the middle is 35.4.
+    public static final double LOADING_ZONE_CENTER_Y_INCHES = 35.4;
 
     // ------------------------------------------------------------------
     // BLUE poses. All three use the same heading, so the robot never turns during the Auto.
@@ -90,13 +95,15 @@ public class FieldConstants {
 
     // START: the middle of tile D (3.5 tiles from the left wall), with the robot's back against
     // the top wall. The center of the robot is half its length away from the wall.
-    // Place the robot by measuring from the LEFT wall to the robot's center: 84 inches.
-    public static final double BLUE_START_X_INCHES = 84.0;
+    // Place the robot by measuring from the LEFT wall to the robot's center: about 82.5 inches
+    // (3.5 tiles of 141.5 / 6 = 23.6 inches each).
+    public static final double BLUE_START_X_INCHES = 3.5 * FIELD_SIZE_INCHES / 6.0;
     public static final double BLUE_START_Y_INCHES = FIELD_SIZE_INCHES - ROBOT_LENGTH_INCHES / 2.0;
 
     // WAYPOINT: to the right of the hive, with room to spare on both sides. The hive's right
-    // edge is at about X 97, and the wall is at 144, so X 118 keeps the robot about 12 inches from
-    // the hive and well away from the flower on the right wall (near Y 95).
+    // edge is at about X 94, and the wall is at 141.5, so X 118 keeps the robot (8.25 inches
+    // each side of its center) about 15 inches from the hive and about 15 inches from the wall,
+    // well away from the flower on the right wall (near Y 95).
     public static final double BLUE_WAYPOINT_X_INCHES = 118.0;
     public static final double BLUE_WAYPOINT_Y_INCHES = 110.0;
 

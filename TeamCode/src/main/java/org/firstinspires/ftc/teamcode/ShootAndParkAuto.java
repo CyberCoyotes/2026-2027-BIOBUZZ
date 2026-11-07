@@ -58,7 +58,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * WHERE THE ROBOT STARTS (BLUE, the default)   (all the numbers are in pedro/FieldConstants.java)
  *   Tile D6, in the middle of the tile, with the robot's BACK against the TOP wall, facing DOWN
  *   the field toward the hive (the intake and the turret point at the hive). Measure from the
- *   LEFT wall to the middle of the robot: 84 inches.
+ *   LEFT wall to the middle of the robot: about 82.5 inches.
  *   The robot must not touch a flower, no part of it may be in the LOADING ZONE, and it must hold
  *   exactly 4 POLLEN.
  *   RED (press B in INIT) is the same plan turned 180 degrees: tile C1, back against the BOTTOM
