@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.pedro.FieldConstants;
+import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShotTable;
@@ -24,36 +25,47 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   1. FIND_HIVE         : the turret turns until the camera is locked on the hive, and the
  *                          flywheel starts spinning at PRE_REV_FLYWHEEL_RPM so it is already
  *                          warm. As soon as the camera is locked, the shot RPM comes from the
- *                          shot table (from ty).
- *   2. WAIT_FOR_SPEED    : the flywheel AND the hood wheel get to the target RPM and stay there
- *                          (ShooterSubsystem.isAtSpeed()), and the turret is on target.
- *   3. GATE_OPEN         : the gate goes CLOSED -> OPENED and waits GATE_OPEN_SECONDS.
- *   4. GATE_LIFT         : the gate goes to LIFTED and waits GATE_LIFT_SECONDS.
- *      Then the gate goes back to CLOSED and the shooter stops.
+ *                          shot table (from ty) and is kept.
+ *   2. WAIT_FOR_SPEED    : the FLYWHEEL gets to the target RPM and stays there, and the turret is
+ *                          on target.
+ *   3. FEED_BALLS        : the gate goes CLOSED -> OPENED and the INTAKE feeds balls up the chute,
+ *                          but only while the flywheel is at speed. Each ball slows the flywheel
+ *                          for a moment, so the intake pauses until the flywheel recovers. Balls
+ *                          go one at a time. This lasts FEED_SECONDS.
+ *   4. LIFT_LAST_BALL    : the gate goes to LIFTED (it pushes the last ball in) with the intake
+ *                          still running, for GATE_LIFT_SECONDS. Then the gate goes back to CLOSED,
+ *                          and the intake and shooter stop.
  *   5. DRIVE_TO_WAYPOINT : slide to the right of the hive (so we do not clip it).
  *   6. DRIVE_TO_PARK     : drive down the field into the LOADING ZONE.
  *   7. DONE              : the robot holds its spot.
  *
  * IF THE SHOT CANNOT HAPPEN, SKIP IT AND PARK (we never give up the park points):
  *   - the camera is not locked on the hive after LOCK_TIMEOUT_SECONDS, or
- *   - the wheels are not at speed after SPIN_UP_TIMEOUT_SECONDS.
+ *   - the flywheel is not at speed after SPIN_UP_TIMEOUT_SECONDS.
  *   The screen says which one happened ("Shot skipped").
  *
- * WHY "AT SPEED" CHECKS BOTH WHEELS
- *   ShooterSubsystem.isAtSpeed() is only true when the flywheel AND the hood wheel are both
- *   within tolerance of their targets for a short hold time. We use it as it is. The hood wheel
- *   sets the ball's spin, so a shot with the hood wheel off its speed would fly differently.
+ * WHY "AT SPEED" CHECKS ONLY THE FLYWHEEL (a change from Alpha 1's first test)
+ *   ShooterSubsystem.isAtSpeed() needs BOTH wheels within 25 RPM, and in the first robot test it
+ *   only came true after about 4 seconds. The hood wheel has far fewer encoder counts per turn
+ *   (28, against the flywheel's 103.8) and runs about twice as fast, so its speed reading is a
+ *   lot noisier. Here we check ONLY the flywheel (the heavy wheel, so a steady reading) and
+ *   assume the hood wheel, which is set by the same ratio, is close enough. The hood wheel's
+ *   error is still shown on the screen so we can check that. ShooterSubsystem and the TeleOp are
+ *   NOT changed: they still use both wheels.
+ *
+ * THE INTAKE FEEDS THE BALLS
+ *   One motor runs the intake AND the transfer chute (the TeleOp's Right Bumper "pulls balls in
+ *   and carries them up the chute"). In the first robot test the gate moved but nothing pushed the
+ *   balls, because the intake was off. Now it runs during the shot.
  *
  * WHAT THIS OPMODE DOES NOT DO
- *   - It does not run the intake. The 4 preloaded balls must already be in the shooter, held
- *     back by the gate, like the TeleOp. [CONFIRM] on the robot: watch whether OPENED then LIFTED
- *     really releases the balls we want. If not, the sequence needs another step (intake or a
- *     second pass). That is a design change, so ask the coach.
  *   - It does not move while shooting. The robot shoots from its start spot.
+ *   - It cannot count balls (no sensor). FEED_SECONDS is a time. The screen shows how many times
+ *     the flywheel dipped during the feed, which is about one dip per ball shot.
  *
  * Pedro's Follower owns the drive motors and the Pinpoint, so this OpMode does NOT use
- * DriveSubsystem or PinpointSubsystem. The shooter, gate, turret, camera and shot table are the
- * same classes the TeleOp uses.
+ * DriveSubsystem or PinpointSubsystem. The shooter, gate, intake, turret, camera and shot table
+ * are the same classes the TeleOp uses.
  *
  * WHERE THE ROBOT STARTS (BLUE, the default)   (all the numbers are in pedro/FieldConstants.java)
  *   Tile D6, in the middle of the tile, with the robot's BACK against the TOP wall, facing DOWN
@@ -72,7 +84,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   - The driver station config must have the "limelight" Ethernet device (like the TeleOp).
  *   - To drive, Pedro must be tuned (TeamCode/docs/pedro-setup-and-auto-guide.md) and
  *     FORESIGHT_TUNED set to true. If it is NOT tuned, this OpMode still does the SHOT but does
- *     not drive, so you can test the firing sequence on its own.
+ *     not drive, so you can test the firing sequence on its own. (Until Pedro is tuned, use
+ *     EmergencyLeaveAuto to get the LEAVE points.)
  *   - Test the shot with the robot on its start spot before you trust the park: check that the
  *     camera sees the hive from there (see the INIT screen), and that the ty on the screen is
  *     near a row of the shot table.
@@ -83,11 +96,20 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   2. Select "Auto - Shoot and Park - Alpha 1" and press INIT. Wait for "Pinpoint ready".
  *   3. Check the INIT screen: ALLIANCE (gamepad1 X = BLUE, B = RED), camera connected, "Hive
  *      visible: YES" and the table RPM for the start spot.
+ *      TIP: type that "Table RPM from here" number into PRE_REV_FLYWHEEL_RPM, so the flywheel
+ *      never has to change its target when the camera locks.
  *   4. Press START. (The 30 second timer should be ON, like in a match.)
  *
+ * WHAT TO LOOK AT AFTER A RUN (the "Run log" lines stay on the screen)
+ *   When the camera locked, when the flywheel was ready, how far each wheel was from its target at
+ *   that moment, the ty and the table RPM, and how many flywheel dips happened during the feed.
+ *   Write them in TeamCode/docs/biobuzz-test-and-match-log.md.
+ *
  * WHAT TO TUNE (all at the top of this file, change one at a time)
- *   GATE_OPEN_SECONDS and GATE_LIFT_SECONDS: practice until the balls leave the way you want, then
- *   leave them alone for matches. PRE_REV_FLYWHEEL_RPM, LOCK_TIMEOUT_SECONDS, SPIN_UP_TIMEOUT_SECONDS.
+ *   FEED_SECONDS and GATE_LIFT_SECONDS: practice until the balls leave the way you want, then
+ *   leave them alone for matches. INTAKE_WAITS_FOR_SPEED (false = the intake runs the whole feed,
+ *   useful to check that the balls move at all). PRE_REV_FLYWHEEL_RPM, LOCK_TIMEOUT_SECONDS,
+ *   SPIN_UP_TIMEOUT_SECONDS, FLYWHEEL_AT_SPEED_TOLERANCE_RPM.
  *
  * Run it 5 times in a row before you trust it, and write each run in
  * TeamCode/docs/biobuzz-test-and-match-log.md. Once it is solid, change group = "Testing" to
@@ -100,21 +122,38 @@ public class ShootAndParkAuto extends OpMode {
     // ------------------------------------------------------------------
     // Settings (change these to change the Auto)
     // ------------------------------------------------------------------
-    // How long the gate stays OPENED, then how long it stays LIFTED, in seconds. Practice with
-    // these until the shot works, then keep them the same for matches.
-    private static final double GATE_OPEN_SECONDS = 0.5;
+    // How long the gate stays OPENED while the intake feeds balls, in seconds. The intake only
+    // runs while the flywheel is at speed, so this is the time the feed is ALLOWED to run, not the
+    // time the intake is on. Four balls with a recovery after each one take a few seconds.
+    // Practice with this until all 4 balls go, then keep it the same for matches.
+    private static final double FEED_SECONDS = 3.0;
+
+    // How long the gate stays LIFTED (with the intake still running) to push the last ball in.
     private static final double GATE_LIFT_SECONDS = 0.5;
+
+    // true  = the intake runs only while the flywheel is at speed (balls go one at a time).
+    // false = the intake runs the whole feed no matter what (to check the balls move at all).
+    private static final boolean INTAKE_WAITS_FOR_SPEED = true;
 
     // The flywheel speed to warm up at while the camera is still finding the hive. It is the same
     // number the TeleOp's speed dial starts at. The shot table's RPM takes over as soon as the
-    // camera is locked. It must be 1458 or lower (ShooterSubsystem cuts it there).
+    // camera is locked. Best: set it to the "Table RPM from here" number the INIT screen shows at
+    // the start spot, so the target does not change. It must be 1458 or lower (ShooterSubsystem
+    // cuts it there).
     private static final double PRE_REV_FLYWHEEL_RPM = 1300.0;
 
     // How long to wait for the camera to lock onto the hive before skipping the shot.
     private static final double LOCK_TIMEOUT_SECONDS = 3.0;
 
-    // How long to wait for the wheels to reach speed (after the camera locks) before skipping.
-    private static final double SPIN_UP_TIMEOUT_SECONDS = 4.0;
+    // How long to wait for the flywheel to reach speed (after the camera locks) before skipping.
+    // The first robot test needed about 4 seconds, so this is 6 to leave room.
+    private static final double SPIN_UP_TIMEOUT_SECONDS = 6.0;
+
+    // The flywheel counts as "at speed" when it is within this many RPM of its target, and stays
+    // there for FLYWHEEL_AT_SPEED_HOLD_SECONDS. (The same two numbers ShooterSubsystem uses for
+    // BOTH wheels, but here only the flywheel is checked.)
+    private static final double FLYWHEEL_AT_SPEED_TOLERANCE_RPM = 25.0;
+    private static final double FLYWHEEL_AT_SPEED_HOLD_SECONDS = 0.15;
 
     // The most time one drive step is allowed to take. (Same idea as in LeaveAndParkAuto.)
     private static final double LEG_TIMEOUT_SECONDS = 6.0;
@@ -133,8 +172,8 @@ public class ShootAndParkAuto extends OpMode {
     private enum AutoState {
         FIND_HIVE,
         WAIT_FOR_SPEED,
-        GATE_OPEN,
-        GATE_LIFT,
+        FEED_BALLS,
+        LIFT_LAST_BALL,
         DRIVE_TO_WAYPOINT,
         DRIVE_TO_PARK,
         DONE
@@ -146,6 +185,7 @@ public class ShootAndParkAuto extends OpMode {
     private Follower follower;
     private ShooterSubsystem shooterSubsystem;
     private ShooterServoSubsystem shooterServoSubsystem;
+    private IntakeSubsystem intakeSubsystem;
     private TurretSubsystem turretSubsystem;
     private VisionSubsystem visionSubsystem;
     private ShotTable shotTable;
@@ -162,18 +202,35 @@ public class ShootAndParkAuto extends OpMode {
 
     private AutoState autoState = AutoState.DONE;
 
-    // Times the current step (waiting for the camera, the wheels, or one gate move).
+    // Times the current step (waiting for the camera, the flywheel, the feed, or the lift).
     private final ElapsedTime stateTimer = new ElapsedTime();
 
     // Times one drive step, so a step that never settles cannot use up the whole Auto.
     private final ElapsedTime legTimer = new ElapsedTime();
 
     // The flywheel RPM the shot table gave us when the camera locked. It is saved so the target
-    // does not wobble with the camera's ty while the wheels are getting to speed.
+    // does not wobble with the camera's ty while the flywheel is getting to speed.
     private double shotFlywheelRpm = 0.0;
 
     // Why the shot was skipped, or "" if it was not. Shown on the screen.
     private String skipReason = "";
+
+    // The flywheel-only "at speed" check. flywheelReady is worked out once per loop, after the
+    // shooter has read its encoders. The two helpers below are only for working it out.
+    private boolean flywheelReady = false;
+    private boolean flywheelWasInTolerance = false;
+    private final ElapsedTime flywheelHoldTimer = new ElapsedTime();
+
+    // The "Run log": what happened, so one robot test tells us where the time went. -1 means
+    // "has not happened (yet)".
+    private final ElapsedTime runTimer = new ElapsedTime();
+    private double lockedAtSeconds = -1.0;
+    private double lockedTyDegrees = 0.0;
+    private double readyAtSeconds = -1.0;
+    private double flywheelErrorAtReadyRpm = 0.0;   // actual minus target, so negative = too slow
+    private double hoodWheelErrorAtReadyRpm = 0.0;
+    private int flywheelDipCount = 0;               // about one per ball shot
+    private boolean feedWasReady = false;
 
     /*
      * Code to run ONCE when the driver hits INIT
@@ -187,6 +244,8 @@ public class ShootAndParkAuto extends OpMode {
         shooterSubsystem = new ShooterSubsystem(hardwareMap);
         // The gate moves to CLOSED here, so it starts from a known place.
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
+        // The intake starts stopped.
+        intakeSubsystem = new IntakeSubsystem(hardwareMap);
         // The turret does not move at INIT. It only starts reading its encoder.
         turretSubsystem = new TurretSubsystem(hardwareMap);
         // The Limelight starts polling here. It needs about 30 seconds to boot after power-up.
@@ -238,6 +297,14 @@ public class ShootAndParkAuto extends OpMode {
         follower.setPose(startPose);
         follower.update();
 
+        // Start the run log over.
+        runTimer.reset();
+        lockedAtSeconds = -1.0;
+        readyAtSeconds = -1.0;
+        flywheelDipCount = 0;
+        flywheelReady = false;
+        flywheelWasInTolerance = false;
+
         // Start looking for the hive and warming up the flywheel right away.
         skipReason = "";
         autoState = AutoState.FIND_HIVE;
@@ -254,7 +321,8 @@ public class ShootAndParkAuto extends OpMode {
         follower.update();
         visionSubsystem.update();
 
-        // 2. Decide what to do next, and tell the subsystems.
+        // 2. Decide what to do next, and tell the subsystems. (flywheelReady is from the end of
+        //    the last loop, which is only 20 milliseconds old.)
         switch (autoState) {
             case FIND_HIVE:
                 // Warm the flywheel up while we look. The turret turns until the camera is centered
@@ -264,7 +332,9 @@ public class ShootAndParkAuto extends OpMode {
 
                 if (isHiveLocked()) {
                     // Locked. Ask the shot table how fast to shoot from here, and keep that number.
-                    shotFlywheelRpm = shotTable.getFlywheelRpm(visionSubsystem.getTyDegrees());
+                    lockedAtSeconds = runTimer.seconds();
+                    lockedTyDegrees = visionSubsystem.getTyDegrees();
+                    shotFlywheelRpm = shotTable.getFlywheelRpm(lockedTyDegrees);
                     shooterSubsystem.setTargetRpm(shotFlywheelRpm);
                     stateTimer.reset();
                     autoState = AutoState.WAIT_FOR_SPEED;
@@ -278,29 +348,55 @@ public class ShootAndParkAuto extends OpMode {
                 shooterSubsystem.setTargetRpm(shotFlywheelRpm);
                 aimTurretAtHive();
 
-                // The firing gate: BOTH wheels at speed (and held there) AND the turret on target.
-                if (shooterSubsystem.isAtSpeed() && turretSubsystem.isOnTarget()) {
+                // The firing gate: the flywheel at speed (and held there) AND the turret on target.
+                if (flywheelReady && turretSubsystem.isOnTarget()) {
+                    // Write down how the wheels looked at this moment, for the run log.
+                    readyAtSeconds = runTimer.seconds();
+                    flywheelErrorAtReadyRpm =
+                            shooterSubsystem.getFlywheelRpm() - shooterSubsystem.getTargetFlywheelRpm();
+                    hoodWheelErrorAtReadyRpm =
+                            shooterSubsystem.getHoodWheelRpm() - shooterSubsystem.getTargetHoodWheelRpm();
+
+                    // Open the gate and start feeding.
                     shooterServoSubsystem.goToOpened();
+                    feedWasReady = true;
                     stateTimer.reset();
-                    autoState = AutoState.GATE_OPEN;
+                    autoState = AutoState.FEED_BALLS;
                 } else if (stateTimer.seconds() >= SPIN_UP_TIMEOUT_SECONDS) {
-                    skipShotAndPark("the wheels never reached speed");
+                    skipShotAndPark("the flywheel never reached speed");
                 }
                 break;
 
-            case GATE_OPEN:
-                // The gate is OPENED. Wait, then lift.
-                if (stateTimer.seconds() >= GATE_OPEN_SECONDS) {
+            case FEED_BALLS:
+                // The gate is OPENED. Feed one ball at a time: the intake runs only while the
+                // flywheel is at speed. (This is the same rule ShotTableAlpha uses.)
+                if (flywheelReady || !INTAKE_WAITS_FOR_SPEED) {
+                    intakeSubsystem.intake();
+                } else {
+                    intakeSubsystem.stop();
+                }
+
+                // Every time the flywheel drops out of "at speed", a ball has just gone through.
+                if (feedWasReady && !flywheelReady) {
+                    flywheelDipCount = flywheelDipCount + 1;
+                }
+                feedWasReady = flywheelReady;
+
+                if (stateTimer.seconds() >= FEED_SECONDS) {
                     shooterServoSubsystem.goToLifted();
                     stateTimer.reset();
-                    autoState = AutoState.GATE_LIFT;
+                    autoState = AutoState.LIFT_LAST_BALL;
                 }
                 break;
 
-            case GATE_LIFT:
-                // The gate is LIFTED. Wait, then close it, stop the shooter and go park.
+            case LIFT_LAST_BALL:
+                // The gate is LIFTED to push the last ball in. The intake keeps running, whether
+                // or not the flywheel has recovered, so the last ball is not left behind.
+                intakeSubsystem.intake();
+
                 if (stateTimer.seconds() >= GATE_LIFT_SECONDS) {
                     shooterServoSubsystem.goToClosed();
+                    intakeSubsystem.stop();
                     shooterSubsystem.stop();
                     startDriving();
                 }
@@ -326,9 +422,12 @@ public class ShootAndParkAuto extends OpMode {
                 break;
         }
 
-        // The shooter and the turret need update() once per loop, AFTER they get their commands.
+        // The subsystems need update() once per loop, AFTER they get their commands. Then work out
+        // the flywheel-only "at speed" answer from the fresh reading.
         shooterSubsystem.update();
         turretSubsystem.update();
+        intakeSubsystem.update();
+        updateFlywheelReady();
 
         // 3. Telemetry
         addStatusTelemetry();
@@ -337,6 +436,7 @@ public class ShootAndParkAuto extends OpMode {
             telemetry.addData("Shot skipped because", skipReason);
         }
         addShotTelemetry();
+        addRunLogTelemetry();
         addPoseTelemetry();
         telemetry.addData("Distance to end of path (in)", "%.2f", follower.distanceToEndpoint());
     }
@@ -352,6 +452,7 @@ public class ShootAndParkAuto extends OpMode {
         follower.drivetrain.stop();
 
         shooterSubsystem.stop();
+        intakeSubsystem.stop();
         // The turret floats. The hub keeps its encoder count, so the TeleOp knows its angle.
         turretSubsystem.stop();
         visionSubsystem.stop();
@@ -396,11 +497,39 @@ public class ShootAndParkAuto extends OpMode {
     }
 
     /*
-     * Give up on the shot (and say why), stop the shooter, and go park.
+     * Works out flywheelReady: true when the FLYWHEEL (only) has been within
+     * FLYWHEEL_AT_SPEED_TOLERANCE_RPM of its target for FLYWHEEL_AT_SPEED_HOLD_SECONDS. Call it
+     * once per loop, right after shooterSubsystem.update(). One reading outside the band drops it
+     * at once, so after a ball slows the flywheel the intake pauses until it recovers.
+     */
+    private void updateFlywheelReady() {
+        double targetRpm = shooterSubsystem.getTargetFlywheelRpm();
+        double errorRpm = Math.abs(shooterSubsystem.getFlywheelRpm() - targetRpm);
+
+        // A target of 0 means the shooter is stopped, so it can never be "at speed".
+        boolean inTolerance = targetRpm > 0.0 && errorRpm <= FLYWHEEL_AT_SPEED_TOLERANCE_RPM;
+
+        if (!inTolerance) {
+            flywheelWasInTolerance = false;
+            flywheelReady = false;
+            return;
+        }
+
+        // Inside the band. Start the hold timer the first time, then wait out the hold time.
+        if (!flywheelWasInTolerance) {
+            flywheelHoldTimer.reset();
+            flywheelWasInTolerance = true;
+        }
+        flywheelReady = flywheelHoldTimer.seconds() >= FLYWHEEL_AT_SPEED_HOLD_SECONDS;
+    }
+
+    /*
+     * Give up on the shot (and say why), stop the shooter and intake, and go park.
      */
     private void skipShotAndPark(String reason) {
         skipReason = reason;
         shooterSubsystem.stop();
+        intakeSubsystem.stop();
         shooterServoSubsystem.goToClosed();
         startDriving();
     }
@@ -474,7 +603,8 @@ public class ShootAndParkAuto extends OpMode {
         if (visionSubsystem.hasTarget()) {
             double tyDegrees = visionSubsystem.getTyDegrees();
             telemetry.addData("Hive visible", "YES (ty %.1f)", tyDegrees);
-            telemetry.addData("Table RPM from here", "%.0f", shotTable.getFlywheelRpm(tyDegrees));
+            telemetry.addData("Table RPM from here", "%.0f  (PRE_REV_FLYWHEEL_RPM is %.0f)",
+                    shotTable.getFlywheelRpm(tyDegrees), PRE_REV_FLYWHEEL_RPM);
             if (!shotTable.isInRange(tyDegrees)) {
                 telemetry.addLine("Warning: ty is OUTSIDE the shot table. It uses the nearest row.");
             }
@@ -492,8 +622,31 @@ public class ShootAndParkAuto extends OpMode {
                 shooterSubsystem.getTargetFlywheelRpm(), shooterSubsystem.getFlywheelRpm());
         telemetry.addData("Hood wheel RPM (target / actual)", "%.0f / %.0f",
                 shooterSubsystem.getTargetHoodWheelRpm(), shooterSubsystem.getHoodWheelRpm());
-        telemetry.addData("At speed (both wheels)", shooterSubsystem.isAtSpeed());
+        telemetry.addData("FLYWHEEL at speed (this Auto's check)", flywheelReady);
+        telemetry.addData("Both wheels at speed (ShooterSubsystem, info only)",
+                shooterSubsystem.isAtSpeed());
         telemetry.addData("Gate", shooterServoSubsystem.getState());
+        telemetry.addData("Intake", intakeSubsystem.getState());
+    }
+
+    // The run log. It fills in as the Auto goes and stays on the screen after it ends.
+    private void addRunLogTelemetry() {
+        telemetry.addLine("--- RUN LOG ---");
+        telemetry.addData("Run time (s)", "%.1f", runTimer.seconds());
+        if (lockedAtSeconds < 0.0) {
+            telemetry.addData("Camera locked at", "not yet");
+        } else {
+            telemetry.addData("Camera locked at (s)", "%.2f  (ty %.1f, table RPM %.0f)",
+                    lockedAtSeconds, lockedTyDegrees, shotFlywheelRpm);
+        }
+        if (readyAtSeconds < 0.0) {
+            telemetry.addData("Flywheel ready at", "not yet");
+        } else {
+            telemetry.addData("Flywheel ready at (s)", "%.2f", readyAtSeconds);
+            telemetry.addData("Error at that moment (RPM)", "flywheel %.0f, hood wheel %.0f",
+                    flywheelErrorAtReadyRpm, hoodWheelErrorAtReadyRpm);
+            telemetry.addData("Flywheel dips during the feed (about 1 per ball)", flywheelDipCount);
+        }
     }
 
     private void addPoseTelemetry() {
