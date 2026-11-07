@@ -38,9 +38,9 @@ Each rung is its own OpMode. The earlier rungs stay in the Driver Station list a
 | Rung | Goal | Points | Needs | Status |
 |---|---|---|---|---|
 | **A-0 Emergency** | Drive off the wall and stop. No Pedro, no sensors, just `DriveSubsystem` for a fixed time. Used when everything else is broken. | 3 | `DriveSubsystem` only | Not written |
-| **A-1 LEAVE + PARK** | Leave the wall and end in our LOADING ZONE. | 8 | Pedro Pathing set up and tuned, `PinpointSubsystem` (Pedro reads the Pinpoint itself) | Not written |
+| **A-1 LEAVE + PARK** | Leave the wall and end in our LOADING ZONE. | 8 | Pedro Pathing set up and tuned, `PinpointSubsystem` (Pedro reads the Pinpoint itself) | **`LeaveAndParkAuto` written** (blue D6 to the LOADING ZONE, red built in by a 180 degree rotation), not run on a robot yet. See `ARCHITECTURE.md`, "Autos". |
 | **A-2 Shoot the preloads** | From a fixed spot, shoot the 4 preloaded POLLEN, then do A-1. Uses the **fallback mode** from `biobuzz-robot-design.md`: turret at a preset angle, fixed flywheel RPM, no camera needed. | 8 + a tip if 4 balls are enough | A-1, plus a **firing sequence** (gate and intake in order, only when the wheels are at speed) | Firing sequence not written |
-| **A-3 Shoot with vision** | Same as A-2, but the turret aims with the Limelight and the RPM comes from the shot table. | Same as A-2, with better accuracy | A-2, `VisionSubsystem`, `ShotTable` (already in TeleOp) | Pieces exist, not used in Auto |
+| **A-3 Shoot with vision** | Same as A-2, but the turret aims with the Limelight and the RPM comes from the shot table. | Same as A-2, with better accuracy | A-2, `VisionSubsystem`, `ShotTable` (already in TeleOp) | **`ShootAndParkAuto` written** (camera lock, shot table RPM, gate OPENED then LIFTED, then park; skips the shot and parks if there is no lock). It went straight to the vision version, so A-2's preset-angle fallback is **not** built. Not run on a robot yet. |
 | **A-4 Reload and shoot again** | After the first load, collect more POLLEN (FLOWER or GARDEN on our half), then shoot again. | Second chance at a tip | A-3, intake running while driving, a Pedro path to the pollen | Not started |
 | **A-5 Stretch** | Two tips in AUTO. | 40 | Everything above, plus a lot of speed | Only if A-4 is boringly reliable |
 
@@ -100,6 +100,6 @@ Agree on one rule before every match: **who goes first if our paths cross**, and
 ## 8. Decisions for the coach
 
 - [ ] Rung to target for the first event (suggestion: A-1 done and solid, A-2 as the stretch).
-- [ ] Start spot(s) for each robot (11940, 22091, practice bot).
-- [ ] Alliance selection: per robot or per match, and chosen in INIT.
+- [ ] Start spot(s) for each robot (11940, 22091, practice bot). *First guess in code: blue tile D6, back to the top wall, facing down at the hive (red: C1). Not yet tested on the field.*
+- [ ] Alliance selection: per robot or per match, and chosen in INIT. *Now: chosen in INIT with gamepad1 X (BLUE, default) or B (RED).*
 - [ ] Do we allow A-4 (collecting in Auto) or is it TeleOp-only this season?
