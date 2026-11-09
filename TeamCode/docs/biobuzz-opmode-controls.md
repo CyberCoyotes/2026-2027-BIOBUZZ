@@ -7,7 +7,7 @@ Print this and keep it at the driver station. It lists **what every button does 
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
 - **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In the TeleOp, gamepad 2's Start switches DIAL / TABLE and gamepad 2's B sends the turret to far right and turns ALWAYS-TRACK off, so pair before START.)
 
-**Names on the Driver Station:** `TeleOp - Alpha 10`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`. **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Drive Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
+**Names on the Driver Station:** `TeleOp - Alpha 10`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Drive Alpha` (shown for now, for the field-centric test). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
@@ -184,10 +184,12 @@ Letting go of RB or the stick holds the turret.
 
 ## 8. Hidden OpModes (`@Disabled`)
 
-**Drive Alpha** (gamepad 1)
+**Drive Alpha** (gamepad 1). **Currently SHOWN on the Driver Station** for the field-centric drive test (issue #54); it goes back to hidden when the testing is done. It starts **FIELD-centric**: "forward" is away from you. **Put the robot on the floor facing away from you before INIT**, and keep it still. The 7-step test order is in the OpMode's header.
 
 | Control | What it does |
 |---|---|
+| **Back** | Switch **FIELD-centric / ROBOT-centric**. If the safety rule switched field-centric off (Pinpoint not READY, or its heading jumped), Back turns it back ON |
+| **D-pad Left** | **Re-aim**: the way the robot faces right now is "away from me". Does not touch the Pinpoint |
 | **Left Stick** | Drive and strafe |
 | **Right Stick** | Turn |
 | **RT** (hold) | **Slow mode** (this OpMode only. The TeleOp uses **LT**) |

@@ -39,7 +39,12 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * STATE (what we told it to do) is the last drive() inputs, the power scale, and the wheel powers.
  * There are no sensors here, so there is no STATUS and no update() to call.
  *
- * This first version is ROBOT-CENTRIC: "forward" means the way the robot is facing.
+ * TWO WAYS TO DRIVE
+ *   drive(forward, strafe, turn)  is ROBOT-CENTRIC: "forward" means the way the robot is facing.
+ *   driveFieldCentric(forward, strafe, turn, headingDegrees)  is FIELD-CENTRIC: "forward" means
+ *   AWAY FROM THE DRIVER, no matter which way the robot is turned. It needs the robot's heading,
+ *   which the OpMode gets from the Pinpoint and hands in as a number. This class never reads the
+ *   Pinpoint itself (a subsystem owns only its own hardware).
  *
  * Robot configuration (on the Driver Station) for ALL three robots. The names MUST match:
  *   Motor name: left_front
@@ -196,6 +201,49 @@ public class DriveSubsystem {
         // Apply slow mode and the top speed limit.
         double scale = powerScale * MAX_DRIVE_POWER;
         setWheelPowers(leftFront * scale, rightFront * scale, leftRear * scale, rightRear * scale);
+    }
+
+    /*
+     * Drive FIELD-CENTRIC. The forward and strafe numbers are from the DRIVER's point of view:
+     *   forward: + moves the robot AWAY from the driver,   - toward the driver
+     *   strafe:  + moves the robot to the driver's LEFT,   - to the driver's right
+     *   turn:    + spins COUNTERCLOCKWISE (left), - spins clockwise (right). Turning is the same in
+     *            both ways of driving, so it is passed straight through.
+     * headingDegrees is how far the robot is turned from "facing away from the driver", with
+     * COUNTERCLOCKWISE (left) positive, the same as the Pinpoint's heading. When the robot faces
+     * away from the driver the heading is 0 and this drives exactly like drive(). The OpMode works
+     * out the heading (the Pinpoint's heading plus any offset), so this class does not need to know
+     * where the driver is standing.
+     * Call this every loop. Send all zeros (or call stop()) to stop.
+     *
+     * HOW IT WORKS: the stick direction is turned by MINUS the robot's heading, so that
+     * "away from the driver" becomes a direction measured from the robot's own front. Then the
+     * ordinary drive() does the rest, so the wheel math, the slow mode and the top speed limit are
+     * exactly the same as robot-centric driving.
+     *   robotForward =  forward * cos(heading) + strafe * sin(heading)
+     *   robotStrafe  = -forward * sin(heading) + strafe * cos(heading)
+     * CHECK: the robot is turned 90 degrees to the left (heading +90) and the driver pushes
+     * straight ahead (forward 1, strafe 0). Then robotForward = 0 and robotStrafe = -1: the robot
+     * slides to ITS right, which is away from the driver. Correct.
+     */
+    public void driveFieldCentric(double forward, double strafe, double turn, double headingDegrees) {
+        double headingRadians = Math.toRadians(headingDegrees);
+        double cosHeading = Math.cos(headingRadians);
+        double sinHeading = Math.sin(headingRadians);
+
+        double robotForward = forward * cosHeading + strafe * sinHeading;
+        double robotStrafe = -forward * sinHeading + strafe * cosHeading;
+
+        // Turning a stick that is pushed into a corner can make one number bigger than 1.0 (the
+        // sticks are square, and turning a square makes it stick out). drive() would cut each
+        // number to 1.0 on its own, which bends the direction. So shrink both together first.
+        double largest = Math.max(Math.abs(robotForward), Math.abs(robotStrafe));
+        if (largest > 1.0) {
+            robotForward = robotForward / largest;
+            robotStrafe = robotStrafe / largest;
+        }
+
+        drive(robotForward, robotStrafe, turn);
     }
 
     /*
