@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -72,6 +73,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Motor name:           intake       (IntakeSubsystem)
  *   Ethernet Device name: limelight    (VisionSubsystem, Limelight 3A)
  */
+@Disabled
 @TeleOp(name = "Shot Table - Alpha", group = "Testing")
 public class ShotTableAlpha extends OpMode {
 
