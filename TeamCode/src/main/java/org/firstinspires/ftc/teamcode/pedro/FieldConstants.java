@@ -18,7 +18,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     - X grows to the RIGHT (toward the blue side). Y grows UP (toward the top wall).
  *     - Heading 0 degrees faces +X (right). Turning LEFT (counterclockwise) is a positive heading.
  *       So facing UP the field is +90, facing LEFT is 180, and facing DOWN is -90.
- *     - The field is 141.5 inches square (the picture TeamCode/docs/fieldcoordinates-dark.png shows
+ *     - The field is 141.5 inches square (the picture TeamCode/docs/pedro-fieldcoordinates-dark.png shows
  *       Pedro's corners (0, 0) to (141.5, 141.5) and the middle at (70.75, 70.75)). Each tile is
  *       about 23.6 inches. Column D is X about 70.75 to 94.3. Row 6 is Y about 117.9 to 141.5.
  *
@@ -60,7 +60,7 @@ public class FieldConstants {
     // The field
     // ------------------------------------------------------------------
     // The inside width and length of the field, in inches: 141.5, from Pedro's field picture
-    // (TeamCode/docs/fieldcoordinates-dark.png). It is a little under six 24 inch tiles (144).
+    // (TeamCode/docs/pedro-fieldcoordinates-dark.png). It is a little under six 24 inch tiles (144).
     // [CONFIRM] check it wall to wall on the real field. This matters for the RED rotation and for
     // the parking spot next to the far wall.
     public static final double FIELD_SIZE_INCHES = 141.5;
