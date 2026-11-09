@@ -5,7 +5,7 @@ Print this and keep it at the driver station. It lists **what every button does 
 **Controller:** Logitech F310 / F710, switch on the back set to **X** (XInput), not D.
 - Face buttons: **A, B, X, Y**. Bumpers: **LB / RB**. Triggers: **LT / RT**. Stick buttons: **LS / RS** (press the stick in).
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
-- **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward.
+- **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In the TeleOp, gamepad 2's Start switches DIAL / TABLE and gamepad 2's B sends the turret to far right and turns ALWAYS-TRACK off, so pair before START.)
 
 **Names on the Driver Station:** `TeleOp - Alpha 10`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`. **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Drive Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
 
