@@ -5,9 +5,9 @@ Print this and keep it at the driver station. It lists **what every button does 
 **Controller:** Logitech F310 / F710, switch on the back set to **X** (XInput), not D.
 - Face buttons: **A, B, X, Y**. Bumpers: **LB / RB**. Triggers: **LT / RT**. Stick buttons: **LS / RS** (press the stick in).
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
-- **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward.
+- **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In the TeleOp, gamepad 2's Start switches DIAL / TABLE and gamepad 2's B sends the turret to far right and turns ALWAYS-TRACK off, so pair before START.)
 
-**Names on the Driver Station:** `TeleOp - Alpha 10`, `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Pinpoint - Alpha`. **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
+**Names on the Driver Station:** `TeleOp - Alpha 10`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`. **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Drive Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
@@ -211,6 +211,22 @@ The robot does **not** drive. Push it around **by hand** and watch the odometry 
 |---|---|
 | **A** | Make the robot's current spot the new start (X = 0, Y = 0, heading = 0) |
 | **B** | Recalibrate the gyro **and** zero the position. Hold the robot **still** |
+
+---
+
+## 10. Firing Sequence - Alpha (gamepad 1 only)
+
+The robot does **not** drive. Move it **by hand** to a spot where the camera sees the hive's tags, and load the balls. The turret tracks the hive by itself. The 8-step test order is in the OpMode's header.
+
+| Control | What it does |
+|---|---|
+| **Right Trigger** (hold) | **FIRE a volley.** Waits until the flywheel is at speed and the turret is on target (in TABLE mode the camera must also see the hive), then opens the gate, feeds the balls one at a time, lifts the gate for the last ball, and closes it. **Let go = abort** (gate closes, intake stops). After it finishes, let go and press again to fire again |
+| **D-pad Up** (tap) | **PRE-REV** on / off: the wheels spin without firing, so the spin-up wait is over before you fire. Shown big on the screen. Starts OFF |
+| **Right Bumper** (hold) | **INTAKE** (pick up balls). The gate stays where it is. While a volley is feeding or lifting, the sequence runs the intake instead |
+| **Left Bumper** (hold) | **REVERSE** both wheels and the intake (clear a jam). Beats everything. (The volley's feed time keeps running, so let go and press again afterwards) |
+| **X / B / Y** | Gate by hand: **X** CLOSED, **B** OPENED, **Y** LIFTED. They work **only while no volley is running** |
+| **Back** | Speed source **TABLE / DIAL**. TABLE (starts here): the table sets the flywheel speed, and a volley will **not** start with no camera target. DIAL: a fixed speed, no camera needed |
+| **START** | Alliance BLUE / RED. Starts as BLUE. (Pairing the controller is Start + A, so check the alliance after pairing) |
 
 ---
 

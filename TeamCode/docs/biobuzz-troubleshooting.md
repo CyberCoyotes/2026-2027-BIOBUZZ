@@ -42,13 +42,13 @@
 | Robot tips on a hard stop | Tall robot with `BRAKE`. | Slow mode (hold driver's Left Trigger, 40%). Consider easing the stop. |
 | Pinpoint heading or distance looks wrong | Pod directions and the distance multiplier. First robot test: heading sign is correct (`INVERT_HEADING` false), sideways pod is REVERSED. The distance multiplier is still being confirmed, and last season's 1.5 was probably covering a pod setting. | `PinpointAlpha`, six-step test order in its header. |
 | Pinpoint drifts or starts wrong | Robot moved during INIT. | Keep the robot still until the screen says **READY**. |
-| Pedro path ends in the wrong place **(untested)** | Pedro's motor names or directions do not match ours, or the pod offsets are off. | `ARCHITECTURE.md`, Autonomous section. (Pedro is not set up yet.) |
+| Pedro path ends in the wrong place **(untested)** | Pedro's motor names or directions do not match ours, or the pod offsets are off. | `pedro-setup-and-auto-guide.md` section 7. (Pedro is set up in code but not yet run on a robot.) |
 
 ## Power
 
 | Symptom | Likely cause | Check |
 |---|---|---|
-| "Battery too low to run motors and servos" from the Expansion Hub, while the Control Hub is fine | One hub's power wire or connector, not the battery. This was seen on **Expansion Hub 2** in the 10-26 robot log. | Compare the two hubs' lowest voltages on the screen (`BatterySubsystem`). The warning threshold `LOW_VOLTAGE_WARNING_VOLTS` (11.0) is a starting guess, not from a spec sheet. |
+| "Battery too low to run motors and servos" from the Expansion Hub, while the Control Hub is fine | One hub's power wire or connector, not the battery. This was seen on **Expansion Hub 2** in the 10-26 robot log. | Check that hub's power wire and connector. The Driver Station's own battery warning is the only reading we have; the TeleOp no longer shows hub voltages. |
 | Hub resets or motors cut out when the flywheel spins up **(untested)** | Weak battery or a loose power connector. | Swap batteries. Check the battery and hub power wires and connectors. |
 
 ## Servos

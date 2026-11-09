@@ -20,7 +20,6 @@ The code is the source of truth. This table only tells you **where to look and w
 | Intake power, direction | `IntakeSubsystem` | The motor or the chute changes | `IntakeAlpha` |
 | Drive directions, slow-mode scale | `DriveSubsystem` | Wiring changes | `DriveAlpha` |
 | Pinpoint pod offsets, directions, distance multiplier | `PinpointSubsystem` | A pod moves | `PinpointAlpha` |
-| Low-voltage warning level | `BatterySubsystem` | Always a guess until tested | Watch a healthy robot with the flywheel spinning |
 
 **Per-robot warning:** the practice bot, 11940, and 22091 can differ. Say which robot every row is for. Per-robot values wait for the build flavors (`ARCHITECTURE.md` section 5).
 

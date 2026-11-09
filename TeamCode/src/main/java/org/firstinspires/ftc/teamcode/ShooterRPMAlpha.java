@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -82,6 +83,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  *   Motor name: intake   (IntakeSubsystem)
  *   Servo name: shooter_servo    (goBILDA dual mode servo, set to POSITIONAL mode)
  */
+@Disabled
 @TeleOp(name = "Shooter RPM - Alpha 2", group = "Testing")
 public class ShooterRPMAlpha extends OpMode {
 

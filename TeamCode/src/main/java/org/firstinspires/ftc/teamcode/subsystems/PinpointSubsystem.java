@@ -53,8 +53,13 @@ public class PinpointSubsystem {
 
     // ------------------------------------------------------------------
     // Hardware name. This MUST match the robot configuration exactly.
+    //
+    // The name, the two pod offsets, the pod type and the two pod directions below are PUBLIC on
+    // purpose. In Autonomous, pedro/Constants.java reads them to set up Pedro's own Pinpoint
+    // localizer, so TeleOp and Auto always use the SAME numbers and each number is typed in only
+    // ONE place: here. Change them here and both TeleOp and Auto get the change.
     // ------------------------------------------------------------------
-    private static final String PINPOINT_NAME = "pinpoint";
+    public static final String PINPOINT_NAME = "pinpoint";
 
     // ------------------------------------------------------------------
     // Where the pods are. These numbers are copied from last season's code (same chassis), and
@@ -67,12 +72,12 @@ public class PinpointSubsystem {
     // The FORWARD pod (it counts forward and backward) sits to one side of the center.
     //   LEFT of center is POSITIVE, RIGHT of center is NEGATIVE.
     //   Ours is 3.75 inches to the RIGHT, so it is -3.75.
-    private static final double FORWARD_POD_SIDEWAYS_OFFSET_INCHES = -3.75;
+    public static final double FORWARD_POD_SIDEWAYS_OFFSET_INCHES = -3.75;
 
     // The SIDEWAYS pod (it counts left and right) sits ahead of or behind the center.
     //   FORWARD of center is POSITIVE, BEHIND center is NEGATIVE.
     //   Ours is centered front to back, so it is 0.0.
-    private static final double SIDEWAYS_POD_FORWARD_OFFSET_INCHES = 0.0;
+    public static final double SIDEWAYS_POD_FORWARD_OFFSET_INCHES = 0.0;
 
     // ------------------------------------------------------------------
     // The pods themselves
@@ -80,7 +85,7 @@ public class PinpointSubsystem {
     // goBILDA makes two kinds of odometry pod, and each counts a different number of ticks per
     // millimeter. Ours are the spring-loaded SWINGARM pods. (The other kind is goBILDA_4_BAR_POD.)
     // If the readings are off by a steady amount, check this first.
-    private static final GoBildaPinpointDriver.GoBildaOdometryPods POD_TYPE =
+    public static final GoBildaPinpointDriver.GoBildaOdometryPods POD_TYPE =
             GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD;
 
     // Which way each pod counts. The rule is: X must go UP when the robot is pushed FORWARD, and
@@ -90,9 +95,9 @@ public class PinpointSubsystem {
     // NEGATIVE when the robot was pushed LEFT, so it is REVERSED. (The pod is mounted with its
     // thick side toward the front, which is the opposite of last season. It does not need to be
     // flipped by hand, because this setting does the same job.)
-    private static final GoBildaPinpointDriver.EncoderDirection FORWARD_POD_DIRECTION =
+    public static final GoBildaPinpointDriver.EncoderDirection FORWARD_POD_DIRECTION =
             GoBildaPinpointDriver.EncoderDirection.FORWARD;
-    private static final GoBildaPinpointDriver.EncoderDirection SIDEWAYS_POD_DIRECTION =
+    public static final GoBildaPinpointDriver.EncoderDirection SIDEWAYS_POD_DIRECTION =
             GoBildaPinpointDriver.EncoderDirection.REVERSED;
 
     // ------------------------------------------------------------------

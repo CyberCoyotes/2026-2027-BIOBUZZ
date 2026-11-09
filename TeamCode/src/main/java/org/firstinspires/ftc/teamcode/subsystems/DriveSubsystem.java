@@ -51,11 +51,15 @@ public class DriveSubsystem {
 
     // ------------------------------------------------------------------
     // Hardware names. These MUST match the robot configuration exactly.
+    //
+    // The four names and the four directions below are PUBLIC on purpose. In Autonomous,
+    // pedro/Constants.java reads them to set up Pedro's drivetrain, so TeleOp and Auto always
+    // use the SAME motors and directions and each one is typed in only ONE place: here.
     // ------------------------------------------------------------------
-    private static final String LEFT_FRONT_MOTOR_NAME = "left_front";
-    private static final String LEFT_REAR_MOTOR_NAME = "left_rear";
-    private static final String RIGHT_FRONT_MOTOR_NAME = "right_front";
-    private static final String RIGHT_REAR_MOTOR_NAME = "right_rear";
+    public static final String LEFT_FRONT_MOTOR_NAME = "left_front";
+    public static final String LEFT_REAR_MOTOR_NAME = "left_rear";
+    public static final String RIGHT_FRONT_MOTOR_NAME = "right_front";
+    public static final String RIGHT_REAR_MOTOR_NAME = "right_rear";
 
     // ------------------------------------------------------------------
     // Directions. TEST THESE on the robot with the wheels off the floor!
@@ -65,10 +69,10 @@ public class DriveSubsystem {
     // as the motor shaft.
     // Test: each wheel must push the robot FORWARD when it is given positive power.
     // If a wheel spins backward, flip THAT motor's line between FORWARD and REVERSE.
-    private static final DcMotor.Direction LEFT_FRONT_DIRECTION = DcMotor.Direction.REVERSE;
-    private static final DcMotor.Direction LEFT_REAR_DIRECTION = DcMotor.Direction.REVERSE;
-    private static final DcMotor.Direction RIGHT_FRONT_DIRECTION = DcMotor.Direction.FORWARD;
-    private static final DcMotor.Direction RIGHT_REAR_DIRECTION = DcMotor.Direction.FORWARD;
+    public static final DcMotor.Direction LEFT_FRONT_DIRECTION = DcMotor.Direction.REVERSE;
+    public static final DcMotor.Direction LEFT_REAR_DIRECTION = DcMotor.Direction.REVERSE;
+    public static final DcMotor.Direction RIGHT_FRONT_DIRECTION = DcMotor.Direction.FORWARD;
+    public static final DcMotor.Direction RIGHT_REAR_DIRECTION = DcMotor.Direction.FORWARD;
 
     // ------------------------------------------------------------------
     // Driving settings

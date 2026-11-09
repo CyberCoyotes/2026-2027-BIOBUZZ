@@ -31,7 +31,6 @@
 - [ ] Screen says **Pinpoint status: READY**.
 - [ ] Screen shows the **alliance we are playing**, not just BLUE by default. (TeleOp starts as BLUE; operator presses **Back** to switch. A wrong alliance aims at the other hive and does not look like a failure.)
 - [ ] With the robot pointed at the hive, the screen shows a target (not **NO TARGET**).
-- [ ] Voltage line looks healthy on both hubs (the BatterySubsystem line).
 - [ ] Partner talk done: Auto plans and start spots match, who parks where (see `biobuzz-auto-strategy.md` section 7).
 - [ ] Human player knows to add nectar only after a tip (one per tip) until 1:00 is left.
 
