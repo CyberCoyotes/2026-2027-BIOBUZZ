@@ -234,6 +234,12 @@ public class ShooterSubsystem {
     private ElapsedTime atSpeedTimer = new ElapsedTime();
     private boolean wasWithinTolerance = false;
 
+    // The same check, but for the FLYWHEEL ONLY (see isFlywheelAtSpeed()). It uses the same
+    // AT_SPEED_TOLERANCE_RPM and AT_SPEED_HOLD_SECONDS, so there is no second copy of the numbers.
+    private ElapsedTime flywheelAtSpeedTimer = new ElapsedTime();
+    private boolean flywheelWasWithinTolerance = false;
+    private boolean flywheelAtSpeed = false;
+
     /*
      * Setup. Gets the motors from the robot configuration and sets them up.
      * The shooter starts stopped (IDLE).
@@ -314,6 +320,8 @@ public class ShooterSubsystem {
 
         // New target, so start over: wait for the wheels to get there.
         wasWithinTolerance = false;
+        flywheelWasWithinTolerance = false;
+        flywheelAtSpeed = false;
         state = ShooterState.SPINNING_UP;
     }
 
@@ -335,6 +343,8 @@ public class ShooterSubsystem {
         targetFlywheelRpm = 0.0;
         targetHoodWheelRpm = 0.0;
         wasWithinTolerance = false;
+        flywheelWasWithinTolerance = false;
+        flywheelAtSpeed = false;
         state = ShooterState.OPEN_LOOP;
     }
 
@@ -351,6 +361,8 @@ public class ShooterSubsystem {
         targetFlywheelRpm = 0.0;
         targetHoodWheelRpm = 0.0;
         wasWithinTolerance = false;
+        flywheelWasWithinTolerance = false;
+        flywheelAtSpeed = false;
         state = ShooterState.IDLE;
     }
 
@@ -364,6 +376,9 @@ public class ShooterSubsystem {
         flywheelTicksPerSecond = flywheelMotor.getVelocity();
         hoodWheelTicksPerSecond = hoodWheelMotor.getVelocity();
         smoothRpms();
+
+        // The flywheel-only check runs every loop, whatever the state (see isFlywheelAtSpeed()).
+        updateFlywheelOnlyCheck();
 
         // Only speed control has a target to check against.
         if (state != ShooterState.SPINNING_UP && state != ShooterState.READY) {
@@ -393,6 +408,35 @@ public class ShooterSubsystem {
         }
     }
 
+    /*
+     * The flywheel-only version of the at-speed check in update(). It looks at the flywheel's
+     * smoothed RPM and its target, nothing else. Called once per loop from update().
+     */
+    private void updateFlywheelOnlyCheck() {
+        // Only speed control has a target to check against.
+        if (state != ShooterState.SPINNING_UP && state != ShooterState.READY) {
+            flywheelWasWithinTolerance = false;
+            flywheelAtSpeed = false;
+            return;
+        }
+
+        double flywheelError = Math.abs(getFlywheelRpm() - targetFlywheelRpm);
+        if (flywheelError > AT_SPEED_TOLERANCE_RPM) {
+            // Too slow or too fast. This also happens right after a shot, when the ball slows the
+            // flywheel.
+            flywheelWasWithinTolerance = false;
+            flywheelAtSpeed = false;
+            return;
+        }
+
+        // Within tolerance. Start the timer the first time, then wait out the hold time.
+        if (!flywheelWasWithinTolerance) {
+            flywheelAtSpeedTimer.reset();
+            flywheelWasWithinTolerance = true;
+        }
+        flywheelAtSpeed = flywheelAtSpeedTimer.seconds() >= AT_SPEED_HOLD_SECONDS;
+    }
+
     // ==================================================================
     // QUESTIONS: the OpMode asks the shooter what is happening
     // ==================================================================
@@ -403,6 +447,24 @@ public class ShooterSubsystem {
      */
     public boolean isAtSpeed() {
         return state == ShooterState.READY;
+    }
+
+    /*
+     * True when speed control is on and the FLYWHEEL ONLY has been within AT_SPEED_TOLERANCE_RPM of
+     * its target for AT_SPEED_HOLD_SECONDS. The hood wheel is NOT checked.
+     *
+     * WHY THIS EXISTS: isAtSpeed() needs BOTH wheels, and the hood wheel's speed reading is a lot
+     * noisier (28 encoder counts per turn, against the flywheel's 103.8, and it runs about twice as
+     * fast). In the first Auto robot test isAtSpeed() only came true about 4 seconds after the
+     * flywheel started. The firing sequence uses this one and shows the hood wheel's error, so the
+     * shot is not held up by a noisy reading. isAtSpeed() is NOT changed, so it still checks both.
+     * (The coach decides which one the TeleOp's "OK to shoot" uses. See the hood wheel issue.)
+     *
+     * Like isAtSpeed(), one reading outside the band drops it at once, and it is only fresh once
+     * update() has run this loop.
+     */
+    public boolean isFlywheelAtSpeed() {
+        return flywheelAtSpeed;
     }
 
     public ShooterState getState() {
