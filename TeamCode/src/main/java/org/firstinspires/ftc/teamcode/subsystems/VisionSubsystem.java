@@ -71,6 +71,15 @@ public class VisionSubsystem {
     // [CONFIRM] Change this if your AprilTag pipeline is not number 0.
     private static final int APRILTAG_PIPELINE_INDEX = 0;
 
+    // How often (in seconds) update() asks the camera "which pipeline are you on?". If it is not
+    // the AprilTag one, update() tells it to switch back. WHY: the Limelight can restart in the
+    // middle of a match (for example when a low battery makes the Control Hub's USB port dip).
+    // It then starts on whatever pipeline it boots into, and the pipeline we picked at INIT is
+    // gone. We used to pick the pipeline only ONCE, so after a restart nothing switched it back
+    // and the camera never saw the hive again. Smaller = notices sooner, but asks the camera
+    // more often.
+    private static final double PIPELINE_CHECK_SECONDS = 0.5;
+
     // A camera result older than this many milliseconds is too old to aim with, so we treat
     // it as "no target". The Limelight runs at 90 FPS or so, which is about 11 ms per frame,
     // so a result this old means the camera stopped sending.
@@ -175,8 +184,19 @@ public class VisionSubsystem {
     private final double[] highestTyInCell = new double[TOTAL_CELLS];
 
     // The Limelight may still be booting when we are constructed, and then the pipeline switch
-    // does not work. So update() keeps trying until it works once.
+    // does not work. So update() keeps trying until it works. It is also set back to false
+    // whenever the camera drops off (see update()), so the pipeline is picked again after a
+    // restart.
     private boolean pipelineSet = false;
+
+    // Counts the seconds since update() last asked the camera which pipeline it is on.
+    private final ElapsedTime pipelineCheckTimer = new ElapsedTime();
+
+    // How many times the camera needed its pipeline fixed during the run: it dropped off after we
+    // had picked the pipeline (so it has to be picked again), or update() found it on the WRONG
+    // pipeline and switched it back. Shown on the screen: a number above 0 means the camera
+    // restarted (or lost its settings) during the run.
+    private int pipelineFixCount = 0;
 
     // ==================================================================
     // SETUP
@@ -213,13 +233,49 @@ public class VisionSubsystem {
     }
 
     /*
+     * Makes sure the camera is on the AprilTag pipeline. update() calls it every loop.
+     *   1. Camera not connected (booting, unplugged, or it just restarted): forget that we picked
+     *      the pipeline. We cannot talk to it yet, so the next step waits for it to come back.
+     *   2. Camera connected but we have not picked the pipeline yet (or it just came back): pick it.
+     *   3. Camera connected and we picked it: every PIPELINE_CHECK_SECONDS, ask which pipeline it
+     *      is really on. If it is not ours (it restarted so fast that it never looked
+     *      disconnected), switch it back.
+     */
+    private void checkPipeline() {
+        boolean connected = limelight.isConnected();
+
+        if (!connected) {
+            if (pipelineSet) {
+                // It WAS working and just dropped off: it will need the pipeline picked again.
+                pipelineFixCount = pipelineFixCount + 1;
+            }
+            pipelineSet = false;
+            return;
+        }
+
+        if (!pipelineSet) {
+            pipelineSet = limelight.pipelineSwitch(APRILTAG_PIPELINE_INDEX);
+            pipelineCheckTimer.reset();
+            return;
+        }
+
+        if (pipelineCheckTimer.seconds() < PIPELINE_CHECK_SECONDS) {
+            return;
+        }
+        pipelineCheckTimer.reset();
+
+        LLStatus status = limelight.getStatus();
+        if (status != null && status.getPipelineIndex() != APRILTAG_PIPELINE_INDEX) {
+            limelight.pipelineSwitch(APRILTAG_PIPELINE_INDEX);
+            pipelineFixCount = pipelineFixCount + 1;
+        }
+    }
+
+    /*
      * Call this ONCE per loop(). It reads the newest camera result and picks the target.
      */
     public void update() {
-        // The camera may have finished booting since the last loop.
-        if (!pipelineSet && limelight.isConnected()) {
-            pipelineSet = limelight.pipelineSwitch(APRILTAG_PIPELINE_INDEX);
-        }
+        checkPipeline();
 
         LLResult result = limelight.getLatestResult();
         if (result == null || !result.isValid()) {
@@ -367,6 +423,14 @@ public class VisionSubsystem {
     }
 
     /*
+     * How many times the camera had to be switched back to the AprilTag pipeline during this run.
+     * Above 0 means the camera restarted or lost its pipeline.
+     */
+    public int getPipelineFixCount() {
+        return pipelineFixCount;
+    }
+
+    /*
      * Shows the camera's health and the target. Call it after update(). It prints its own
      * heading, so the OpMode has nothing else to call.
      */
@@ -381,8 +445,8 @@ public class VisionSubsystem {
             if (status != null) {
                 telemetry.addData("Limelight", "Temp %.1fC   CPU %.0f%%   FPS %d",
                         status.getTemp(), status.getCpu(), (int) status.getFps());
-                telemetry.addData("Pipeline", "%d (wanted %d)",
-                        status.getPipelineIndex(), APRILTAG_PIPELINE_INDEX);
+                telemetry.addData("Pipeline", "%d (wanted %d)   switched back %d time(s)",
+                        status.getPipelineIndex(), APRILTAG_PIPELINE_INDEX, pipelineFixCount);
             } else {
                 telemetry.addData("Limelight", "connected, no status yet");
             }

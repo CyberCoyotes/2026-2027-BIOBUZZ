@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -12,7 +13,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit
 /*
  * Pinpoint Subsystem
  * Owns the goBILDA PINPOINT odometry computer and its two odometry pods. It only READS. It never
- * moves a motor, and it has no gamepad code. Another class (for now TeleOp - Alpha 10 and
+ * moves a motor, and it has no gamepad code. Another class (for now TeleOp - Alpha 11 and
  * PinpointAlpha) asks it where the robot is.
  *
  * WHAT IT ANSWERS: "Where is the robot, and which way is it facing, compared to where it started?"
@@ -37,6 +38,19 @@ import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit
  * ABSENT DEVICE: if the robot's configuration has no device named PINPOINT_NAME, this class does
  * NOT stop the OpMode. Every getter answers 0, isAvailable() is false, and the telemetry says
  * what to fix. (The robot can still drive. It just does not know where it is.)
+ *
+ * DROP LOG (a black box for finding why the Pinpoint stops saying READY): every time the status
+ * goes from READY to something else, update() records the story of that "drop": which statuses it
+ * went through, how long it lasted, and how far the HEADING moved while it was happening. The
+ * screen shows it. It changes nothing the robot does. HOW TO READ IT:
+ *   - FAULT_X_POD / FAULT_Y_POD / FAULT_NO_PODS: a pod cable is loose or a pod is failing. The gyro
+ *     (and so the heading) may carry on fine, so look at "heading moved": a small number means the
+ *     heading survived.
+ *   - FAULT_BAD_READ: the I2C cable or connector (a bad read between the Hub and the Pinpoint).
+ *   - NOT_READY then CALIBRATING: the Pinpoint RESTARTED (a power or reset problem). Its heading is
+ *     back at a new zero, so "heading moved" will be large.
+ *   - FAULT_IMU_RUNAWAY: the gyro went wrong.
+ * The log starts only after the Pinpoint has said READY once, so the normal start-up is not a drop.
  *
  * The OpMode must call update() ONCE per loop(). Nothing calls it for us.
  *
@@ -132,6 +146,28 @@ public class PinpointSubsystem {
     private double ySpeedInchesPerSecond = 0.0;
     private double headingSpeedDegreesPerSecond = 0.0;
 
+    // ------------------------------------------------------------------
+    // The drop log (see DROP LOG at the top). Only describes what happened. Nothing reads it to
+    // make a decision.
+    // ------------------------------------------------------------------
+    // Longest story we keep for one drop. A drop that wanders through many statuses is cut off.
+    private static final int DROP_STORY_MAX_CHARACTERS = 90;
+
+    private boolean hasBeenReady = false;          // the log starts the first time it says READY
+    private boolean inDrop = false;                // true from the loop it stops saying READY
+    private GoBildaPinpointDriver.DeviceStatus lastStatusInDrop = null;
+    private final ElapsedTime dropTimer = new ElapsedTime();
+    // The heading on the last loop the status was READY. A drop is measured against THIS, not the
+    // first not-READY reading: a restart can zero the heading at the very moment it stops saying
+    // READY, and that first reading would already be the new zero.
+    private double lastReadyHeadingDegrees = 0.0;
+    private double dropStartHeadingDegrees = 0.0;
+    private int dropCount = 0;
+    private String lastDropStory = "";             // for example "FAULT_X_POD_NOT_DETECTED > READY"
+    private double lastDropSeconds = 0.0;          // while a drop is running: the seconds so far
+    private double lastDropHeadingChangeDegrees = 0.0;
+    private double longestDropSeconds = 0.0;
+
     // ==================================================================
     // SETUP
     // ==================================================================
@@ -180,6 +216,64 @@ public class PinpointSubsystem {
         if (INVERT_HEADING) {
             headingDegrees = -headingDegrees;
             headingSpeedDegreesPerSecond = -headingSpeedDegreesPerSecond;
+        }
+
+        updateDropLog();
+    }
+
+    /*
+     * Writes the drop log (see DROP LOG at the top). Called by update(), after the newest heading
+     * has been saved. It only watches the status and writes down what it sees.
+     */
+    private void updateDropLog() {
+        GoBildaPinpointDriver.DeviceStatus status = pinpoint.getDeviceStatus();
+
+        if (status == GoBildaPinpointDriver.DeviceStatus.READY) {
+            if (inDrop) {
+                // It is back. Close the story.
+                inDrop = false;
+                lastDropSeconds = dropTimer.seconds();
+                lastDropHeadingChangeDegrees = HiveBearingMemory.wrapDegrees(headingDegrees - dropStartHeadingDegrees);
+                addToDropStory(status);
+                if (lastDropSeconds > longestDropSeconds) {
+                    longestDropSeconds = lastDropSeconds;
+                }
+            }
+            hasBeenReady = true;
+            lastReadyHeadingDegrees = headingDegrees;
+            return;
+        }
+
+        if (!hasBeenReady) {
+            // Still starting up for the first time. That is not a drop.
+            return;
+        }
+
+        if (!inDrop) {
+            // A drop just started.
+            inDrop = true;
+            dropCount = dropCount + 1;
+            dropTimer.reset();
+            dropStartHeadingDegrees = lastReadyHeadingDegrees;
+            lastDropStory = status.toString();
+            lastStatusInDrop = status;
+        } else if (status != lastStatusInDrop) {
+            // Still not READY, but the status changed (for example a fault, then CALIBRATING).
+            addToDropStory(status);
+            lastStatusInDrop = status;
+        }
+
+        // Keep the numbers current while the drop is still going on.
+        lastDropSeconds = dropTimer.seconds();
+        lastDropHeadingChangeDegrees = HiveBearingMemory.wrapDegrees(headingDegrees - dropStartHeadingDegrees);
+    }
+
+    /*
+     * Adds " > STATUS" to the story of the current drop, unless the story is already long.
+     */
+    private void addToDropStory(GoBildaPinpointDriver.DeviceStatus status) {
+        if (lastDropStory.length() < DROP_STORY_MAX_CHARACTERS) {
+            lastDropStory = lastDropStory + " > " + status.toString();
         }
     }
 
@@ -335,6 +429,20 @@ public class PinpointSubsystem {
                 xInches, yInches, headingDegrees);
         telemetry.addData("Speed", "X %.1f in/s   Y %.1f in/s   Turn %.1f deg/s",
                 xSpeedInchesPerSecond, ySpeedInchesPerSecond, headingSpeedDegreesPerSecond);
+        telemetry.addData("Pinpoint update rate", "%.0f Hz", getPinpointFrequencyHz());
+
+        // The drop log. Write down what it says after a drop (a photo of the screen is fine).
+        if (dropCount == 0) {
+            telemetry.addData("Pinpoint drops", "none since it first said READY");
+        } else {
+            String nowText = "";
+            if (inDrop) {
+                nowText = "   *** DROPPED RIGHT NOW ***";
+            }
+            telemetry.addData("Pinpoint drops", "%d in total   longest %.2f s%s", dropCount, longestDropSeconds, nowText);
+            telemetry.addData("Last drop", "%.2f s   heading moved %.0f deg   %s",
+                    lastDropSeconds, lastDropHeadingChangeDegrees, lastDropStory);
+        }
     }
 
     // ==================================================================

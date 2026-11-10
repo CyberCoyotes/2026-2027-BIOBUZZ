@@ -1,6 +1,6 @@
 # BIOBUZZ TeleOp Controls: Driver and Operator
 
-Print this and keep it at the driver station. It matches **`TeleOp - Alpha 10`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet. The controls for every other OpMode (the test Alphas) are in `biobuzz-opmode-controls.md`.
+Print this and keep it at the driver station. It matches **`TeleOp - Alpha 11`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet. The controls for every other OpMode (the test Alphas) are in `biobuzz-opmode-controls.md`.
 
 **Pairing:** on the Driver Station, press **Start + A** on the driver's controller (gamepad 1) and **Start + B** on the operator's controller (gamepad 2).
 **Logitech controller (F310 / F710):** set the switch on the back to **X** (XInput mode), not D. The buttons are then labeled A, B, X, Y like the code. Bumpers are **LB / RB** and triggers are **LT / RT**. Left Trigger = LT, Right Trigger = RT.
@@ -19,10 +19,13 @@ The driver drives, runs the intake, and holds the Right Trigger to shoot. **The 
 | **Right Bumper** | **INTAKE**: pull balls in (also carries them up the transfer chute) |
 | **Left Bumper** | **REVERSE** the intake: push balls out. Beats the Right Bumper, so clearing a jam always works |
 | **X / B / Y** | **Shooter gate by hand**, for testing: **X** CLOSED, **B** OPENED, **Y** LIFTED. One move per press, and they work at the same time as the operator's gate triggers. (Careful: **B** is the gate OPENED button, so pairing gamepad 2 with Start + B while this OpMode runs also opens the gate if you press it on gamepad 1.) |
+| **D-pad Left** | **RE-AIM** (for field-centric drive): "the way the robot faces right now is **away from me**." Press it if the robot was turned or bumped, or if a practice start was not in the Auto orientation. It does not touch the Pinpoint. It also turns field-centric back on after the safety rule (see the tips) |
 | **Right Trigger** (hold) | **SHOOT** (it also auto-aligns the turret, even if ALWAYS-TRACK is off). The wheels use the flywheel speed from the **DIAL** (starts at flywheel 1300 RPM, hood wheel 2600 RPM) or the **TABLE**, whichever the operator picked. **Let go and both wheels go to 0 power** (they coast down). The turret keeps following the hive if **ALWAYS-TRACK** is ON (it starts ON), and holds where it ended only if ALWAYS-TRACK is OFF |
 
 ### Driver tips
-- The robot is **robot-centric**: "forward" is the way the robot is facing.
+- The robot starts **FIELD-CENTRIC**: pushing the left stick forward moves the robot **away from you**, even after the robot turns. The screen shows **DRIVE MODE** right under the alliance, and says which wall "forward" points at (**BLUE driver station: toward the LEFT wall**, **RED: toward the RIGHT wall**). The operator's **MODE** button switches to **ROBOT-CENTRIC**, where forward is the way the robot is facing.
+- Field-centric assumes the **blue drivers stand on the right and the red drivers on the left**, and that the robot starts TeleOp **facing the way it started Auto** (blue down the field, red up the field). If the robot was turned or bumped, or you start a practice run another way, press **D-pad Left** (re-aim).
+- **Safety:** if the Pinpoint stops being READY **for more than a quarter of a second**, or its heading jumps, the drive switches itself to **ROBOT-CENTRIC** and the screen says why. It does **not** switch back by itself (a restarted Pinpoint has a new zero). A shorter blink (a bad read, a weak-battery dip) is forgiven: the drive keeps the last heading and carries on, and the screen counts it under **Pinpoint glitches**. Lots of glitches means **change the battery**. The operator's **MODE** button or your **D-pad Left** turns field-centric back on. Do **not** change the alliance after START to fix it: the alliance only changes the camera's hive then.
 - **Keep the robot still during INIT.** The Pinpoint odometry calibrates its gyro then. Before START, check that the screen says **Pinpoint status: READY**.
 - **The turret keeps pointing at the hive while you spin, even if the camera loses it.** The Pinpoint remembers which way the hive was. It gives up (screen: **Hive memory ... STALE**, turret holds still) if you drive more than **12 inches** or **5 seconds** pass without the camera seeing the hive. When the camera sees the hive again it takes over.
 - The operator's bumpers (jam clearing) beat your Right Trigger shot, so don't be surprised if the shot stops.
@@ -62,6 +65,7 @@ A preset goes to its angle and holds there.
 |---|---|
 | **Back** | Switch the **alliance** BLUE / RED. It starts as **BLUE**. **Check it on the screen** before the match: the wrong alliance aims at the other hive |
 | **Start** | Switch the flywheel speed source **DIAL / TABLE**. It starts on **DIAL** |
+| **MODE button** | Switch the drive **FIELD-CENTRIC / ROBOT-CENTRIC**. It starts **FIELD-CENTRIC**. If the safety rule switched field-centric off, MODE turns it back on. **Which physical button?** The center **guide** (Logitech logo) button and the **Left Stick Button** both work for now (the INIT screen shows which one registers: "MODE button test"). The Left Stick Button is under the turret stick, so a hard push can press it by accident: the drive mode on the screen will change |
 
 **DIAL** is the speed the operator dialed in (below), exactly as before, and needs no camera. **TABLE** uses the shot table: while the camera sees the hive, the flywheel speed comes from how high the hive's tags appear (closer = lower RPM). If the camera loses the hive, the table's last speed is kept for **1 second**, then the flywheel goes back to the dial. The screen says which one is in use. The hood wheel is always the flywheel speed x the ratio dial.
 (Start + B is also how gamepad 2 is paired. If you pair or re-pair it while the OpMode is running, gamepad 2's Start switches the mode **and gamepad 2's B sends the turret to far right (-90) and turns ALWAYS-TRACK off**. Pair before START, or check the screen afterward.)
