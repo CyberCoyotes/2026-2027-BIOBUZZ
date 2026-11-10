@@ -42,6 +42,8 @@
 | Robot tips on a hard stop | Tall robot with `BRAKE`. | Slow mode (hold driver's Left Trigger, 40%). Consider easing the stop. |
 | Pinpoint heading or distance looks wrong | Pod directions and the distance multiplier. First robot test: heading sign is correct (`INVERT_HEADING` false), sideways pod is REVERSED. The distance multiplier is still being confirmed, and last season's 1.5 was probably covering a pod setting. | `PinpointAlpha`, six-step test order in its header. |
 | Pinpoint drifts or starts wrong | Robot moved during INIT. | Keep the robot still until the screen says **READY**. |
+| Drive keeps dropping from FIELD to ROBOT centric while driving | The Pinpoint stopped being READY for more than 0.25 s, or came back with its heading far off (it restarted). A weak or old battery that sags under load is the usual cause. Shorter blinks are forgiven now. | Read the reason in the **DRIVE MODE** line. Check the **Pinpoint status** line and the **Pinpoint glitches** count (many = voltage dips). **Change the battery first.** Check the Pinpoint's I2C cable. Then the operator's MODE button or the driver's D-pad Left turns field-centric back on. |
+| Turret and camera stop tracking after a bump or a brownout | The Limelight restarted and came back on a different pipeline (or is still booting, about 30 s). | Check **Camera pipeline fixes** on the screen (above 0 = it restarted, and the code switched it back) and the Vision **Pipeline N (wanted 0)** line. Change the battery. Check the Limelight's USB cable. |
 | Pedro path ends in the wrong place **(untested)** | Pedro's motor names or directions do not match ours, or the pod offsets are off. | `pedro-setup-and-auto-guide.md` section 7. (Pedro is set up in code but not yet run on a robot.) |
 
 ## Power
