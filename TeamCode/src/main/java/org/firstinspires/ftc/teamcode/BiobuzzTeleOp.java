@@ -15,14 +15,30 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
- * TeleOp Alpha 11
+ * TeleOp Alpha 12
  * An iterative OpMode with TWO controllers:
  *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to SHOOT.
- *              (The turret now AUTO-TRACKS the hive ALL THE TIME, see ALWAYS-TRACK below.)
- *   gamepad2 = the OPERATOR: sets the shooter speeds (RPM), aims the TURRET, and moves the GATE.
+ *              (The turret AUTO-TRACKS the hive ALL THE TIME, see ALWAYS-TRACK below.)
+ *   gamepad2 = the OPERATOR: sets the shooter speeds (RPM), moves the GATE, and can run the
+ *              INTAKE too. The operator does NOT aim the turret by hand any more.
  * It is DriveAlpha, IntakeAlpha, ShooterRPMAlpha, TurretAlpha, VisionAlpha, ShotTableAlpha and
  * PinpointAlpha put together, so each part has already been tested on its own. This OpMode owns
  * NO hardware. It only reads the gamepads and tells the subsystems what to do.
+ *
+ * NEW IN ALPHA 12: CONTROL CHANGES (issue #74). The screen name is now "TeleOp - Alpha 12" (it was
+ * Alpha 11). The three Autos' preselectTeleOp use the new name, so the Driver Station still loads
+ * this OpMode after Auto.
+ *   REMOVED from gamepad2: the turret stick, the turret presets (Y, X, B), the Right Stick Button
+ *     ALWAYS-TRACK switch, the gate triggers, and the shooter-wheel reverse bumpers.
+ *   REMOVED from gamepad1: the X / B / Y gate buttons (they moved to gamepad2).
+ *   MOVED: the gate is now gamepad2 X = CLOSED, B = OPENED, Y = LIFTED.
+ *   NEW on gamepad2: Right Bumper = INTAKE and Left Bumper = REVERSE, the same as gamepad1.
+ *   SWAPPED on gamepad2: Start = alliance (was Back), Back = flywheel speed DIAL / TABLE (was Start).
+ *   CHANGED: gamepad2 A is now HOLD to float the turret (so you can turn it by hand). Letting go
+ *     goes back to tracking. (A used to switch ALWAYS-TRACK off, and nothing is left to turn it on.)
+ *   NOTE: there is NO way to reverse the shooter wheels now, so a jam in the wheels cannot be
+ *     cleared from the controllers. (The intake REVERSE still works.)
+ *   The full button map for both gamepads is in TeamCode/docs/biobuzz-teleop-controls.md.
  *
  * NEW IN ALPHA 11: FIELD-CENTRIC DRIVE (issue #54)
  *   The drive now STARTS FIELD-CENTRIC: pushing the left stick forward moves the robot AWAY FROM THE
@@ -34,6 +50,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     candidates, "guide" (the center Logitech logo) and "left stick button". Press them and see
  *     which one says true. MODE_BUTTON_GUIDE_ENABLED and MODE_BUTTON_LEFT_STICK_ENABLED turn each
  *     one on or off. The drive mode is on the screen next to the alliance line, big.
+ *     (The left stick is not used for the turret any more, so the Left Stick Button is no longer
+ *     under a stick that gets pushed hard.)
  *   - THE DRIVER's D-pad Left RE-AIMS: "the way the robot faces right now is away from me". It only
  *     changes which way forward means. The Pinpoint is NEVER reset, because the turret's hive
  *     memory depends on its heading and position.
@@ -46,7 +64,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     heading). Blue: -90 - 180 = +90. Red: +90 - 0 = +90. The same answer, because red is the blue
  *     plan turned 180 degrees. The four numbers are kept per alliance (see the constants), so a
  *     different start orientation later is a one-number change. The offset is set from the
- *     alliance (operator Back) in INIT and fixed at START: changing the alliance after START does
+ *     alliance (operator Start) in INIT and fixed at START: changing the alliance after START does
  *     NOT change which way the stick drives. D-pad Left replaces it with the re-aim.
  *   - ASSUMPTIONS: the blue drivers stand on the right and the red drivers on the left, and the robot
  *     is not moved between the end of Auto and INIT (the Pinpoint is zeroed at INIT). With no Auto
@@ -93,10 +111,10 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      clearly higher, and lets go of the lock after the cell has been out of view for half a
  *      second. After a hive tip you drive to the other side, the old cell leaves the view, and the
  *      cell you now see becomes the target by itself. The screen says "Aiming at BLUE FAR side"
- *      (or AUDIENCE). There is NO new button. The alliance button (gamepad2 Back) also clears
+ *      (or AUDIENCE). There is NO new button. The alliance button (gamepad2 Start) also clears
  *      the memory and the lock, so we never aim at the other hive's direction.
- *   LIMITS: no search (if the camera has not seen the hive from the new side, use the turret
- *   stick or a preset until it does). And if only the LOWERED cell is in view, ty alone cannot say
+ *   LIMITS: no search (if the camera has not seen the hive from the new side, turn the robot
+ *   toward the hive until it does). And if only the LOWERED cell is in view, ty alone cannot say
  *   it is lowered, so the turret would still aim at it.
  *
  * From ALPHA 8: ODOMETRY ON THE SCREEN
@@ -110,31 +128,26 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   says so and everything else still works.
  *
  * GAMEPAD 2 (the operator) has NO layers. Every button always does the same thing:
- *   Left Stick X     -> turn the turret (push RIGHT and the turret turns RIGHT)
- *   Y -> turret CENTER (0 degrees)   X -> FAR LEFT (+90)   B -> FAR RIGHT (-90)
- *   A -> STOP the turret (it floats, so you can turn it by hand)
+ *   X -> shooter GATE CLOSED (holds the ball back)
+ *   B -> shooter GATE OPENED (lets the ball through)
+ *   Y -> shooter GATE LIFTED (pushes the last ball in)
+ *      (One move per press. The gate positions are CLOSED_POSITION, OPENED_POSITION and
+ *       LIFTED_POSITION in ShooterServoSubsystem. If more than one is pressed on the same loop,
+ *       CLOSED wins, then OPENED, then LIFTED.)
+ *   A -> HOLD to STOP the turret (it floats, so you can turn it by hand). Let go and it goes
+ *        back to tracking the hive.
  *   D-pad Up / Down  -> flywheel target RPM +/- FLYWHEEL_RPM_STEP
  *   D-pad Right / Left -> ratio (hood wheel / flywheel) +/- 0.05
- *   Left Bumper      -> HOLD to reverse BOTH shooter wheels (clearing a jam)
- *   Right Bumper     -> HOLD to reverse the flywheel only
- *   Right Stick Button (press the stick in) -> switch ALWAYS-TRACK ON <-> OFF (starts ON).
- *                       See ALWAYS-TRACK below. The driver's Right Trigger still aligns while
- *                       it shoots, even if ALWAYS-TRACK is OFF.
- *   Start            -> switch the flywheel speed source DIAL <-> TABLE (starts as DIAL)
- *   Back             -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
+ *   Right Bumper     -> INTAKE (pull balls in)       Left Bumper -> REVERSE (push balls out)
+ *                       Same as the driver's bumpers. Left Bumper beats Right Bumper.
+ *   Start            -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
+ *   Back             -> switch the flywheel speed source DIAL <-> TABLE (starts as DIAL)
  *   MODE button      -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC). If
  *                       field-centric was switched off by the safety rule, it turns it back ON.
  *                       (The center "guide" button or the Left Stick Button, see NEW IN ALPHA 11.)
- *   Right Trigger    -> shooter GATE to OPENED (lets the ball through)
- *   Left Trigger     -> shooter GATE to CLOSED (holds the ball back)
- *      (One move per press. The gate positions are CLOSED_POSITION, OPENED_POSITION and
- *       LIFTED_POSITION in ShooterServoSubsystem. If CLOSED and another move are pressed at
- *       the same time, CLOSED wins. The operator's triggers have no LIFTED button, only the
- *       driver's Y does.)
- *   With ALWAYS-TRACK ON, letting go of the stick goes back to tracking the hive. With it OFF,
- *   the turret holds where it is. A preset (Y, X, B) goes to its angle and holds, and so does
- *   A (STOP), because pressing any of them turns ALWAYS-TRACK OFF. Press the Right Stick Button
- *   to turn it back ON. The turret will not go past +/-120 degrees (see TurretSubsystem). 0 degrees is where
+ *   Left Stick, Right Stick, both Triggers: not used.
+ *   The turret has no other operator control. It tracks the hive all the time (see ALWAYS-TRACK
+ *   below). It will not go past +/-120 degrees (see TurretSubsystem). 0 degrees is where
  *   the turret pointed when the Control Hub powered on, because the home switch is not
  *   installed yet, so power on with the turret pointing straight ahead.
  *
@@ -148,36 +161,31 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   D-pad Left   -> RE-AIM: "the way the robot faces right now is away from me" (field-centric).
  *      It does not touch the Pinpoint. It also turns field-centric back on after the safety rule.
  *   Right Bumper -> INTAKE (pull balls in)      Left Bumper -> REVERSE (push balls out)
- *      (Left Bumper beats Right Bumper, so clearing a jam always works. The intake runs at the
+ *      (Left Bumper beats Right Bumper, so clearing a jam always works. The operator's bumpers
+ *       do the same, and REVERSE on EITHER gamepad beats INTAKE on either. The intake runs at the
  *       power set in IntakeSubsystem, DEFAULT_INTAKE_POWER.)
- *   Right Trigger -> HOLD to SHOOT and AUTO-ALIGN the turret on the hive TOGETHER.
+ *   Right Trigger -> HOLD to SHOOT. (The turret is already tracking the hive, see ALWAYS-TRACK.)
  *      The wheels run at the flywheel speed from the DIAL or the TABLE (see THE SHOT TABLE
  *      below), and the hood wheel at that x the ratio dial. At the start that is DIAL mode,
  *      flywheel 1300 RPM and hood wheel 2600 RPM (a ratio of 2.00).
- *      Let go and both wheels go to 0 power and coast down. The turret holds where it ended.
- *      Reverse (gamepad2 bumpers) still beats the wheels, so clearing a jam always works.
- *      The operator's turret stick and A (STOP) still beat the auto-align.
- *   X / B / Y    -> shooter GATE by hand, for testing: X = CLOSED, B = OPENED, Y = LIFTED.
- *      (One move per press. These are for manual control and testing. They work at the same
- *       time as the operator's gate triggers below, and the latest press wins. Later the gate
- *       will become part of a smart shooting sequence.)
+ *      Let go and both wheels go to 0 power and coast down.
+ *      The operator's A (hold) floats the turret, and that still beats the tracking.
+ *   X / B / Y    -> not used. (The shooter gate moved to the operator's X / B / Y.)
  *
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (SPEED CONTROL in RPM, read from the wheel encoders)
  *   D-pad Up / Down    -> flywheel target RPM UP / DOWN by FLYWHEEL_RPM_STEP
  *   D-pad Right / Left -> ratio UP / DOWN by 0.05
- *   Left Bumper  -> HOLD to reverse BOTH the flywheel and the hood wheel (clearing a jam)
- *   Right Bumper -> HOLD to reverse the flywheel only
  *   The hood wheel target RPM is flywheel RPM x ratio (RATIO = HOOD WHEEL / FLYWHEEL). The
  *   shooter will not go past each wheel's own maximum (the flywheel motor is the 1620 RPM one,
  *   so its maximum is only 1458 RPM). If a wheel would be over its maximum, the screen says
  *   CAPPED and the real ratio is lower than the dial says.
- *   Jam clearing (the bumpers) still uses plain negative POWER, because speed control only
- *   works forward.
+ *   (The shooter wheels can no longer be reversed from this OpMode. ShooterRPMAlpha and
+ *   ShooterPowerAlpha can still run them backward, for testing.)
  *   The screen shows "OK to shoot" only when BOTH wheels are really at their target RPM
  *   (the shooter's isAtSpeed()). It drops back to WAIT after a ball slows the wheels.
  *   ShooterRPMAlpha has the same wheel speed control on its own, for testing.
  *
- * THE SHOT TABLE (TABLE mode, switched with gamepad2 Start)
+ * THE SHOT TABLE (TABLE mode, switched with gamepad2 Back)
  *   The Limelight is on the turret. It reads ty, how far UP the hive's AprilTags appear in its
  *   view, and ShotTable turns that into a flywheel RPM. (Closer = bigger ty = lower RPM.)
  *   - DIAL mode: the flywheel uses the operator's dial, exactly like before. This is the safe
@@ -186,7 +194,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     camera loses the hive, it keeps the LAST table RPM for TABLE_RPM_HOLD_SECONDS so the wheels
  *     do not lurch, then goes back to the dial. The screen says which one is being used.
  *   - The camera can only see the hive when the turret points at it. ALWAYS-TRACK (below) keeps
- *     the turret pointed at it, and the driver's Right Trigger aligns it too while it shoots.
+ *     the turret pointed at it.
  *   - AUTO-ALIGN: the camera is ON the turret, so tx is how far the turret still has to turn.
  *     tx is positive to the RIGHT but turret angles are positive to the LEFT, so the new turret
  *     target is the turret angle NOW minus tx. If the camera loses the hive, the turret holds
@@ -198,17 +206,14 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   - The table was measured aiming at one hive from a few spots, see ShotTable. Outside those
  *     spots it uses the nearest row, and the screen warns you.
  *
- * ALWAYS-TRACK (new in Alpha 7)
- *   Before, the turret only aligned on the hive while a button was held. Now it aligns on the
- *   hive ALL THE TIME, the whole match, with no button held. It uses the same auto-align as the
- *   trigger (see AUTO-ALIGN above), including following the robot's spin.
- *   - It starts ON. It does NOT run during INIT, because the robot must not move before START.
+ * ALWAYS-TRACK (new in Alpha 7, and since issue #74 it is ALWAYS ON: there is no switch)
+ *   The turret aligns on the hive ALL THE TIME, the whole match, with no button held. It uses
+ *   the AUTO-ALIGN above, including following the robot's spin.
+ *   - It does NOT run during INIT, because the robot must not move before START.
  *   - If the camera cannot see the hive, the turret HOLDS where it is. It does not search.
- *   - The operator's turret stick beats it while the stick is pushed. Let go of the stick and
- *     it goes back to tracking.
- *   - Y, X, B (presets) and A (STOP) switch it OFF so the turret stays where they put it.
- *     Press the Right Stick Button to switch it back ON. The screen shows ON or OFF.
- *   - The ALLIANCE (gamepad2 Back) must be right, or the turret tracks the OTHER team's hive.
+ *   - The operator's A (hold) floats the turret so it can be turned by hand. Let go of A and it
+ *     goes back to tracking.
+ *   - The ALLIANCE (gamepad2 Start) must be right, or the turret tracks the OTHER team's hive.
  *     It starts as BLUE. Check the alliance on the screen before you press START.
  *
  * THE INTAKE ALSO RUNS THE TRANSFER. One motor spins the front intake AND a hex shaft with
@@ -241,7 +246,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   I2C Device name: pinpoint         (PinpointSubsystem, goBILDA Pinpoint Odometry Computer. If it
  *                                      is missing, the screen says so and the OpMode still runs.)
  */
-@TeleOp(name = "TeleOp - Alpha 11", group = "Testing")
+@TeleOp(name = "TeleOp - Alpha 12", group = "Testing")
 public class BiobuzzTeleOp extends OpMode {
 
     // ------------------------------------------------------------------
@@ -261,7 +266,7 @@ public class BiobuzzTeleOp extends OpMode {
     // button reaches the Robot Controller. The INIT screen shows both, so press them and look. Then
     // set the one you do NOT want to false. (The Logitech F310's own MODE button may not be sent to
     // the Robot Controller in X mode. The center Logitech logo button is "guide". The Left Stick
-    // Button is free, but it sits under the turret stick, so it can be pressed by accident.)
+    // Button is free now that the left stick no longer turns the turret.)
     private static final boolean MODE_BUTTON_GUIDE_ENABLED = true;
     private static final boolean MODE_BUTTON_LEFT_STICK_ENABLED = true;
 
@@ -304,10 +309,6 @@ public class BiobuzzTeleOp extends OpMode {
     // How many hundredths make a whole number (200 hundredths = 2.00).
     private static final double HUNDREDTHS_PER_ONE = 100.0;
 
-    // How many percent make a whole power of 1.0 (100 percent = 1.0 power).
-    // The turret power below is still counted in percent.
-    private static final double PERCENT_PER_ONE = 100.0;
-
     // A hood wheel target counts as CAPPED when it is higher than the shooter's maximum by more
     // than this many RPM. (A little room, so a tiny rounding error does not cry wolf.)
     private static final double CAPPED_TOLERANCE_RPM = 1.0;
@@ -316,27 +317,9 @@ public class BiobuzzTeleOp extends OpMode {
     // spinning faster than this. Below it the division gives silly numbers.
     private static final double MIN_RPM_FOR_MEASURED_RATIO = 300.0;
 
-    // Reverse power is NEGATIVE so the motor spins the other way. Jam clearing is plain power,
-    // not RPM, because speed control in ShooterSubsystem only goes forward.
-    private static final double FLYWHEEL_POWER_REVERSE = -0.60;
-    private static final double HOOD_WHEEL_POWER_REVERSE = -0.60;
-
-    // ------------------------------------------------------------------
-    // Turret (gamepad2). These are test-only numbers, the same as in TurretAlpha.
-    // ------------------------------------------------------------------
-    // The turret power, in percent. A full push on the stick turns the turret at this power.
-    // (D-pad Up / Down used to change it. They now change the flywheel RPM instead.)
-    private static final int TURRET_POWER_PERCENT = 100;
-
-    // The turret preset angles. LEFT is POSITIVE and RIGHT is NEGATIVE, the same as Pinpoint
-    // and Pedro Pathing. Center is 0 degrees, which is 0 encoder ticks.
-    private static final double TURRET_PRESET_SIDE_DEGREES = 90.0;
-    private static final double TURRET_PRESET_LEFT_DEGREES = TURRET_PRESET_SIDE_DEGREES;
-    private static final double TURRET_PRESET_RIGHT_DEGREES = -TURRET_PRESET_SIDE_DEGREES;
-    private static final double TURRET_PRESET_CENTER_DEGREES = 0.0;
-
-    // The turret stick must move more than this before it counts.
-    private static final double TURRET_STICK_DEADBAND = 0.1;
+    // (The turret has no operator controls any more except A to float it, so there are no
+    // turret power, stick or preset numbers here. The shooter wheels cannot be reversed from
+    // this OpMode now either, so there are no reverse power numbers.)
 
     // ------------------------------------------------------------------
     // Vision and the shot table. These are test-only numbers, the same as in VisionAlpha.
@@ -401,11 +384,6 @@ public class BiobuzzTeleOp extends OpMode {
     // Change it by about 0.05 at a time. Try slow mode too, it is scaled to match.
     private static final double TURRET_FEEDFORWARD_GAIN = 0.30;
 
-    // Should the turret track the hive ALL THE TIME from START? true = yes (ALWAYS-TRACK starts
-    // ON), false = it starts OFF and the operator turns it on with the Right Stick Button.
-    // Either way it never moves during INIT.
-    private static final boolean ALWAYS_TRACK_AT_START = true;
-
     // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
     // bottom, under the live data). false = it is only shown before START, like it used to be.
     private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
@@ -449,27 +427,15 @@ public class BiobuzzTeleOp extends OpMode {
     // What the buttons were doing LAST loop. A press lasts many loops (about 50 per second),
     // but we want it to count only ONCE. So we only act when it was NOT pressed last loop
     // and IS pressed now.
-    private boolean wasGateShootTriggerPressed = false;
-    private boolean wasGateLoadTriggerPressed = false;
-    private boolean wasDriverGateClosedPressed = false;
-    private boolean wasDriverGateOpenedPressed = false;
-    private boolean wasDriverGateLiftedPressed = false;
+    private boolean wasGateClosedPressed = false;
+    private boolean wasGateOpenedPressed = false;
+    private boolean wasGateLiftedPressed = false;
     private boolean wasDpadLeftPressed = false;
     private boolean wasDpadRightPressed = false;
     private boolean wasDpadUpPressed = false;
     private boolean wasDpadDownPressed = false;
     private boolean wasStartPressed = false;
     private boolean wasBackPressed = false;
-
-    // Remembers whether the turret stick was turning the turret last loop, so we can
-    // hold the angle when it is released. The same for auto-align.
-    private boolean wasTurningTurretManually = false;
-    private boolean wasAutoAligning = false;
-
-    // True = the turret tracks the hive all the time (ALWAYS-TRACK). The operator switches it with
-    // the Right Stick Button, and a preset or A (STOP) switches it OFF.
-    private boolean alwaysTrack = ALWAYS_TRACK_AT_START;
-    private boolean wasTrackToggleButtonPressed = false;
 
     // The push the turret got this loop to follow the robot's spin, for the screen.
     private double turretFeedforward = 0.0;
@@ -530,21 +496,16 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Stick = drive and strafe   Right Stick = turn");
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
-        telemetry.addLine("Right Trigger (hold) = SHOOT (+ AUTO-ALIGN, even if ALWAYS-TRACK is off)");
-        telemetry.addLine("X = gate CLOSED   B = gate OPENED   Y = gate LIFTED");
+        telemetry.addLine("Right Trigger (hold) = SHOOT (the turret is always tracking the hive)");
         telemetry.addLine("D-pad Left = RE-AIM (the way the robot faces now is away from me)");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
-        telemetry.addLine("Start = flywheel speed DIAL / TABLE   Back = alliance BLUE / RED");
+        telemetry.addLine("Start = alliance BLUE / RED   Back = flywheel speed DIAL / TABLE");
         telemetry.addLine("MODE button (guide or Left Stick Button) = drive FIELD-CENTRIC / ROBOT-CENTRIC");
-        telemetry.addLine("Right Stick Button = ALWAYS-TRACK on / off (turret follows the hive)");
         telemetry.addLine("D-pad Up / Down = flywheel RPM up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
-        telemetry.addLine("Left Bumper = reverse BOTH wheels   Right Bumper = reverse flywheel only");
-        telemetry.addLine("Left Stick X = turn turret");
-        telemetry.addLine(String.format("Y = center (%.0f)  X = far left (%+.0f)  B = far right (%+.0f) degrees",
-                TURRET_PRESET_CENTER_DEGREES, TURRET_PRESET_LEFT_DEGREES, TURRET_PRESET_RIGHT_DEGREES));
-        telemetry.addLine("A = STOP turret");
-        telemetry.addLine("Right Trigger = gate OPENED   Left Trigger = gate CLOSED");
+        telemetry.addLine("X = gate CLOSED   B = gate OPENED   Y = gate LIFTED");
+        telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
+        telemetry.addLine("A (hold) = float the turret by hand (it tracks again when you let go)");
     }
 
     /*
@@ -586,18 +547,18 @@ public class BiobuzzTeleOp extends OpMode {
     }
 
     /*
-     * Gamepad2 Start switches where the flywheel speed comes from (DIAL <-> TABLE), and
-     * gamepad2 Back switches the alliance (BLUE <-> RED). One switch per press. This works
+     * Gamepad2 Start switches the alliance (BLUE <-> RED), and gamepad2 Back switches where
+     * the flywheel speed comes from (DIAL <-> TABLE). One switch per press. This works
      * before and after START, so the operator can set both during INIT.
      */
     private void checkModeButtons() {
         boolean startPressed = gamepad2.start;
         boolean backPressed = gamepad2.back;
 
-        if (isNewPress(startPressed, wasStartPressed)) {
+        if (isNewPress(backPressed, wasBackPressed)) {
             tableMode = !tableMode;
         }
-        if (isNewPress(backPressed, wasBackPressed)) {
+        if (isNewPress(startPressed, wasStartPressed)) {
             if (visionSubsystem.getAlliance() == VisionSubsystem.Alliance.BLUE) {
                 visionSubsystem.setAlliance(VisionSubsystem.Alliance.RED);
             } else {
@@ -985,12 +946,12 @@ public class BiobuzzTeleOp extends OpMode {
         // The Driver Station clears its screen every loop, so we add the
         // button map again here. That keeps it on the screen until START.
         telemetry.addData("Status", "Ready to start!");
-        telemetry.addData("Alliance (gamepad2 Back)", visionSubsystem.getAlliance());
+        telemetry.addData("Alliance (gamepad2 Start)", visionSubsystem.getAlliance());
         telemetry.addData("DRIVE MODE (operator MODE button)", getDriveModeText());
         // Which button is MODE? Press them. The one that says true is the one that works.
         telemetry.addData("MODE button test (gamepad2)", "guide = %b    left stick button = %b",
                 gamepad2.guide, gamepad2.left_stick_button);
-        telemetry.addData("Flywheel speed source (gamepad2 Start)", getModeText());
+        telemetry.addData("Flywheel speed source (gamepad2 Back)", getModeText());
         visionSubsystem.addTelemetry(telemetry);
         // Check that the Pinpoint says READY before START. (The robot must be still until then.)
         pinpointSubsystem.addTelemetry(telemetry);
@@ -1063,23 +1024,16 @@ public class BiobuzzTeleOp extends OpMode {
         boolean slowMode = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
         boolean triggerShotPressed = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
 
-        // The driver's face buttons move the shooter gate by hand, for manual control and testing.
-        boolean driverGateClosedPressed = gamepad1.x;
-        boolean driverGateOpenedPressed = gamepad1.b;
-        boolean driverGateLiftedPressed = gamepad1.y;
-
         // ---- Gamepad 2 (operator) ----
-        boolean yPressed = gamepad2.y;
-        boolean xPressed = gamepad2.x;
-        boolean bPressed = gamepad2.b;
-        boolean aPressed = gamepad2.a;
+        // The operator's face buttons move the shooter gate. (A is the turret float button.)
+        boolean gateClosedPressed = gamepad2.x;
+        boolean gateOpenedPressed = gamepad2.b;
+        boolean gateLiftedPressed = gamepad2.y;
+        boolean turretFloatPressed = gamepad2.a;
         boolean dpadUpPressed = gamepad2.dpad_up;
         boolean dpadDownPressed = gamepad2.dpad_down;
         boolean dpadLeftPressed = gamepad2.dpad_left;
         boolean dpadRightPressed = gamepad2.dpad_right;
-        boolean gateShootTriggerPressed = gamepad2.right_trigger > TRIGGER_PRESSED_THRESHOLD;
-        boolean gateLoadTriggerPressed = gamepad2.left_trigger > TRIGGER_PRESSED_THRESHOLD;
-        boolean trackToggleButtonPressed = gamepad2.right_stick_button;
 
         // Turn the dials. Only a NEW press counts, so holding a button moves it one step.
         if (isNewPress(dpadUpPressed, wasDpadUpPressed)) {
@@ -1186,12 +1140,14 @@ public class BiobuzzTeleOp extends OpMode {
             driveControl = driveControl + ", ROBOT-CENTRIC";
         }
 
-        // Intake (driver bumpers). Check REVERSE first, so clearing a jam always works.
+        // Intake (the bumpers on BOTH gamepads do the same thing: Right = INTAKE, Left = REVERSE).
+        // Check REVERSE first, so clearing a jam always works, even if the other gamepad is
+        // holding INTAKE.
         String intakeControl;
-        if (gamepad1.left_bumper) {
+        if (gamepad1.left_bumper || gamepad2.left_bumper) {
             intakeSubsystem.reverse();
             intakeControl = "Left Bumper (REVERSE)";
-        } else if (gamepad1.right_bumper) {
+        } else if (gamepad1.right_bumper || gamepad2.right_bumper) {
             intakeSubsystem.intake();
             intakeControl = "Right Bumper (INTAKE)";
         } else {
@@ -1200,24 +1156,10 @@ public class BiobuzzTeleOp extends OpMode {
             intakeSubsystem.stop();
         }
 
-        // Shooter wheels (operator). Reverse beats everything, so clearing a jam always works.
+        // Shooter wheels. The driver holds the Right Trigger to shoot. (There is no wheel reverse
+        // in this OpMode any more.)
         String shooterControl;
-        // Left Bumper reverses BOTH wheels. Right Bumper reverses only the flywheel.
-        boolean reverseFlywheel = gamepad2.left_bumper || gamepad2.right_bumper;
-        boolean reverseHoodWheel = gamepad2.left_bumper;
-        if (reverseFlywheel || reverseHoodWheel) {
-            // A wheel that is NOT being reversed gets 0 power.
-            double reverseFlywheelPower = 0.0;
-            double reverseHoodWheelPower = 0.0;
-            if (reverseFlywheel) {
-                reverseFlywheelPower = FLYWHEEL_POWER_REVERSE;
-            }
-            if (reverseHoodWheel) {
-                reverseHoodWheelPower = HOOD_WHEEL_POWER_REVERSE;
-            }
-            shooterSubsystem.setPower(reverseFlywheelPower, reverseHoodWheelPower);
-            shooterControl = "Bumper (REVERSE)";
-        } else if (triggerShotPressed) {
+        if (triggerShotPressed) {
             // The driver holds the Right Trigger to shoot, at the RPMs the operator dialed in.
             // The shooter's speed control holds each wheel at its target, even when a ball
             // slows it down or the battery drains.
@@ -1232,15 +1174,11 @@ public class BiobuzzTeleOp extends OpMode {
 
         // Shooter gate. A button counts as ONE press only on the loop where it goes from
         // "not pressed" to "pressed", so holding it does not keep re-sending the move.
-        // The gate has two sets of buttons for now, and both work at the same time:
-        //   operator (gamepad2): Left Trigger = CLOSED, Right Trigger = OPENED
-        //   driver (gamepad1):   X = CLOSED, B = OPENED, Y = LIFTED
+        // The gate is the operator's (gamepad2): X = CLOSED, B = OPENED, Y = LIFTED.
         // If more than one is pressed on the same loop, CLOSED wins, then OPENED, then LIFTED.
-        boolean closedNewPress = isNewPress(gateLoadTriggerPressed, wasGateLoadTriggerPressed)
-                || isNewPress(driverGateClosedPressed, wasDriverGateClosedPressed);
-        boolean openedNewPress = isNewPress(gateShootTriggerPressed, wasGateShootTriggerPressed)
-                || isNewPress(driverGateOpenedPressed, wasDriverGateOpenedPressed);
-        boolean liftedNewPress = isNewPress(driverGateLiftedPressed, wasDriverGateLiftedPressed);
+        boolean closedNewPress = isNewPress(gateClosedPressed, wasGateClosedPressed);
+        boolean openedNewPress = isNewPress(gateOpenedPressed, wasGateOpenedPressed);
+        boolean liftedNewPress = isNewPress(gateLiftedPressed, wasGateLiftedPressed);
         if (closedNewPress) {
             shooterServoSubsystem.goToClosed();
         } else if (openedNewPress) {
@@ -1249,83 +1187,29 @@ public class BiobuzzTeleOp extends OpMode {
             shooterServoSubsystem.goToLifted();
         }
 
-        // Turret (operator, gamepad2). The same controls as TurretAlpha. The first one that is
-        // true wins.
-
-        // The turret turns at the same power every time. A full stick push is the whole power.
-        double turretPower = TURRET_POWER_PERCENT / PERCENT_PER_ONE;
-
-        // Stick RIGHT is a positive number on the controller. But turning RIGHT means going
-        // clockwise, and clockwise is a NEGATIVE angle. So we flip the sign of the stick.
-        double turretStick = -gamepad2.left_stick_x;
-        boolean usingTurretStick = Math.abs(turretStick) > TURRET_STICK_DEADBAND;
-
-        // Right Stick Button switches ALWAYS-TRACK ON <-> OFF. One switch per press.
-        if (isNewPress(trackToggleButtonPressed, wasTrackToggleButtonPressed)) {
-            alwaysTrack = !alwaysTrack;
-        }
-
-        // The operator picking a turret angle (Y, X, B) or STOP (A) means "stay where I put it",
-        // so those switch ALWAYS-TRACK OFF. Do this BEFORE we decide below, so the press counts
-        // on the very loop it happens. (The operator can press the Right Stick Button to turn
-        // tracking back on.)
-        if (yPressed || xPressed || bPressed || aPressed) {
-            alwaysTrack = false;
-        }
-
-        // Auto-align runs ALL THE TIME while ALWAYS-TRACK is ON, and also while the driver holds
-        // the Right Trigger (it aligns AND shoots, even if ALWAYS-TRACK is OFF).
-        boolean alignWanted = alwaysTrack || triggerShotPressed;
-        boolean autoAligningNow = false;
+        // Turret. It tracks the hive ALL THE TIME (ALWAYS-TRACK, no switch). The only operator
+        // control is A: HOLD it to float the turret so it can be turned by hand. Let go and the
+        // turret goes back to tracking. (stop() leaves the turret in IDLE, so auto-align picks a
+        // fresh target the moment A is released.)
 
         // Cleared every loop. Only auto-align sets it, so nothing else ever gets a push.
         turretFeedforward = 0.0;
 
         String turretControl;
-        if (usingTurretStick) {
-            // The stick scales the power: a full push is the whole turret power,
-            // a half push is half of it. The stick beats auto-align. When it is let go,
-            // ALWAYS-TRACK (if it is ON) takes the turret back.
-            turretSubsystem.setManualPower(turretStick * turretPower);
-            turretControl = "Left Stick (MANUAL)";
-        } else if (alignWanted && !aPressed) {
-            // A (STOP) beats auto-align too: while A is held we skip this and the turret falls
-            // through to the A branch below.
-            turretControl = autoAlignTurret();
-            autoAligningNow = true;
-        } else if (yPressed) {
-            turretSubsystem.setTargetAngle(TURRET_PRESET_CENTER_DEGREES);
-            turretControl = "Y (preset CENTER)";
-        } else if (xPressed) {
-            turretSubsystem.setTargetAngle(TURRET_PRESET_LEFT_DEGREES);
-            turretControl = "X (preset FAR LEFT)";
-        } else if (bPressed) {
-            turretSubsystem.setTargetAngle(TURRET_PRESET_RIGHT_DEGREES);
-            turretControl = "B (preset FAR RIGHT)";
-        } else if (aPressed) {
+        if (turretFloatPressed) {
             turretSubsystem.stop();
-            turretControl = "A (STOP)";
-        } else if (wasTurningTurretManually || wasAutoAligning) {
-            // The stick or the auto-align was just let go, so hold the turret where it stopped.
-            turretSubsystem.holdCurrentAngle();
-            turretControl = "Released (HOLD)";
+            turretControl = "A (FLOATING - let go to track again)";
         } else {
-            // No new command. The turret keeps doing what it was last told to do.
-            turretControl = "None (keeps last command)";
+            turretControl = autoAlignTurret();
         }
         turretSubsystem.update();
 
         // Remember this loop's buttons for the next loop.
         wasDpadUpPressed = dpadUpPressed;
         wasDpadDownPressed = dpadDownPressed;
-        wasTurningTurretManually = usingTurretStick;
-        wasAutoAligning = autoAligningNow;
-        wasTrackToggleButtonPressed = trackToggleButtonPressed;
-        wasGateShootTriggerPressed = gateShootTriggerPressed;
-        wasGateLoadTriggerPressed = gateLoadTriggerPressed;
-        wasDriverGateClosedPressed = driverGateClosedPressed;
-        wasDriverGateOpenedPressed = driverGateOpenedPressed;
-        wasDriverGateLiftedPressed = driverGateLiftedPressed;
+        wasGateClosedPressed = gateClosedPressed;
+        wasGateOpenedPressed = gateOpenedPressed;
+        wasGateLiftedPressed = gateLiftedPressed;
         wasDpadLeftPressed = dpadLeftPressed;
         wasDpadRightPressed = dpadRightPressed;
 
@@ -1337,7 +1221,7 @@ public class BiobuzzTeleOp extends OpMode {
                     thisLoopMs, averageLoopMs, worstLoopMs, 1000.0 / averageLoopMs);
         }
         // Always on the screen: aiming at the wrong alliance's hive is not an obvious failure.
-        telemetry.addData("Alliance (gamepad2 Back)", visionSubsystem.getAlliance());
+        telemetry.addData("Alliance (gamepad2 Start)", visionSubsystem.getAlliance());
         telemetry.addData("DRIVE MODE (operator MODE button)", getDriveModeText());
 
         telemetry.addLine("--- DRIVE ---");
@@ -1363,7 +1247,7 @@ public class BiobuzzTeleOp extends OpMode {
         // The dials: what the operator has asked for. (They only take effect while the driver
         // holds the Right Trigger.)
         telemetry.addLine("--- SHOOTER DIALS (RPM) ---");
-        telemetry.addData("Flywheel speed source (gamepad2 Start)", getModeText());
+        telemetry.addData("Flywheel speed source (gamepad2 Back)", getModeText());
         telemetry.addData("Using", rpmSource);
         if (flywheelCapped) {
             telemetry.addData("Flywheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
@@ -1392,8 +1276,6 @@ public class BiobuzzTeleOp extends OpMode {
             readyText = "YES - OK to shoot";
         } else if (shooterState == ShooterSubsystem.ShooterState.SPINNING_UP) {
             readyText = "WAIT - wheels are not at their target RPM yet";
-        } else if (shooterState == ShooterSubsystem.ShooterState.OPEN_LOOP) {
-            readyText = "NO - reversing (clearing a jam)";
         } else {
             readyText = "shooter is OFF (hold the Right Trigger to shoot)";
         }
@@ -1416,9 +1298,7 @@ public class BiobuzzTeleOp extends OpMode {
         // The turret prints its own "--- TURRET ---" heading, so we add our lines under it.
         turretSubsystem.addTelemetry(telemetry);
         telemetry.addData("Turret Control", turretControl);
-        telemetry.addData("ALWAYS-TRACK (gamepad2 Right Stick Button)",
-                alwaysTrack ? "ON - the turret follows the hive" : "OFF - the turret stays where you put it");
-        telemetry.addData("Turret power", "%d%%", TURRET_POWER_PERCENT);
+        telemetry.addData("ALWAYS-TRACK", "ON - the turret follows the hive (hold gamepad2 A to float it)");
         telemetry.addData("Turret follows spin", "%+.2f power   (gain %.2f)",
                 turretFeedforward, TURRET_FEEDFORWARD_GAIN);
         telemetry.addData("Hive memory (Pinpoint)", getHiveMemoryText());

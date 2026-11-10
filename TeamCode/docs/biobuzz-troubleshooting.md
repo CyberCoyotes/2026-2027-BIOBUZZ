@@ -19,8 +19,8 @@
 
 | Symptom | Likely cause | Check |
 |---|---|---|
-| Turret tracks the wrong hive | Alliance is wrong. TeleOp **starts BLUE**. | Screen alliance line; operator presses **Back** to switch. |
-| Turret does not move on its own | No target (the turret holds when it sees nothing), or ALWAYS-TRACK is off. | Screen says **NO TARGET**? Point the robot at the hive. Right Stick Button on gamepad 2 toggles ALWAYS-TRACK. Y, X, B and A turn it off. |
+| Turret tracks the wrong hive | Alliance is wrong. TeleOp **starts BLUE**. | Screen alliance line; operator presses **Start** to switch. |
+| Turret does not move on its own | No target (the turret holds when it sees nothing), or gamepad 2's **A** is being held (it floats the turret). | Screen says **NO TARGET**? Point the robot at the hive. Is someone holding gamepad 2 **A**? (ALWAYS-TRACK has no off switch any more.) |
 | Turret hits a limit in the wrong place, or the zero is off | Power-up position was not "on the home switch, pointing straight ahead". 0 degrees is wherever the turret sat at power-up if the switch did not re-zero it. | Reset the turret by hand on the switch and power cycle. |
 | Turret coasts further than expected past +/-120 degrees | Turret power is now 100%, and stopping distance grows with speed squared. | Ease the stick into a limit. (Not yet tested at 100%.) |
 | "OK to shoot? YES" flickers | RPM readings jump around by more than about 15 RPM. | Smoothing (`RPM_FILTER_TIME_CONSTANT_SECONDS`), the PIDF numbers, or the speed reading. Do not loosen the tolerance without asking the coach. |

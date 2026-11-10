@@ -116,7 +116,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * "Competition" below.
  */
 @Autonomous(name = "Auto - Shoot and Park - Alpha 1", group = "Testing",
-        preselectTeleOp = "TeleOp - Alpha 11")
+        preselectTeleOp = "TeleOp - Alpha 12")
 public class ShootAndParkAuto extends OpMode {
 
     // ------------------------------------------------------------------
