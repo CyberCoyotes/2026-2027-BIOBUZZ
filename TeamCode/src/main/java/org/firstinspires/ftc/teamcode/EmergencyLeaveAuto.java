@@ -46,7 +46,7 @@ import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
  * the Driver Station STOP button.
  */
 @Autonomous(name = "Auto - Emergency Leave (A-0) - Alpha 1", group = "Testing",
-        preselectTeleOp = "TeleOp - Alpha 10")
+        preselectTeleOp = "TeleOp - Alpha 11")
 public class EmergencyLeaveAuto extends OpMode {
 
     // ------------------------------------------------------------------

@@ -57,7 +57,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   - Once it is solid, change group = "Testing" to "Competition" below.
  */
 @Autonomous(name = "Auto - Leave and Park - Alpha 1", group = "Testing",
-        preselectTeleOp = "TeleOp - Alpha 10")
+        preselectTeleOp = "TeleOp - Alpha 11")
 public class LeaveAndParkAuto extends OpMode {
 
     // ------------------------------------------------------------------
