@@ -7,13 +7,13 @@ Print this and keep it at the driver station. It lists **what every button does 
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
 - **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In the TeleOp, gamepad 2's Start switches the alliance and gamepad 2's B opens the gate, so pair before START.)
 
-**Names on the Driver Station:** `TeleOp - Alpha 12`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Drive Alpha` (shown for now, for the field-centric test). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
+**Names on the Driver Station:** `TeleOp - Alpha 13`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Drive Alpha` (shown for now, for the field-centric test). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
 ---
 
-## 1. TeleOp - Alpha 12 (the real TeleOp)
+## 1. TeleOp - Alpha 13 (the real TeleOp)
 
 Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, always ON, no switch). The drive starts **FIELD-centric**: the left stick's "forward" is **away from the driver** (the screen shows **DRIVE MODE** under the alliance). Details and the safety rule are on the printable sheet, `biobuzz-teleop-controls.md`.
 
@@ -26,7 +26,8 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **LT** (hold) | **Slow mode** |
 | **RB** | **Intake** (pull balls in) |
 | **LB** | **Reverse the intake** (push balls out). Beats RB |
-| **RT** (hold) | **Shoot** at the dialed RPMs. **Let go and both wheels go to 0 power** |
+| **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the turret is on target, then opens the gate and feeds the balls one at a time, lifts for the last ball, and closes. **One volley per press.** **Let go to ABORT** (gate closes, intake stops). Unless PRE-REV is on, both wheels go to 0 power |
+| **D-pad Up** | **PRE-REV** on / off: the wheels spin without firing (starts OFF) |
 | **A / B / X / Y** | Not used (the gate moved to the operator's X / B / Y) |
 | **D-pad Left** | **Re-aim** (field-centric): the way the robot faces right now is "away from me". Does not touch the Pinpoint |
 
@@ -34,9 +35,9 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 
 | Control | What it does |
 |---|---|
-| **X** | Gate **CLOSED** (holds the ball back) |
-| **B** | Gate **OPENED** (lets the ball through) |
-| **Y** | Gate **LIFTED** (pushes the last ball in). If several are pressed at once, CLOSED wins, then OPENED, then LIFTED |
+| **X** | Gate **CLOSED** (holds the ball back). **Between volleys only** |
+| **B** | Gate **OPENED** (lets the ball through). **Between volleys only** |
+| **Y** | Gate **LIFTED** (pushes the last ball in). **Between volleys only.** If several are pressed at once, CLOSED wins, then OPENED, then LIFTED. During a volley the firing sequence runs the gate |
 | **A** (hold) | **Float** the turret so you can turn it by hand. Let go and it tracks the hive again |
 | **D-pad Up / Down** | Flywheel target RPM **+ / - 100** (range 500 to 1450) |
 | **D-pad Right / Left** | Hood / flywheel **ratio + / - 0.05** (range 1.00 to 3.00, starts 2.00) |
@@ -47,7 +48,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **Sticks, LT, RT** | Not used. The turret has no manual control and the shooter wheels cannot be reversed from this OpMode |
 | **MODE button** (the center **guide** button or the **Left Stick Button**, both work for now) | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). Turns field-centric back on after the safety rule. The INIT screen shows which button registers |
 
-**Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen shows loop time, the alliance, and **OK to shoot?** (YES only when both wheels are at their target RPM).
+**Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen shows loop time, the alliance, **PRE-REV**, the firing sequence step and what it is **Waiting for**, and **OK to shoot?** (both wheels, for information: the volley itself checks the flywheel only).
 
 ---
 
@@ -235,12 +236,12 @@ The robot does **not** drive. Move it **by hand** to a spot where the camera see
 
 ## Quick "which OpMode am I in" differences
 
-| Job | TeleOp Alpha 12 | The test OpModes |
+| Job | TeleOp Alpha 13 | The test OpModes |
 |---|---|---|
-| Shoot | Driver **RT** (hold) | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
-| Gate | Driver **X** closed / **B** opened / **Y** lifted, and operator **RT** opened / **LT** closed | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
+| Shoot | Driver **RT** (hold) = a whole volley | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
+| Gate | Automatic during a volley. Between volleys, operator **X** closed / **B** opened / **Y** lifted | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
 | Flywheel speed | Operator **D-pad Up / Down** | **B / A** (Ratio Alpha), **D-pad Up / Down** (Shot Table) |
-| Alliance | Operator **Back** | **Start** (Vision, Shot Table) |
+| Alliance | Operator **Start** | **Start** (Vision, Shot Table) |
 | Slow mode | Driver **LT** | Driver **RT** (Drive Alpha) |
 
 If a button here doesn't match the robot, the code changed. Update this sheet.

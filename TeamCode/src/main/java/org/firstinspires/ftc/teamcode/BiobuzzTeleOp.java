@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.FiringSequence;
 import org.firstinspires.ftc.teamcode.subsystems.HiveBearingMemory;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
@@ -15,9 +16,10 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
- * TeleOp Alpha 12
+ * TeleOp Alpha 13
  * An iterative OpMode with TWO controllers:
- *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to SHOOT.
+ *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to FIRE a volley
+ *              (the FIRING SEQUENCE, see NEW IN ALPHA 13).
  *              (The turret AUTO-TRACKS the hive ALL THE TIME, see ALWAYS-TRACK below.)
  *   gamepad2 = the OPERATOR: sets the shooter speeds (RPM), moves the GATE, and can run the
  *              INTAKE too. The operator does NOT aim the turret by hand any more.
@@ -25,9 +27,37 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * PinpointAlpha put together, so each part has already been tested on its own. This OpMode owns
  * NO hardware. It only reads the gamepads and tells the subsystems what to do.
  *
- * NEW IN ALPHA 12: CONTROL CHANGES (issue #74). The screen name is now "TeleOp - Alpha 12" (it was
- * Alpha 11). The three Autos' preselectTeleOp use the new name, so the Driver Station still loads
+ * NEW IN ALPHA 13: THE FIRING SEQUENCE (issue #63). The screen name became "TeleOp - Alpha 13" (it was
+ * Alpha 12). The three Autos' preselectTeleOp use the new name, so the Driver Station still loads
  * this OpMode after Auto.
+ *   Before, the driver held the Right Trigger to spin the wheels and the operator opened and closed
+ *   the gate by hand, so a ball could go through before the wheels were at speed. Now FiringSequence
+ *   (a plain class, see subsystems/FiringSequence.java) runs a whole VOLLEY by itself:
+ *     HOLD the driver's Right Trigger -> the wheels spin (if they are not already). The volley WAITS
+ *     until the flywheel is at speed AND the turret is on target AND (in TABLE mode) the camera sees
+ *     the hive right now. Then the gate OPENS and the intake feeds the balls one at a time (it runs
+ *     only while the flywheel is at speed), then the gate LIFTS for the last ball, then it CLOSES.
+ *     Let go of the trigger at any time to ABORT: the gate closes and the intake stops. A held
+ *     trigger fires ONE volley. Let go and press again to fire another.
+ *   PRE-REV: the driver's D-pad Up switches the wheels ON / OFF while you drive to the shooting
+ *     spot, so the 4 seconds of spin-up are not paid at every volley. It starts OFF, and the screen
+ *     says PRE-REV ON. It does not touch the gate or the intake.
+ *   The gate buttons (operator X / B / Y) are an OVERRIDE: they only work BETWEEN volleys. During a
+ *     volley the sequence is in charge of the gate.
+ *   The intake: REVERSE (either Left Bumper) beats the volley, which beats the INTAKE bumpers. (If you
+ *     clear a jam in the middle of a volley, the feed clock keeps running, so let go and press again.)
+ *   The READY check uses the FLYWHEEL ONLY (ShooterSubsystem.isFlywheelAtSpeed()), like
+ *     ShootAndParkAuto, and the screen shows the hood wheel's error. The "OK to shoot?" line on the
+ *     screen is still the old both-wheels check, for information.
+ *   The flywheel target and the ratio are FROZEN during the feed, the lift and the end of a volley.
+ *     In the other steps the target only changes when the wanted RPM moves by more than
+ *     RPM_CHANGE_DEADBAND, so a wobbling table answer cannot keep the "at speed" check from ever
+ *     holding.
+ *   The timings (FEED_SECONDS, GATE_LIFT_SECONDS) live in FiringSequence, not here.
+ *   NOT TESTED ON THE ROBOT YET: whether all 4 balls leave, and the timings. See issue #63.
+ *
+ * NEW IN ALPHA 12: CONTROL CHANGES (issue #74). The screen name became "TeleOp - Alpha 12" (it was
+ * Alpha 11, and is Alpha 13 now).
  *   REMOVED from gamepad2: the turret stick, the turret presets (Y, X, B), the Right Stick Button
  *     ALWAYS-TRACK switch, the gate triggers, and the shooter-wheel reverse bumpers.
  *   REMOVED from gamepad1: the X / B / Y gate buttons (they moved to gamepad2).
@@ -133,7 +163,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Y -> shooter GATE LIFTED (pushes the last ball in)
  *      (One move per press. The gate positions are CLOSED_POSITION, OPENED_POSITION and
  *       LIFTED_POSITION in ShooterServoSubsystem. If more than one is pressed on the same loop,
- *       CLOSED wins, then OPENED, then LIFTED.)
+ *       CLOSED wins, then OPENED, then LIFTED. They only work BETWEEN volleys: during a volley the
+ *       firing sequence is in charge of the gate, see NEW IN ALPHA 13.)
  *   A -> HOLD to STOP the turret (it floats, so you can turn it by hand). Let go and it goes
  *        back to tracking the hive.
  *   D-pad Up / Down  -> flywheel target RPM +/- FLYWHEEL_RPM_STEP
@@ -160,16 +191,19 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   HOLD the Left Trigger -> SLOW MODE for careful lining up
  *   D-pad Left   -> RE-AIM: "the way the robot faces right now is away from me" (field-centric).
  *      It does not touch the Pinpoint. It also turns field-centric back on after the safety rule.
+ *   D-pad Up     -> PRE-REV on / off: the wheels spin without firing (see NEW IN ALPHA 13).
  *   Right Bumper -> INTAKE (pull balls in)      Left Bumper -> REVERSE (push balls out)
  *      (Left Bumper beats Right Bumper, so clearing a jam always works. The operator's bumpers
  *       do the same, and REVERSE on EITHER gamepad beats INTAKE on either. The intake runs at the
  *       power set in IntakeSubsystem, DEFAULT_INTAKE_POWER.)
- *   Right Trigger -> HOLD to SHOOT. (The turret is already tracking the hive, see ALWAYS-TRACK.)
+ *   Right Trigger -> HOLD to FIRE a volley (the FIRING SEQUENCE, see NEW IN ALPHA 13). The turret is
+ *      already tracking the hive (ALWAYS-TRACK).
  *      The wheels run at the flywheel speed from the DIAL or the TABLE (see THE SHOT TABLE
  *      below), and the hood wheel at that x the ratio dial. At the start that is DIAL mode,
  *      flywheel 1300 RPM and hood wheel 2600 RPM (a ratio of 2.00).
- *      Let go and both wheels go to 0 power and coast down.
- *      The operator's A (hold) floats the turret, and that still beats the tracking.
+ *      Let go to ABORT: the gate closes, the intake stops, and (unless PRE-REV is ON) both wheels go
+ *      to 0 power and coast down.
+ *      The operator's A (hold) floats the turret. Then the turret is not on target, so a volley waits.
  *   X / B / Y    -> not used. (The shooter gate moved to the operator's X / B / Y.)
  *
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (SPEED CONTROL in RPM, read from the wheel encoders)
@@ -246,7 +280,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   I2C Device name: pinpoint         (PinpointSubsystem, goBILDA Pinpoint Odometry Computer. If it
  *                                      is missing, the screen says so and the OpMode still runs.)
  */
-@TeleOp(name = "TeleOp - Alpha 12", group = "Testing")
+@TeleOp(name = "TeleOp - Alpha 13", group = "Testing")
 public class BiobuzzTeleOp extends OpMode {
 
     // ------------------------------------------------------------------
@@ -369,6 +403,13 @@ public class BiobuzzTeleOp extends OpMode {
     // lurching if a tag drops out for a moment, and a limit stops a stale RPM from lasting.
     private static final double TABLE_RPM_HOLD_SECONDS = 1.0;
 
+    // ShooterSubsystem treats ANY change of target RPM as "start over", and the table's answer
+    // wobbles a little because ty does. So (outside a volley's feed, lift and end, where the target
+    // is frozen) we only change the flywheel target when the wanted RPM is more than this far from
+    // the one we are already using. Otherwise the "at speed" check could keep restarting and the
+    // feed would stutter. (The same number FiringSequenceAlpha uses.)
+    private static final double RPM_CHANGE_DEADBAND = 10.0;
+
     // How much the turret FOLLOWS the robot's spin while it is auto-aligning.
     // On its own, auto-align only pushes once the turret is already off target, so a spinning
     // robot always gets ahead of it. This adds a push the OPPOSITE way to the driver's turn, so
@@ -409,6 +450,19 @@ public class BiobuzzTeleOp extends OpMode {
     private PinpointSubsystem pinpointSubsystem;
     private HiveBearingMemory hiveMemory;
     private ShotTable shotTable;
+    private FiringSequence firingSequence;
+
+    // PRE-REV (the driver's D-pad Up): are the wheels spinning even though nobody is firing?
+    private boolean preRevOn = false;
+    private boolean wasPreRevPressed = false;
+
+    // The flywheel RPM we are really using (the dial or the table, with the dead band applied).
+    // While a volley feeds, lifts and ends, shotFrozen is true and the RPM and the ratio are held at
+    // frozenFlywheelRpm and frozenRatio, so the target does not move while balls go through.
+    private double commandedFlywheelRpm = 0.0;
+    private boolean shotFrozen = false;
+    private double frozenFlywheelRpm = 0.0;
+    private double frozenRatio = 0.0;
 
     // The shooter dials, in whole numbers.
     private int flywheelRpmDial = FLYWHEEL_RPM_START;
@@ -496,14 +550,15 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Stick = drive and strafe   Right Stick = turn");
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
-        telemetry.addLine("Right Trigger (hold) = SHOOT (the turret is always tracking the hive)");
+        telemetry.addLine("Right Trigger (hold) = FIRE a volley (let go = abort)");
+        telemetry.addLine("D-pad Up = PRE-REV on / off (wheels spin without firing)");
         telemetry.addLine("D-pad Left = RE-AIM (the way the robot faces now is away from me)");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
         telemetry.addLine("Start = alliance BLUE / RED   Back = flywheel speed DIAL / TABLE");
         telemetry.addLine("MODE button (guide or Left Stick Button) = drive FIELD-CENTRIC / ROBOT-CENTRIC");
         telemetry.addLine("D-pad Up / Down = flywheel RPM up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
-        telemetry.addLine("X = gate CLOSED   B = gate OPENED   Y = gate LIFTED");
+        telemetry.addLine("X = gate CLOSED   B = gate OPENED   Y = gate LIFTED   (only between volleys)");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
         telemetry.addLine("A (hold) = float the turret by hand (it tracks again when you let go)");
     }
@@ -544,6 +599,40 @@ public class BiobuzzTeleOp extends OpMode {
             return "TABLE";
         }
         return "DIAL";
+    }
+
+    /*
+     * The driver's D-pad Up switches PRE-REV on and off. One switch per press. PRE-REV spins the
+     * wheels (at the speed a shot would use) while you drive to the shooting spot, so the spin-up
+     * is not paid at every volley. It does not touch the gate or the intake. It starts OFF.
+     */
+    private void checkPreRevToggle() {
+        boolean preRevPressed = gamepad1.dpad_up;
+        if (isNewPress(preRevPressed, wasPreRevPressed)) {
+            preRevOn = !preRevOn;
+        }
+        wasPreRevPressed = preRevPressed;
+    }
+
+    /*
+     * The words for "what is the volley still waiting for?", shown while a volley waits.
+     */
+    private String getWaitingText(boolean flywheelAtSpeed, boolean hasTarget, boolean aimedAtHive) {
+        String waiting = "";
+        if (!flywheelAtSpeed) {
+            waiting = waiting + "flywheel not at speed   ";
+        }
+        if (tableMode && !hasTarget) {
+            waiting = waiting + "NO TARGET (the camera must see the hive; gamepad2 Back switches to DIAL for a shot without the camera)   ";
+        } else if (tableMode && !aimedAtHive) {
+            waiting = waiting + "turret not aimed yet   ";
+        } else if (!tableMode && !turretSubsystem.isOnTarget()) {
+            waiting = waiting + "turret not settled   ";
+        }
+        if (waiting.isEmpty()) {
+            return "nothing, ready to fire";
+        }
+        return waiting;
     }
 
     /*
@@ -922,6 +1011,7 @@ public class BiobuzzTeleOp extends OpMode {
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
         hiveMemory = new HiveBearingMemory();
         shotTable = new ShotTable();
+        firingSequence = new FiringSequence();
 
         telemetry.addData("Status", "Initialized");
         addControlsTelemetry();
@@ -1012,6 +1102,7 @@ public class BiobuzzTeleOp extends OpMode {
         // 2. Read the gamepads and decide what to do.
         checkModeButtons();
         checkDriveModeButtons();
+        checkPreRevToggle();
 
         // ---- Gamepad 1 (driver) ----
         // On the controller, pushing a stick FORWARD gives a negative number, and pushing it RIGHT
@@ -1022,7 +1113,8 @@ public class BiobuzzTeleOp extends OpMode {
         double turn = applyDeadband(-gamepad1.right_stick_x);
 
         boolean slowMode = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
-        boolean triggerShotPressed = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+        // The Right Trigger HELD fires a volley (see NEW IN ALPHA 13).
+        boolean fireHeld = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
 
         // ---- Gamepad 2 (operator) ----
         // The operator's face buttons move the shooter gate. (A is the turret float button.)
@@ -1106,7 +1198,36 @@ public class BiobuzzTeleOp extends OpMode {
                 rpmSource = "DIAL (TABLE mode, but the camera has not seen the hive)";
             }
         }
-        double wantedHoodWheelRpm = flywheelTargetRpm * ratio;
+
+        // The FIRING SEQUENCE freezes the shot while balls go through (see NEW IN ALPHA 13): during the
+        // feed, the lift and the end of a volley the flywheel RPM AND the ratio are held where they
+        // were, so the target does not move under the balls. In the other steps the target only
+        // changes when the wanted RPM moves by more than RPM_CHANGE_DEADBAND, so a wobbling table
+        // answer cannot keep restarting ShooterSubsystem's "at speed" check. (The sequence's step is
+        // from the last loop. It changes only in step 3 below.)
+        FiringSequence.SequenceState sequenceStep = firingSequence.getState();
+        boolean feedingOrLater = sequenceStep == FiringSequence.SequenceState.FEED
+                || sequenceStep == FiringSequence.SequenceState.LIFT
+                || sequenceStep == FiringSequence.SequenceState.DONE;
+        double shotRatio = ratio;
+        if (feedingOrLater) {
+            if (!shotFrozen) {
+                frozenFlywheelRpm = commandedFlywheelRpm;
+                frozenRatio = ratio;
+                shotFrozen = true;
+            }
+            flywheelTargetRpm = frozenFlywheelRpm;
+            shotRatio = frozenRatio;
+        } else {
+            shotFrozen = false;
+            if (commandedFlywheelRpm == 0.0
+                    || Math.abs(flywheelTargetRpm - commandedFlywheelRpm) > RPM_CHANGE_DEADBAND) {
+                commandedFlywheelRpm = flywheelTargetRpm;
+            }
+            flywheelTargetRpm = commandedFlywheelRpm;
+        }
+
+        double wantedHoodWheelRpm = flywheelTargetRpm * shotRatio;
         double maxFlywheelRpm = shooterSubsystem.getMaxFlywheelTargetRpm();
         double maxHoodWheelRpm = shooterSubsystem.getMaxHoodWheelTargetRpm();
         boolean flywheelCapped = flywheelTargetRpm > maxFlywheelRpm + CAPPED_TOLERANCE_RPM;
@@ -1140,52 +1261,26 @@ public class BiobuzzTeleOp extends OpMode {
             driveControl = driveControl + ", ROBOT-CENTRIC";
         }
 
-        // Intake (the bumpers on BOTH gamepads do the same thing: Right = INTAKE, Left = REVERSE).
-        // Check REVERSE first, so clearing a jam always works, even if the other gamepad is
-        // holding INTAKE.
-        String intakeControl;
-        if (gamepad1.left_bumper || gamepad2.left_bumper) {
-            intakeSubsystem.reverse();
-            intakeControl = "Left Bumper (REVERSE)";
-        } else if (gamepad1.right_bumper || gamepad2.right_bumper) {
-            intakeSubsystem.intake();
-            intakeControl = "Right Bumper (INTAKE)";
-        } else {
-            // No bumper held, so stop the intake.
-            intakeControl = "None";
-            intakeSubsystem.stop();
-        }
-
-        // Shooter wheels. The driver holds the Right Trigger to shoot. (There is no wheel reverse
-        // in this OpMode any more.)
+        // Shooter wheels. They spin while the driver HOLDS the Right Trigger (to fire) or while PRE-REV
+        // is ON, at the same speed either way: the DIAL or the TABLE, frozen during a volley (see
+        // above). (There is no wheel reverse in this OpMode any more.)
+        boolean wheelsWanted = fireHeld || preRevOn;
         String shooterControl;
-        if (triggerShotPressed) {
-            // The driver holds the Right Trigger to shoot, at the RPMs the operator dialed in.
-            // The shooter's speed control holds each wheel at its target, even when a ball
-            // slows it down or the battery drains.
+        if (wheelsWanted) {
+            // The shooter's speed control holds each wheel at its target, even when a ball slows it
+            // down or the battery drains.
             shooterSubsystem.setTargetRpms(flywheelTargetRpm, hoodWheelTargetRpm);
-            shooterControl = "Right Trigger (SHOOT)";
+            if (fireHeld) {
+                shooterControl = "Right Trigger (FIRE)";
+            } else {
+                shooterControl = "PRE-REV";
+            }
         } else {
-            // Trigger not held, so both wheels get 0 power and coast down.
+            // Not firing and not pre-revving, so both wheels get 0 power and coast down.
             shooterSubsystem.stop();
             shooterControl = "OFF";
         }
         shooterSubsystem.update();
-
-        // Shooter gate. A button counts as ONE press only on the loop where it goes from
-        // "not pressed" to "pressed", so holding it does not keep re-sending the move.
-        // The gate is the operator's (gamepad2): X = CLOSED, B = OPENED, Y = LIFTED.
-        // If more than one is pressed on the same loop, CLOSED wins, then OPENED, then LIFTED.
-        boolean closedNewPress = isNewPress(gateClosedPressed, wasGateClosedPressed);
-        boolean openedNewPress = isNewPress(gateOpenedPressed, wasGateOpenedPressed);
-        boolean liftedNewPress = isNewPress(gateLiftedPressed, wasGateLiftedPressed);
-        if (closedNewPress) {
-            shooterServoSubsystem.goToClosed();
-        } else if (openedNewPress) {
-            shooterServoSubsystem.goToOpened();
-        } else if (liftedNewPress) {
-            shooterServoSubsystem.goToLifted();
-        }
 
         // Turret. It tracks the hive ALL THE TIME (ALWAYS-TRACK, no switch). The only operator
         // control is A: HOLD it to float the turret so it can be turned by hand. Let go and the
@@ -1203,6 +1298,82 @@ public class BiobuzzTeleOp extends OpMode {
             turretControl = autoAlignTurret();
         }
         turretSubsystem.update();
+
+        // The FIRING SEQUENCE. It comes AFTER the shooter and turret updates, so "flywheel at speed"
+        // and "turret on target" are fresh. READY TO START means: the flywheel is at speed (the
+        // flywheel ONLY, like ShootAndParkAuto) AND the turret's half is true. In TABLE mode the
+        // turret's half is that the camera sees the hive RIGHT NOW, is centered on it, and the turret
+        // has settled. In DIAL mode there is no camera to wait for, so the turret just has to have
+        // settled.
+        boolean flywheelAtSpeed = shooterSubsystem.isFlywheelAtSpeed();
+        boolean aimedAtHive = hasTarget
+                && Math.abs(visionSubsystem.getTxDegrees()) <= AIMED_TOLERANCE_DEGREES
+                && turretSubsystem.isOnTarget();
+        boolean turretReady;
+        if (tableMode) {
+            turretReady = aimedAtHive;
+        } else {
+            turretReady = turretSubsystem.isOnTarget();
+        }
+        boolean readyToStart = flywheelAtSpeed && turretReady;
+        firingSequence.update(fireHeld, readyToStart, flywheelAtSpeed);
+
+        // Shooter gate. While a volley runs the FIRING SEQUENCE is in charge. Between volleys the
+        // operator's buttons work: X = CLOSED, B = OPENED, Y = LIFTED. A button counts as ONE press
+        // only on the loop where it goes from "not pressed" to "pressed", so holding it does not keep
+        // re-sending the move. We work the presses out every loop, even during a volley, so an old
+        // press never waits around. If more than one is pressed on the same loop, CLOSED wins, then
+        // OPENED, then LIFTED.
+        boolean closedNewPress = isNewPress(gateClosedPressed, wasGateClosedPressed);
+        boolean openedNewPress = isNewPress(gateOpenedPressed, wasGateOpenedPressed);
+        boolean liftedNewPress = isNewPress(gateLiftedPressed, wasGateLiftedPressed);
+        FiringSequence.GateCommand gateCommand = firingSequence.getGateCommand();
+        String gateControl;
+        if (gateCommand == FiringSequence.GateCommand.CLOSE) {
+            shooterServoSubsystem.goToClosed();
+            gateControl = "firing sequence (CLOSED)";
+        } else if (gateCommand == FiringSequence.GateCommand.OPEN) {
+            shooterServoSubsystem.goToOpened();
+            gateControl = "firing sequence (OPENED)";
+        } else if (gateCommand == FiringSequence.GateCommand.LIFT) {
+            shooterServoSubsystem.goToLifted();
+            gateControl = "firing sequence (LIFTED)";
+        } else if (closedNewPress) {
+            shooterServoSubsystem.goToClosed();
+            gateControl = "manual (X)";
+        } else if (openedNewPress) {
+            shooterServoSubsystem.goToOpened();
+            gateControl = "manual (B)";
+        } else if (liftedNewPress) {
+            shooterServoSubsystem.goToLifted();
+            gateControl = "manual (Y)";
+        } else {
+            gateControl = "manual (no press)";
+        }
+
+        // Intake. REVERSE goes first (either Left Bumper), so clearing a jam always works. Then the
+        // firing sequence, while it is feeding or lifting. Then the INTAKE bumpers (either Right
+        // Bumper).
+        String intakeControl;
+        if (gamepad1.left_bumper || gamepad2.left_bumper) {
+            intakeSubsystem.reverse();
+            intakeControl = "Left Bumper (REVERSE)";
+        } else if (firingSequence.ownsIntake()) {
+            if (firingSequence.wantsIntake()) {
+                intakeSubsystem.intake();
+                intakeControl = "firing sequence: FEEDING";
+            } else {
+                intakeSubsystem.stop();
+                intakeControl = "firing sequence: waiting for the flywheel";
+            }
+        } else if (gamepad1.right_bumper || gamepad2.right_bumper) {
+            intakeSubsystem.intake();
+            intakeControl = "Right Bumper (INTAKE)";
+        } else {
+            // No bumper held, so stop the intake.
+            intakeControl = "None";
+            intakeSubsystem.stop();
+        }
 
         // Remember this loop's buttons for the next loop.
         wasDpadUpPressed = dpadUpPressed;
@@ -1223,6 +1394,11 @@ public class BiobuzzTeleOp extends OpMode {
         // Always on the screen: aiming at the wrong alliance's hive is not an obvious failure.
         telemetry.addData("Alliance (gamepad2 Start)", visionSubsystem.getAlliance());
         telemetry.addData("DRIVE MODE (operator MODE button)", getDriveModeText());
+        if (preRevOn) {
+            telemetry.addData("PRE-REV (driver D-pad Up)", "ON  (the wheels are spinning)");
+        } else {
+            telemetry.addData("PRE-REV (driver D-pad Up)", "off");
+        }
 
         telemetry.addLine("--- DRIVE ---");
         telemetry.addData("Drive Control", driveControl);
@@ -1244,8 +1420,8 @@ public class BiobuzzTeleOp extends OpMode {
         // robot's position (X, Y, heading) and its speeds. Nothing uses the position yet.
         pinpointSubsystem.addTelemetry(telemetry);
 
-        // The dials: what the operator has asked for. (They only take effect while the driver
-        // holds the Right Trigger.)
+        // The dials: what the operator has asked for. (They take effect while the driver holds the
+        // Right Trigger, or while PRE-REV is ON.)
         telemetry.addLine("--- SHOOTER DIALS (RPM) ---");
         telemetry.addData("Flywheel speed source (gamepad2 Back)", getModeText());
         telemetry.addData("Using", rpmSource);
@@ -1256,7 +1432,11 @@ public class BiobuzzTeleOp extends OpMode {
             telemetry.addData("Flywheel target RPM", "%.0f   (the dial is at %d)",
                     flywheelTargetRpm, flywheelRpmDial);
         }
-        telemetry.addData("Ratio (hood / flywheel)", "%.2f", ratio);
+        if (shotFrozen) {
+            telemetry.addData("Ratio (hood / flywheel)", "%.2f   (frozen during the volley, the dial is at %.2f)", shotRatio, ratio);
+        } else {
+            telemetry.addData("Ratio (hood / flywheel)", "%.2f", shotRatio);
+        }
         if (hoodWheelCapped) {
             telemetry.addData("Hood wheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
                     hoodWheelTargetRpm, maxHoodWheelRpm, wantedHoodWheelRpm);
@@ -1279,7 +1459,12 @@ public class BiobuzzTeleOp extends OpMode {
         } else {
             readyText = "shooter is OFF (hold the Right Trigger to shoot)";
         }
-        telemetry.addData("OK to shoot?", readyText);
+        telemetry.addData("OK to shoot? (both wheels, for information)", readyText);
+        // What the firing sequence really checks: the flywheel only. The hood wheel's error is shown
+        // so we can see whether "close enough" is true (issue #62).
+        telemetry.addData("Flywheel at speed (the volley's check)", flywheelAtSpeed);
+        telemetry.addData("Hood wheel error (actual - target, RPM)", "%.0f",
+                shooterSubsystem.getHoodWheelRpm() - shooterSubsystem.getTargetHoodWheelRpm());
 
         // The hood wheel RPM / flywheel RPM we really have right now. It should match the ratio
         // dial once the wheels are at speed. If it does not, the hood wheel may be CAPPED.
@@ -1290,6 +1475,14 @@ public class BiobuzzTeleOp extends OpMode {
 
         // The gate prints its own "--- SHOOTER GATE ---" heading.
         shooterServoSubsystem.addTelemetry(telemetry);
+        telemetry.addData("Gate control", gateControl);
+
+        // The firing sequence prints its own "--- FIRING SEQUENCE ---" heading and the last volley's
+        // log. While a volley waits, say what it is waiting for.
+        firingSequence.addTelemetry(telemetry);
+        if (firingSequence.getState() == FiringSequence.SequenceState.WAIT_FOR_READY) {
+            telemetry.addData("Waiting for", getWaitingText(flywheelAtSpeed, hasTarget, aimedAtHive));
+        }
 
         // The intake prints its own "--- INTAKE ---" heading, so we add our line under it.
         intakeSubsystem.addTelemetry(telemetry);
@@ -1341,8 +1534,9 @@ public class BiobuzzTeleOp extends OpMode {
      */
     @Override
     public void stop() {
-        // Always leave the motors stopped.
-        // The gate servo just stays where it is. A servo holds its position by itself.
+        // Always leave the motors stopped. Close the gate too, so pressing STOP in the middle of a
+        // volley cannot leave it OPENED or LIFTED. (A servo holds its position by itself.)
+        shooterServoSubsystem.goToClosed();
         driveSubsystem.stop();
         intakeSubsystem.stop();
         shooterSubsystem.stop();
