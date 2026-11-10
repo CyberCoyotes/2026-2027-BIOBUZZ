@@ -15,7 +15,7 @@ import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
- * TeleOp Alpha 11
+ * TeleOp Alpha 12
  * An iterative OpMode with TWO controllers:
  *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to SHOOT.
  *              (The turret AUTO-TRACKS the hive ALL THE TIME, see ALWAYS-TRACK below.)
@@ -25,8 +25,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * PinpointAlpha put together, so each part has already been tested on its own. This OpMode owns
  * NO hardware. It only reads the gamepads and tells the subsystems what to do.
  *
- * CONTROL CHANGES (issue #74). The screen name stays "TeleOp - Alpha 11" because the Autos'
- * preselectTeleOp uses that name.
+ * NEW IN ALPHA 12: CONTROL CHANGES (issue #74). The screen name is now "TeleOp - Alpha 12" (it was
+ * Alpha 11). The three Autos' preselectTeleOp use the new name, so the Driver Station still loads
+ * this OpMode after Auto.
  *   REMOVED from gamepad2: the turret stick, the turret presets (Y, X, B), the Right Stick Button
  *     ALWAYS-TRACK switch, the gate triggers, and the shooter-wheel reverse bumpers.
  *   REMOVED from gamepad1: the X / B / Y gate buttons (they moved to gamepad2).
@@ -245,7 +246,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   I2C Device name: pinpoint         (PinpointSubsystem, goBILDA Pinpoint Odometry Computer. If it
  *                                      is missing, the screen says so and the OpMode still runs.)
  */
-@TeleOp(name = "TeleOp - Alpha 11", group = "Testing")
+@TeleOp(name = "TeleOp - Alpha 12", group = "Testing")
 public class BiobuzzTeleOp extends OpMode {
 
     // ------------------------------------------------------------------

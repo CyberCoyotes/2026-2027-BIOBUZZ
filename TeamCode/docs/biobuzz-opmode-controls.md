@@ -7,13 +7,13 @@ Print this and keep it at the driver station. It lists **what every button does 
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
 - **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In the TeleOp, gamepad 2's Start switches the alliance and gamepad 2's B opens the gate, so pair before START.)
 
-**Names on the Driver Station:** `TeleOp - Alpha 11`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Drive Alpha` (shown for now, for the field-centric test). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
+**Names on the Driver Station:** `TeleOp - Alpha 12`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Drive Alpha` (shown for now, for the field-centric test). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
 ---
 
-## 1. TeleOp - Alpha 11 (the real TeleOp)
+## 1. TeleOp - Alpha 12 (the real TeleOp)
 
 Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, always ON, no switch). The drive starts **FIELD-centric**: the left stick's "forward" is **away from the driver** (the screen shows **DRIVE MODE** under the alliance). Details and the safety rule are on the printable sheet, `biobuzz-teleop-controls.md`.
 
@@ -235,7 +235,7 @@ The robot does **not** drive. Move it **by hand** to a spot where the camera see
 
 ## Quick "which OpMode am I in" differences
 
-| Job | TeleOp Alpha 11 | The test OpModes |
+| Job | TeleOp Alpha 12 | The test OpModes |
 |---|---|---|
 | Shoot | Driver **RT** (hold) | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
 | Gate | Driver **X** closed / **B** opened / **Y** lifted, and operator **RT** opened / **LT** closed | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
