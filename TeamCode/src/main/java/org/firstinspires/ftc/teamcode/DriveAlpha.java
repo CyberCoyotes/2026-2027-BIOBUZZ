@@ -36,10 +36,18 @@ import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
  *   the way it faces now, press D-pad Left.
  *
  * THE SAFETY RULE (a bad heading must not make the robot drive the wrong way)
- *   If the Pinpoint is not READY, or its heading jumps by more than MAX_PINPOINT_HEADING_JUMP_DEGREES
- *   in one loop (it restarted), field-centric switches ITSELF OFF and the robot drives
- *   ROBOT-CENTRIC. The screen says why. It does NOT switch itself back on, because a restarted
- *   Pinpoint has a new zero. Press Back or D-pad Left to turn it on again.
+ *   If the Pinpoint is not READY for MORE than PINPOINT_GLITCH_TOLERANCE_SECONDS, or its heading
+ *   jumps by more than MAX_PINPOINT_HEADING_JUMP_DEGREES in one loop (it restarted), field-centric
+ *   switches ITSELF OFF and the robot drives ROBOT-CENTRIC. The screen says why. It does NOT switch
+ *   itself back on, because a restarted Pinpoint has a new zero. Press Back or D-pad Left to turn
+ *   it on again.
+ *   GLITCH DEBOUNCE (the same as BiobuzzTeleOp): a gap SHORTER than PINPOINT_GLITCH_TOLERANCE_SECONDS
+ *   does not switch it off. The drive keeps the LAST good heading, and when the Pinpoint is READY
+ *   again its heading must be within RESUME_MAX_HEADING_CHANGE_DEGREES of the last good one.
+ *   THE DROP LOG: the "Pinpoint drops" and "Last drop" lines on the screen (from PinpointSubsystem)
+ *   say which status the Pinpoint went through, how long it lasted, and how far the heading moved.
+ *   If it keeps dropping, copy those two lines down: they say WHY (a pod cable, the I2C cable, or
+ *   a restart).
  *
  * FIELD-CENTRIC TEST (do these in order, on the floor with lots of space):
  *   1. Robot facing AWAY from you. INIT, wait for "Pinpoint status: READY", press START.
@@ -112,6 +120,19 @@ public class DriveAlpha extends OpMode {
     // hive memory.)
     private static final double MAX_PINPOINT_HEADING_JUMP_DEGREES = 45.0;
 
+    // A Pinpoint that is "not READY" for LESS than this many seconds is a GLITCH, not a restart:
+    // field-centric stays on and the drive holds the last good heading. Longer than this, we treat
+    // it as a restart and switch field-centric off. (The same numbers BiobuzzTeleOp uses.)
+    private static final double PINPOINT_GLITCH_TOLERANCE_SECONDS = 0.25;
+
+    // Coming back from a glitch, the heading must be within this many degrees of the last good one,
+    // or the Pinpoint probably restarted (its heading is back at a new zero).
+    private static final double RESUME_MAX_HEADING_CHANGE_DEGREES = 20.0;
+
+    // During a glitch: true = keep driving FIELD-CENTRIC with the last good heading. false = drive
+    // ROBOT-CENTRIC until the Pinpoint is READY again.
+    private static final boolean HOLD_LAST_HEADING_DURING_GLITCH = true;
+
     // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
     // bottom, under the live data). false = it is only shown before START, like it used to be.
     private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
@@ -137,6 +158,14 @@ public class DriveAlpha extends OpMode {
     // The heading we used on the last loop, and whether there is one yet, for the jump check.
     private double lastPinpointHeadingDegrees = 0.0;
     private boolean haveLastPinpointHeading = false;
+
+    // The glitch debounce. pinpointNotReadyTimer counts the seconds since the Pinpoint stopped being
+    // READY. pinpointWasReadyLastLoop lets us spot the loop where it stops, and the loop where it
+    // comes back. The count and the longest glitch are for the screen.
+    private ElapsedTime pinpointNotReadyTimer = new ElapsedTime();
+    private boolean pinpointWasReadyLastLoop = true;
+    private int pinpointGlitchCount = 0;
+    private double pinpointLongestGlitchSeconds = 0.0;
 
     // What the buttons were doing LAST loop, so one press counts only once.
     private boolean wasBackPressed = false;
@@ -195,28 +224,78 @@ public class DriveAlpha extends OpMode {
     /*
      * The safety rule. Call it once per loop, right after pinpointSubsystem.update(). It only
      * ever switches field-centric OFF. Turning it back on is up to the driver (Back or D-pad Left).
-     *   - Pinpoint not READY: it is missing, still calibrating, or faulted.
+     *   - Pinpoint not READY for LONGER than PINPOINT_GLITCH_TOLERANCE_SECONDS: it is missing, still
+     *     calibrating, faulted, or it restarted. A shorter gap is a GLITCH and is forgiven.
      *   - Heading jumped: it changed by more than a robot can turn in one loop, so the Pinpoint
      *     restarted or glitched. Its heading is back at some new zero, so "away from me" is wrong.
+     *   - Coming back from a glitch, the heading must be within RESUME_MAX_HEADING_CHANGE_DEGREES of
+     *     the last good one, or it probably restarted.
      */
     private void checkPinpointHealth() {
         if (!pinpointSubsystem.isReady()) {
-            fieldCentricBlocked = true;
-            blockedReason = "the Pinpoint is not READY";
-            haveLastPinpointHeading = false;
+            if (pinpointWasReadyLastLoop) {
+                // The gap just started. Count the seconds from now.
+                pinpointNotReadyTimer.reset();
+                pinpointWasReadyLastLoop = false;
+            }
+            if (pinpointNotReadyTimer.seconds() > PINPOINT_GLITCH_TOLERANCE_SECONDS) {
+                // Too long to be a glitch, so treat it as a restart.
+                fieldCentricBlocked = true;
+                blockedReason = String.format("the Pinpoint was not READY for more than %.2f seconds",
+                        PINPOINT_GLITCH_TOLERANCE_SECONDS);
+                haveLastPinpointHeading = false;
+            }
             return;
         }
 
+        // The Pinpoint is READY. Did it just come back from a gap?
+        boolean justCameBack = !pinpointWasReadyLastLoop;
+        double gapSeconds = pinpointNotReadyTimer.seconds();
+        pinpointWasReadyLastLoop = true;
+
         double heading = pinpointSubsystem.getHeadingDegrees();
         if (haveLastPinpointHeading) {
-            double jump = Math.abs(HiveBearingMemory.wrapDegrees(heading - lastPinpointHeadingDegrees));
-            if (jump > MAX_PINPOINT_HEADING_JUMP_DEGREES) {
+            double change = Math.abs(HiveBearingMemory.wrapDegrees(heading - lastPinpointHeadingDegrees));
+            if (justCameBack) {
+                if (change > RESUME_MAX_HEADING_CHANGE_DEGREES) {
+                    fieldCentricBlocked = true;
+                    blockedReason = String.format(
+                            "the Pinpoint came back from a glitch with its heading %.0f degrees off (it probably restarted)",
+                            change);
+                } else {
+                    pinpointGlitchCount = pinpointGlitchCount + 1;
+                    if (gapSeconds > pinpointLongestGlitchSeconds) {
+                        pinpointLongestGlitchSeconds = gapSeconds;
+                    }
+                }
+            } else if (change > MAX_PINPOINT_HEADING_JUMP_DEGREES) {
                 fieldCentricBlocked = true;
-                blockedReason = String.format("the Pinpoint heading jumped %.0f degrees", jump);
+                blockedReason = String.format("the Pinpoint heading jumped %.0f degrees", change);
             }
         }
         lastPinpointHeadingDegrees = heading;
         haveLastPinpointHeading = true;
+    }
+
+    /*
+     * True while the Pinpoint is not READY but the gap is still short enough to be a glitch, and
+     * we have a good heading to hold.
+     */
+    private boolean isPinpointInGlitch() {
+        return HOLD_LAST_HEADING_DURING_GLITCH
+                && !pinpointSubsystem.isReady()
+                && haveLastPinpointHeading;
+    }
+
+    /*
+     * The Pinpoint heading the field-centric drive uses: the live one, or during a glitch the last
+     * good one.
+     */
+    private double getPinpointHeadingForDrive() {
+        if (pinpointSubsystem.isReady()) {
+            return pinpointSubsystem.getHeadingDegrees();
+        }
+        return lastPinpointHeadingDegrees;
     }
 
     /*
@@ -256,7 +335,8 @@ public class DriveAlpha extends OpMode {
      * it off, and the Pinpoint is READY.
      */
     private boolean isFieldCentricActive() {
-        return fieldCentricWanted && !fieldCentricBlocked && pinpointSubsystem.isReady();
+        return fieldCentricWanted && !fieldCentricBlocked
+                && (pinpointSubsystem.isReady() || isPinpointInGlitch());
     }
 
     /*
@@ -269,6 +349,10 @@ public class DriveAlpha extends OpMode {
         if (fieldCentricBlocked) {
             return "ROBOT-CENTRIC: field-centric was switched off because " + blockedReason
                     + ". Press Back or D-pad Left to turn it on again.";
+        }
+        if (isPinpointInGlitch()) {
+            return String.format("FIELD-CENTRIC (the Pinpoint is not READY: holding the last heading, %.2f of %.2f s)",
+                    pinpointNotReadyTimer.seconds(), PINPOINT_GLITCH_TOLERANCE_SECONDS);
         }
         if (!pinpointSubsystem.isReady()) {
             return "ROBOT-CENTRIC for now (the Pinpoint is not READY yet)";
@@ -352,8 +436,9 @@ public class DriveAlpha extends OpMode {
         // from the driver". It is only used when field-centric is active.
         boolean fieldCentricActive = isFieldCentricActive();
         double drivingHeadingDegrees = 0.0;
-        if (pinpointSubsystem.isReady()) {
-            drivingHeadingDegrees = pinpointSubsystem.getHeadingDegrees() + headingOffsetDegrees;
+        if (pinpointSubsystem.isReady() || isPinpointInGlitch()) {
+            // (During a short glitch this is the last good heading, not the live one.)
+            drivingHeadingDegrees = getPinpointHeadingForDrive() + headingOffsetDegrees;
         }
 
         // 3. Tell the drivetrain what to do. (There is no update() to call.)
@@ -399,7 +484,9 @@ public class DriveAlpha extends OpMode {
         telemetry.addData("DRIVE MODE", getDriveModeText());
         telemetry.addData("Control", driveControl);
         telemetry.addData("Heading used for field-centric (deg)", "%.1f   (Pinpoint %.1f + offset %.1f)",
-                drivingHeadingDegrees, pinpointSubsystem.getHeadingDegrees(), headingOffsetDegrees);
+                drivingHeadingDegrees, getPinpointHeadingForDrive(), headingOffsetDegrees);
+        telemetry.addData("Pinpoint glitches (came back by themselves)", "%d   longest %.2f s",
+                pinpointGlitchCount, pinpointLongestGlitchSeconds);
         pinpointSubsystem.addTelemetry(telemetry);
         addRawGamepadTelemetry();
         driveSubsystem.addTelemetry(telemetry);
