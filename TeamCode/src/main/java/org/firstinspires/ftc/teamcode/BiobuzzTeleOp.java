@@ -33,27 +33,38 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Before, the driver held the Right Trigger to spin the wheels and the operator opened and closed
  *   the gate by hand, so a ball could go through before the wheels were at speed. Now FiringSequence
  *   (a plain class, see subsystems/FiringSequence.java) runs a whole VOLLEY by itself:
- *     HOLD the driver's Right Trigger -> the wheels spin (if they are not already). The volley WAITS
+ *     HOLD the OPERATOR's Right Trigger (gamepad2) -> the wheels spin (if they are not already). The
+ *     volley WAITS
  *     until the flywheel is at speed AND the turret is on target AND (in TABLE mode) the camera sees
  *     the hive right now. Then the gate OPENS and the intake feeds the balls one at a time (it runs
- *     only while the flywheel is at speed), then the gate LIFTS for the last ball, then it CLOSES.
+ *     only while the flywheel is at speed), then the gate CLOSES. (There is no LIFT step any more:
+ *     its timing was off and it wedged the last ball.)
  *     Let go of the trigger at any time to ABORT: the gate closes and the intake stops. A held
  *     trigger fires ONE volley. Let go and press again to fire another.
+ *   WHO FIRES: the OPERATOR's Right Trigger (gamepad2). The driver's Right Trigger does NOT fire, unless
+ *     SOLO MODE is ON. SOLO MODE is for a match with ONE person driving: the driver presses gamepad1
+ *     LOGO (the center "guide" button) to switch it ON / OFF (it starts OFF, and it works in INIT too).
+ *     While it is ON the driver's Right Trigger fires too, and the screen says SOLO MODE ON. In a
+ *     solo match nobody can use the operator's buttons (the gate buttons, the dials, the alliance,
+ *     the MODE button), so set the alliance and the speed source with gamepad 2 first if you can.
+ *     The INIT screen shows "LOGO test (gamepad1)" so you can check that the button reaches the
+ *     Robot Controller. If it does not, solo mode cannot be switched on, and the operator still fires.
  *   PRE-REV: the driver's D-pad Up switches the wheels ON / OFF while you drive to the shooting
  *     spot, so the 4 seconds of spin-up are not paid at every volley. It starts OFF, and the screen
  *     says PRE-REV ON. It does not touch the gate or the intake.
  *   The gate buttons (operator X / B / Y) are an OVERRIDE: they only work BETWEEN volleys. During a
  *     volley the sequence is in charge of the gate.
- *   The intake: REVERSE (either Left Bumper) beats the volley, which beats the INTAKE bumpers. (If you
- *     clear a jam in the middle of a volley, the feed clock keeps running, so let go and press again.)
+ *   The intake is the DRIVER's only (gamepad1 bumpers; the operator's bumpers do nothing). REVERSE (Left
+ *     Bumper) beats the volley, which beats INTAKE (Right Bumper). (If you clear a jam in the middle of a
+ *     volley, the feed clock keeps running, so let go and press again.)
  *   The READY check uses the FLYWHEEL ONLY (ShooterSubsystem.isFlywheelAtSpeed()), like
  *     ShootAndParkAuto, and the screen shows the hood wheel's error. The "OK to shoot?" line on the
  *     screen is still the old both-wheels check, for information.
- *   The flywheel target and the ratio are FROZEN during the feed, the lift and the end of a volley.
+ *   The flywheel target and the ratio are FROZEN during the feed and the end of a volley.
  *     In the other steps the target only changes when the wanted RPM moves by more than
  *     RPM_CHANGE_DEADBAND, so a wobbling table answer cannot keep the "at speed" check from ever
  *     holding.
- *   The timings (FEED_SECONDS, GATE_LIFT_SECONDS) live in FiringSequence, not here.
+ *   The timing (FEED_SECONDS) lives in FiringSequence, not here.
  *   NOT TESTED ON THE ROBOT YET: whether all 4 balls leave, and the timings. See issue #63.
  *
  * NEW IN ALPHA 12: CONTROL CHANGES (issue #74). The screen name became "TeleOp - Alpha 12" (it was
@@ -169,14 +180,18 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *        back to tracking the hive.
  *   D-pad Up / Down  -> flywheel target RPM +/- FLYWHEEL_RPM_STEP
  *   D-pad Right / Left -> ratio (hood wheel / flywheel) +/- 0.05
- *   Right Bumper     -> INTAKE (pull balls in)       Left Bumper -> REVERSE (push balls out)
- *                       Same as the driver's bumpers. Left Bumper beats Right Bumper.
+ *   Right Trigger    -> HOLD to FIRE a volley (the FIRING SEQUENCE, see NEW IN ALPHA 13). The turret is
+ *                       already tracking the hive (ALWAYS-TRACK). The wheels run at the flywheel
+ *                       speed from the DIAL or the TABLE (see THE SHOT TABLE below), and the hood
+ *                       wheel at that x the ratio dial. Let go to ABORT: the gate closes, the
+ *                       intake stops, and (unless PRE-REV is ON) both wheels go to 0 power. A (hold)
+ *                       floats the turret, so then the turret is not on target and a volley waits.
  *   Start            -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
  *   Back             -> switch the flywheel speed source DIAL <-> TABLE (starts as DIAL)
  *   MODE button      -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC). If
  *                       field-centric was switched off by the safety rule, it turns it back ON.
  *                       (The center "guide" button or the Left Stick Button, see NEW IN ALPHA 11.)
- *   Left Stick, Right Stick, both Triggers: not used.
+ *   Both sticks, both bumpers, Left Trigger: not used. (The intake is the driver's only.)
  *   The turret has no other operator control. It tracks the hive all the time (see ALWAYS-TRACK
  *   below). It will not go past +/-120 degrees (see TurretSubsystem). 0 degrees is where
  *   the turret pointed when the Control Hub powered on, because the home switch is not
@@ -193,17 +208,14 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      It does not touch the Pinpoint. It also turns field-centric back on after the safety rule.
  *   D-pad Up     -> PRE-REV on / off: the wheels spin without firing (see NEW IN ALPHA 13).
  *   Right Bumper -> INTAKE (pull balls in)      Left Bumper -> REVERSE (push balls out)
- *      (Left Bumper beats Right Bumper, so clearing a jam always works. The operator's bumpers
- *       do the same, and REVERSE on EITHER gamepad beats INTAKE on either. The intake runs at the
- *       power set in IntakeSubsystem, DEFAULT_INTAKE_POWER.)
- *   Right Trigger -> HOLD to FIRE a volley (the FIRING SEQUENCE, see NEW IN ALPHA 13). The turret is
- *      already tracking the hive (ALWAYS-TRACK).
- *      The wheels run at the flywheel speed from the DIAL or the TABLE (see THE SHOT TABLE
- *      below), and the hood wheel at that x the ratio dial. At the start that is DIAL mode,
- *      flywheel 1300 RPM and hood wheel 2600 RPM (a ratio of 2.00).
- *      Let go to ABORT: the gate closes, the intake stops, and (unless PRE-REV is ON) both wheels go
- *      to 0 power and coast down.
- *      The operator's A (hold) floats the turret. Then the turret is not on target, so a volley waits.
+ *      (Left Bumper beats Right Bumper, so clearing a jam always works. Only the DRIVER has the
+ *       intake: the operator's bumpers do nothing. The intake runs at the power set in
+ *       IntakeSubsystem, DEFAULT_INTAKE_POWER.)
+ *   LOGO (the center "guide" button) -> SOLO MODE on / off, for a match with one person (see NEW IN
+ *      ALPHA 13). It starts OFF.
+ *   Right Trigger -> does NOT fire. The OPERATOR's Right Trigger fires. Only in SOLO MODE (LOGO) does
+ *      the driver's Right Trigger fire too. At the start the shot is DIAL mode, flywheel 1300 RPM and
+ *      hood wheel 2600 RPM (a ratio of 2.00).
  *   X / B / Y    -> not used. (The shooter gate moved to the operator's X / B / Y.)
  *
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (SPEED CONTROL in RPM, read from the wheel encoders)
@@ -404,7 +416,7 @@ public class BiobuzzTeleOp extends OpMode {
     private static final double TABLE_RPM_HOLD_SECONDS = 1.0;
 
     // ShooterSubsystem treats ANY change of target RPM as "start over", and the table's answer
-    // wobbles a little because ty does. So (outside a volley's feed, lift and end, where the target
+    // wobbles a little because ty does. So (outside a volley's feed and end, where the target
     // is frozen) we only change the flywheel target when the wanted RPM is more than this far from
     // the one we are already using. Otherwise the "at speed" check could keep restarting and the
     // feed would stutter. (The same number FiringSequenceAlpha uses.)
@@ -456,8 +468,13 @@ public class BiobuzzTeleOp extends OpMode {
     private boolean preRevOn = false;
     private boolean wasPreRevPressed = false;
 
+    // SOLO MODE (gamepad1 LOGO): for a match with ONE person. false (the start) = only the OPERATOR's
+    // Right Trigger fires. true = the driver's Right Trigger fires too.
+    private boolean soloMode = false;
+    private boolean wasSoloTogglePressed = false;
+
     // The flywheel RPM we are really using (the dial or the table, with the dead band applied).
-    // While a volley feeds, lifts and ends, shotFrozen is true and the RPM and the ratio are held at
+    // While a volley feeds and ends, shotFrozen is true and the RPM and the ratio are held at
     // frozenFlywheelRpm and frozenRatio, so the target does not move while balls go through.
     private double commandedFlywheelRpm = 0.0;
     private boolean shotFrozen = false;
@@ -549,8 +566,8 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("--- GAMEPAD 1 (DRIVER) ---");
         telemetry.addLine("Left Stick = drive and strafe   Right Stick = turn");
         telemetry.addLine("Left Trigger = SLOW MODE");
-        telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
-        telemetry.addLine("Right Trigger (hold) = FIRE a volley (let go = abort)");
+        telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE   (the intake is the driver's only)");
+        telemetry.addLine("LOGO = SOLO MODE on / off (one-person match: then the driver's Right Trigger fires too)");
         telemetry.addLine("D-pad Up = PRE-REV on / off (wheels spin without firing)");
         telemetry.addLine("D-pad Left = RE-AIM (the way the robot faces now is away from me)");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
@@ -559,7 +576,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("D-pad Up / Down = flywheel RPM up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
         telemetry.addLine("X = gate CLOSED   B = gate OPENED   Y = gate LIFTED   (only between volleys)");
-        telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
+        telemetry.addLine("Right Trigger (hold) = FIRE a volley (let go = abort)");
         telemetry.addLine("A (hold) = float the turret by hand (it tracks again when you let go)");
     }
 
@@ -612,6 +629,21 @@ public class BiobuzzTeleOp extends OpMode {
             preRevOn = !preRevOn;
         }
         wasPreRevPressed = preRevPressed;
+    }
+
+    /*
+     * Gamepad1 LOGO (the center "guide" button) switches SOLO MODE on and off. One switch per press.
+     * It works in INIT too, so it can be set before START. It changes nothing the robot does by
+     * itself: it only lets the driver's Right Trigger fire a volley, for a match with one person. If
+     * the Robot Controller never sees this button, solo mode just cannot be switched on, which is
+     * safe (the operator can still fire).
+     */
+    private void checkSoloModeToggle() {
+        boolean soloTogglePressed = gamepad1.guide;
+        if (isNewPress(soloTogglePressed, wasSoloTogglePressed)) {
+            soloMode = !soloMode;
+        }
+        wasSoloTogglePressed = soloTogglePressed;
     }
 
     /*
@@ -1032,6 +1064,7 @@ public class BiobuzzTeleOp extends OpMode {
         // The MODE button and D-pad Left already work here, so you can try them before START.
         updateDriveFrameFromAlliance();
         checkDriveModeButtons();
+        checkSoloModeToggle();
 
         // The Driver Station clears its screen every loop, so we add the
         // button map again here. That keeps it on the screen until START.
@@ -1041,6 +1074,9 @@ public class BiobuzzTeleOp extends OpMode {
         // Which button is MODE? Press them. The one that says true is the one that works.
         telemetry.addData("MODE button test (gamepad2)", "guide = %b    left stick button = %b",
                 gamepad2.guide, gamepad2.left_stick_button);
+        // Does the driver's LOGO button reach the Robot Controller? Press it: SOLO MODE should flip.
+        telemetry.addData("LOGO test (gamepad1)", "guide = %b", gamepad1.guide);
+        telemetry.addData("SOLO MODE (gamepad1 LOGO)", soloMode ? "ON  (the driver's Right Trigger fires too)" : "off (only the operator fires)");
         telemetry.addData("Flywheel speed source (gamepad2 Back)", getModeText());
         visionSubsystem.addTelemetry(telemetry);
         // Check that the Pinpoint says READY before START. (The robot must be still until then.)
@@ -1103,6 +1139,7 @@ public class BiobuzzTeleOp extends OpMode {
         checkModeButtons();
         checkDriveModeButtons();
         checkPreRevToggle();
+        checkSoloModeToggle();
 
         // ---- Gamepad 1 (driver) ----
         // On the controller, pushing a stick FORWARD gives a negative number, and pushing it RIGHT
@@ -1113,8 +1150,11 @@ public class BiobuzzTeleOp extends OpMode {
         double turn = applyDeadband(-gamepad1.right_stick_x);
 
         boolean slowMode = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
-        // The Right Trigger HELD fires a volley (see NEW IN ALPHA 13).
-        boolean fireHeld = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+        // WHO FIRES (see NEW IN ALPHA 13): the OPERATOR's Right Trigger (gamepad2), held, fires a
+        // volley. The driver's Right Trigger fires too ONLY in SOLO MODE (gamepad1 LOGO).
+        boolean operatorFireHeld = gamepad2.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean driverFireHeld = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+        boolean fireHeld = operatorFireHeld || (soloMode && driverFireHeld);
 
         // ---- Gamepad 2 (operator) ----
         // The operator's face buttons move the shooter gate. (A is the turret float button.)
@@ -1200,14 +1240,13 @@ public class BiobuzzTeleOp extends OpMode {
         }
 
         // The FIRING SEQUENCE freezes the shot while balls go through (see NEW IN ALPHA 13): during the
-        // feed, the lift and the end of a volley the flywheel RPM AND the ratio are held where they
+        // feed and the end of a volley the flywheel RPM AND the ratio are held where they
         // were, so the target does not move under the balls. In the other steps the target only
         // changes when the wanted RPM moves by more than RPM_CHANGE_DEADBAND, so a wobbling table
         // answer cannot keep restarting ShooterSubsystem's "at speed" check. (The sequence's step is
         // from the last loop. It changes only in step 3 below.)
         FiringSequence.SequenceState sequenceStep = firingSequence.getState();
         boolean feedingOrLater = sequenceStep == FiringSequence.SequenceState.FEED
-                || sequenceStep == FiringSequence.SequenceState.LIFT
                 || sequenceStep == FiringSequence.SequenceState.DONE;
         double shotRatio = ratio;
         if (feedingOrLater) {
@@ -1270,8 +1309,10 @@ public class BiobuzzTeleOp extends OpMode {
             // The shooter's speed control holds each wheel at its target, even when a ball slows it
             // down or the battery drains.
             shooterSubsystem.setTargetRpms(flywheelTargetRpm, hoodWheelTargetRpm);
-            if (fireHeld) {
-                shooterControl = "Right Trigger (FIRE)";
+            if (fireHeld && operatorFireHeld) {
+                shooterControl = "Operator Right Trigger (FIRE)";
+            } else if (fireHeld) {
+                shooterControl = "Driver Right Trigger (FIRE, SOLO MODE)";
             } else {
                 shooterControl = "PRE-REV";
             }
@@ -1335,9 +1376,6 @@ public class BiobuzzTeleOp extends OpMode {
         } else if (gateCommand == FiringSequence.GateCommand.OPEN) {
             shooterServoSubsystem.goToOpened();
             gateControl = "firing sequence (OPENED)";
-        } else if (gateCommand == FiringSequence.GateCommand.LIFT) {
-            shooterServoSubsystem.goToLifted();
-            gateControl = "firing sequence (LIFTED)";
         } else if (closedNewPress) {
             shooterServoSubsystem.goToClosed();
             gateControl = "manual (X)";
@@ -1351,11 +1389,11 @@ public class BiobuzzTeleOp extends OpMode {
             gateControl = "manual (no press)";
         }
 
-        // Intake. REVERSE goes first (either Left Bumper), so clearing a jam always works. Then the
-        // firing sequence, while it is feeding or lifting. Then the INTAKE bumpers (either Right
-        // Bumper).
+        // Intake. It is the DRIVER's only (gamepad1 bumpers: the operator's bumpers do nothing). REVERSE
+        // goes first (Left Bumper), so clearing a jam always works. Then the firing sequence, while it
+        // is feeding. Then INTAKE (Right Bumper).
         String intakeControl;
-        if (gamepad1.left_bumper || gamepad2.left_bumper) {
+        if (gamepad1.left_bumper) {
             intakeSubsystem.reverse();
             intakeControl = "Left Bumper (REVERSE)";
         } else if (firingSequence.ownsIntake()) {
@@ -1366,7 +1404,7 @@ public class BiobuzzTeleOp extends OpMode {
                 intakeSubsystem.stop();
                 intakeControl = "firing sequence: waiting for the flywheel";
             }
-        } else if (gamepad1.right_bumper || gamepad2.right_bumper) {
+        } else if (gamepad1.right_bumper) {
             intakeSubsystem.intake();
             intakeControl = "Right Bumper (INTAKE)";
         } else {
@@ -1394,6 +1432,11 @@ public class BiobuzzTeleOp extends OpMode {
         // Always on the screen: aiming at the wrong alliance's hive is not an obvious failure.
         telemetry.addData("Alliance (gamepad2 Start)", visionSubsystem.getAlliance());
         telemetry.addData("DRIVE MODE (operator MODE button)", getDriveModeText());
+        if (soloMode) {
+            telemetry.addData("SOLO MODE (gamepad1 LOGO)", "ON  (the driver's Right Trigger fires too)");
+        } else {
+            telemetry.addData("SOLO MODE (gamepad1 LOGO)", "off (only the operator's Right Trigger fires)");
+        }
         if (preRevOn) {
             telemetry.addData("PRE-REV (driver D-pad Up)", "ON  (the wheels are spinning)");
         } else {

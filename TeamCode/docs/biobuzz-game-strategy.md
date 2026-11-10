@@ -43,7 +43,7 @@ So the most useful thing we can say to a partner before a match is: "Please just
 1. **Reload.** Get up to 4 balls (the limit, G407).
 2. **Drive to the correct side of the hive.** The raised cell flips after every tip, and it faces the other way each time (see `biobuzz-hive-apriltag-geometry.md`). The turret lets us shoot from anywhere on the right side without lining up the chassis precisely.
 3. **Aim.** The turret tracks the hive with the Limelight (ALWAYS-TRACK). The camera must see our alliance's tags, so the alliance setting has to be right.
-4. **Spin up.** Pre-rev with the driver's **D-pad Up** while driving to the spot, then **hold the Right Trigger**. The firing sequence waits until the flywheel is at speed and the turret is on target.
+4. **Spin up.** Pre-rev with the driver's **D-pad Up** while driving to the spot, then the operator **holds the Right Trigger**. The firing sequence waits until the flywheel is at speed and the turret is on target.
 5. **Shoot.** The sequence opens the gate and feeds one ball at a time. A ball dips the wheel speed, so the next ball waits until the flywheel recovers. Let go of the trigger to abort.
 6. **Check for a tip**, then go to step 1 again, from the other side.
 
@@ -98,8 +98,8 @@ A drive team has up to 4 students/mentors: a drive coach, up to 3 drivers, and a
 
 | Role | Job |
 |---|---|
-| **Driver** (gamepad 1) | Drive, intake, hold Right Trigger to shoot. |
-| **Operator** (gamepad 2) | Alliance (Start), speed source (Back), gate (X / B / Y), floating the turret by hand (A), intake and reverse (bumpers). Checks the alliance on the screen. |
+| **Driver** (gamepad 1) | Drive, intake and reverse (bumpers), pre-rev (D-pad Up). Fires only in a one-person match (LOGO, then Right Trigger). |
+| **Operator** (gamepad 2) | Fires (hold Right Trigger), alliance (Start), speed source (Back), gate between volleys (X / B / Y), floating the turret by hand (A). Checks the alliance on the screen. |
 | **Human player** | Adds nectar through the LOADING ZONE only (G427): one per hive tip, or all of it once 1:00 is left (G426). Counts tips. Does not touch the robot. |
 | **Drive coach** | Watches the clock and the field, calls the PARK time, picks the OpMode and presses INIT/start for the drivers (allowed by G423). |
 

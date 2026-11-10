@@ -15,8 +15,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 /*
  * Firing Sequence Testing
  * An iterative OpMode for trying out FiringSequence (hold one button, and the robot waits until it
- * is ready, opens the gate, feeds the balls one at a time, lifts the gate for the last ball, and
- * closes the gate) and the PRE-REV toggle. It uses gamepad1 only.
+ * is ready, opens the gate, feeds the balls one at a time, and closes the gate) and the PRE-REV
+ * toggle. It uses gamepad1 only.
  *   FiringSequence        -> the steps (no hardware, it only gives orders)
  *   ShooterSubsystem      -> spins the flywheel and the hood wheel (isFlywheelAtSpeed() is the check)
  *   ShooterServoSubsystem -> the gate: CLOSED, OPENED, LIFTED
@@ -37,7 +37,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   D-pad Up (tap)       -> PRE-REV on / off. The wheels spin without firing, so the spin-up wait is
  *                           over before you fire. It is shown big on the screen. Starts OFF.
  *   Right Bumper (hold)  -> INTAKE (pick up balls). The gate stays where it is. While a volley is
- *                           FEEDING or LIFTING, the sequence runs the intake instead.
+ *                           FEEDING, the sequence runs the intake instead.
  *   Left Bumper (hold)   -> REVERSE both wheels AND the intake (clearing a jam). Beats everything.
  *   X / B / Y            -> the gate by hand: X CLOSED, B OPENED, Y LIFTED (one move per press).
  *                           They work ONLY while no volley is running. (The sequence closes the
@@ -50,8 +50,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      (Pairing the controller on the Driver Station is Start + A. If you do that while this
  *       OpMode is running, it also switches the alliance, so check it on the screen.)
  *
- * Priority for the intake, highest first: Left Bumper (jam), the firing sequence (feeding and
- * lifting), Right Bumper (pick up).
+ * Priority for the intake, highest first: Left Bumper (jam), the firing sequence (feeding),
+ * Right Bumper (pick up).
  *
  * THE TEST ORDER (write the numbers in TeamCode/docs/biobuzz-test-and-match-log.md)
  *   1. INIT. Check "Vision State" says TARGET_VISIBLE and the alliance is right. The gate goes to
@@ -64,8 +64,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   4. PRE-REV: tap D-pad Up. The wheels spin. Time how long Right Trigger takes to start feeding
  *      with and without it ("Last volley: seconds to ready").
  *   5. Now with 4 balls. Hold Right Trigger. Do ALL 4 balls leave? Write down "flywheel dips" (is it
- *      about 4?) and "total seconds". If a ball is left behind, raise FEED_SECONDS or
- *      GATE_LIFT_SECONDS in FiringSequence. To check that the intake moves the balls at all, set
+ *      about 4?) and "total seconds". If a ball is left behind, raise FEED_SECONDS in
+ *      FiringSequence. (There is no LIFT step any more: it wedged the last ball, issue #63.
+ *      Watch whether a ball is caught when the gate closes at the end.) To check that the intake moves the balls at all, set
  *      INTAKE_WAITS_FOR_SPEED to false in FiringSequence.
  *   6. Cover the camera lens in TABLE mode, hold Right Trigger: it must NOT start feeding, and the
  *      screen says NO TARGET.
@@ -148,7 +149,7 @@ public class FiringSequenceAlpha extends OpMode {
     private double commandedRpm = 0.0;
     private String rpmSource = "none yet";
 
-    // During a volley's FEED, LIFT and DONE steps the RPM is frozen, so the target does not move
+    // During a volley's FEED and DONE steps the RPM is frozen, so the target does not move
     // while the balls are going through.
     private boolean rpmFrozen = false;
     private double frozenRpm = 0.0;
@@ -372,12 +373,11 @@ public class FiringSequenceAlpha extends OpMode {
         wasGateOpenedPressed = gateOpenedNow;
         wasGateLiftedPressed = gateLiftedNow;
 
-        // What speed do we want? During the feed, the lift and the end of a volley we freeze it, so
+        // What speed do we want? During the feed and the end of a volley we freeze it, so
         // the target does not move while balls are going through.
         boolean hasTarget = visionSubsystem.hasTarget();
         FiringSequence.SequenceState sequenceStep = firingSequence.getState();
         boolean feedingOrLater = sequenceStep == FiringSequence.SequenceState.FEED
-                || sequenceStep == FiringSequence.SequenceState.LIFT
                 || sequenceStep == FiringSequence.SequenceState.DONE;
         double wantedRpm;
         if (feedingOrLater) {
@@ -445,9 +445,6 @@ public class FiringSequenceAlpha extends OpMode {
         } else if (gateCommand == FiringSequence.GateCommand.OPEN) {
             shooterServoSubsystem.goToOpened();
             gateControl = "firing sequence";
-        } else if (gateCommand == FiringSequence.GateCommand.LIFT) {
-            shooterServoSubsystem.goToLifted();
-            gateControl = "firing sequence";
         } else if (closedNewPress) {
             shooterServoSubsystem.goToClosed();
             gateControl = "manual (X)";
@@ -462,7 +459,7 @@ public class FiringSequenceAlpha extends OpMode {
         }
 
         // The intake. Reverse goes first, so clearing a jam always works. Then the sequence (while
-        // it is feeding or lifting). Then the driver's own intake button.
+        // it is feeding). Then the driver's own intake button.
         String intakeControl;
         if (reverseHeld) {
             intakeSubsystem.reverse();

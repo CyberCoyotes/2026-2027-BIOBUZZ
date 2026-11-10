@@ -7,7 +7,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 /*
  * Firing Sequence
  * The steps of one "volley": wait until we are ready, open the gate, feed the balls one at a time,
- * lift the gate to push the last ball in, and close the gate. It is the same sequence the Auto
+ * and close the gate. It is the same sequence the Auto
  * (ShootAndParkAuto) works out for itself, so the TeleOp and the Auto can share one copy.
  *
  * WHAT IT IS (and is not)
@@ -27,7 +27,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *                      It paces the feed, and counts the dips.
  *   Then ask for the orders:
  *     getGateCommand()  - NONE means "I am not in charge of the gate, use your manual buttons".
- *                         CLOSE / OPEN / LIFT means "send this to ShooterServoSubsystem".
+ *                         CLOSE / OPEN means "send this to ShooterServoSubsystem".
  *     ownsIntake()      - true means "I am in charge of the intake". Then wantsIntake() says run it
  *                         or stop it. When ownsIntake() is false, the OpMode's own intake buttons
  *                         work as usual.
@@ -38,13 +38,17 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *   2. FEED           : gate OPENED, for FEED_SECONDS. The intake runs only while the flywheel is at
  *                       speed, so balls go one at a time: each ball slows the flywheel for a moment
  *                       and the intake pauses until it recovers (INTAKE_WAITS_FOR_SPEED).
- *   3. LIFT           : gate LIFTED for GATE_LIFT_SECONDS, with the intake running, to push the last
- *                       ball in.
- *   4. DONE           : gate CLOSED, intake not mine. Stays here until the button is released, so a
+ *   3. DONE           : gate CLOSED, intake not mine. Stays here until the button is released, so a
  *                       held button can NOT fire an empty chute over and over. To fire again,
  *                       release and press again.
  *   ABORT: releasing the button at any step closes the gate once and gives the intake back. Any
  *   balls not yet shot stay in the chute.
+ *
+ * NO LIFT STEP (removed, issue #63): there used to be a step after FEED that LIFTED the gate for half a
+ * second with the intake running, to push the last ball in. Its timing was off and the last ball got
+ * wedged, so it is gone: when the feed time is up, the gate just CLOSES. (The manual LIFTED gate
+ * button between volleys is still there, and so is ShooterServoSubsystem.goToLifted().) A ball that is
+ * half way through when the gate closes could still jam, so watch for it in the robot test.
  *
  * WHY THE GATE STAYS OPEN DURING THE FEED
  *   Opening and closing it for every ball would add the servo's travel time (about half a second
@@ -52,8 +56,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *
  * NO BALL SENSOR: we cannot count balls. FEED_SECONDS is a time. The dip counter (about one dip
  * per ball shot) is there to check that. If the dips match the balls fired, a later version can end
- * the feed early when the dips stop. Practice with FEED_SECONDS and GATE_LIFT_SECONDS until all 4
- * balls go, then keep them the same for matches.
+ * the feed early when the dips stop. Practice with FEED_SECONDS until all 4 balls go, then keep it
+ * the same for matches.
  */
 public class FiringSequence {
 
@@ -65,10 +69,6 @@ public class FiringSequence {
     // the intake is on. Four balls with a recovery after each one take a few seconds.
     // Starting guess. Tune on the robot until all 4 balls go.
     private static final double FEED_SECONDS = 3.0;
-
-    // How long the gate stays LIFTED (with the intake still running) to push the last ball in.
-    // Starting guess. Tune on the robot.
-    private static final double GATE_LIFT_SECONDS = 0.5;
 
     // true  = during the feed, the intake runs only while the flywheel is at speed (one ball at a
     //         time).
@@ -84,7 +84,6 @@ public class FiringSequence {
         IDLE,            // No volley. The fire button is not held.
         WAIT_FOR_READY,  // Button held. Gate CLOSED. Waiting for readyToStart.
         FEED,            // Gate OPENED. Feeding balls, one at a time.
-        LIFT,            // Gate LIFTED. Pushing the last ball in.
         DONE             // Finished. Gate CLOSED. Waiting for the button to be released.
     }
 
@@ -92,8 +91,7 @@ public class FiringSequence {
     public enum GateCommand {
         NONE,   // Not my job this loop. Use the manual buttons.
         CLOSE,
-        OPEN,
-        LIFT
+        OPEN
     }
 
     private SequenceState state = SequenceState.IDLE;
@@ -187,16 +185,8 @@ public class FiringSequence {
                 flywheelWasAtSpeed = flywheelAtSpeed;
 
                 if (stepTimer.seconds() >= FEED_SECONDS) {
-                    state = SequenceState.LIFT;
-                    stepTimer.reset();
-                    setLiftOrders();
-                }
-                break;
-
-            case LIFT:
-                setLiftOrders();
-                if (stepTimer.seconds() >= GATE_LIFT_SECONDS) {
-                    // Done. Close the gate. The intake goes back to the OpMode (it stops).
+                    // The feed time is up. Done: close the gate. The intake goes back to the OpMode
+                    // (it stops).
                     state = SequenceState.DONE;
                     lastResult = "finished (let go of the button)";
                     volleySeconds = volleyTimer.seconds();
@@ -218,14 +208,6 @@ public class FiringSequence {
         gateCommand = GateCommand.OPEN;
         ownsIntake = true;
         intakeWanted = !INTAKE_WAITS_FOR_SPEED || flywheelAtSpeed;
-    }
-
-    // The orders while lifting: gate LIFTED, and the intake runs no matter what, so the last ball
-    // is not left behind.
-    private void setLiftOrders() {
-        gateCommand = GateCommand.LIFT;
-        ownsIntake = true;
-        intakeWanted = true;
     }
 
     // ==================================================================
@@ -263,7 +245,7 @@ public class FiringSequence {
         return secondsToReady;
     }
 
-    // Seconds from the button press to the end of the lift. -1 if the volley did not finish.
+    // Seconds from the button press to the end of the feed. -1 if the volley did not finish.
     public double getVolleySeconds() {
         return volleySeconds;
     }
@@ -281,10 +263,6 @@ public class FiringSequence {
         return FEED_SECONDS;
     }
 
-    public double getGateLiftSeconds() {
-        return GATE_LIFT_SECONDS;
-    }
-
     /*
      * Adds the sequence's own data to the telemetry, so the TeleOp and the test OpMode show the
      * same lines. The SDK sends it to the Driver Station after every loop.
@@ -292,7 +270,7 @@ public class FiringSequence {
     public void addTelemetry(Telemetry telemetry) {
         telemetry.addLine("--- FIRING SEQUENCE ---");
         telemetry.addData("Sequence step", state);
-        telemetry.addData("Feed / lift seconds", "%.1f / %.1f", FEED_SECONDS, GATE_LIFT_SECONDS);
+        telemetry.addData("Feed seconds", "%.1f", FEED_SECONDS);
         telemetry.addData("Flywheel dips this volley (about 1 per ball)", flywheelDipCount);
         telemetry.addData("Last volley", lastResult);
         if (secondsToReady >= 0.0) {

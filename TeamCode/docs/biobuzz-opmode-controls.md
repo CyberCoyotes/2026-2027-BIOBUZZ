@@ -24,9 +24,10 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **Left Stick** | Drive forward / backward and strafe left / right |
 | **Right Stick** | Turn |
 | **LT** (hold) | **Slow mode** |
-| **RB** | **Intake** (pull balls in) |
-| **LB** | **Reverse the intake** (push balls out). Beats RB |
-| **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the turret is on target, then opens the gate and feeds the balls one at a time, lifts for the last ball, and closes. **One volley per press.** **Let go to ABORT** (gate closes, intake stops). Unless PRE-REV is on, both wheels go to 0 power |
+| **RB** | **Intake** (pull balls in). **The intake is the driver's only** |
+| **LB** | **Reverse the intake** (push balls out). Beats RB and a volley's feed |
+| **RT** (hold) | **Does not fire.** The operator's RT fires. **Only in SOLO MODE** (LOGO) does the driver's RT fire a volley too |
+| **LOGO** (the center **guide** button) | **SOLO MODE** on / off, for a one-person match (starts OFF). The INIT screen has a "LOGO test (gamepad1)" line to check the button reaches the Robot Controller |
 | **D-pad Up** | **PRE-REV** on / off: the wheels spin without firing (starts OFF) |
 | **A / B / X / Y** | Not used (the gate moved to the operator's X / B / Y) |
 | **D-pad Left** | **Re-aim** (field-centric): the way the robot faces right now is "away from me". Does not touch the Pinpoint |
@@ -37,15 +38,14 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 |---|---|
 | **X** | Gate **CLOSED** (holds the ball back). **Between volleys only** |
 | **B** | Gate **OPENED** (lets the ball through). **Between volleys only** |
-| **Y** | Gate **LIFTED** (pushes the last ball in). **Between volleys only.** If several are pressed at once, CLOSED wins, then OPENED, then LIFTED. During a volley the firing sequence runs the gate |
+| **Y** | Gate **LIFTED**. **Between volleys only,** and a manual button only: the firing sequence no longer lifts the gate (it wedged the last ball). If several are pressed at once, CLOSED wins, then OPENED, then LIFTED. During a volley the firing sequence runs the gate |
 | **A** (hold) | **Float** the turret so you can turn it by hand. Let go and it tracks the hive again |
 | **D-pad Up / Down** | Flywheel target RPM **+ / - 100** (range 500 to 1450) |
 | **D-pad Right / Left** | Hood / flywheel **ratio + / - 0.05** (range 1.00 to 3.00, starts 2.00) |
-| **RB** | **Intake** (pull balls in), same as the driver's RB |
-| **LB** | **Reverse the intake** (push balls out), same as the driver's LB. REVERSE on either gamepad beats INTAKE on either |
+| **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the turret is on target, then opens the gate, feeds the balls one at a time, and closes it (no lift step). **One volley per press.** **Let go to ABORT** (gate closes, intake stops). Unless PRE-REV is on, both wheels go to 0 power |
 | **Start** | **Alliance** BLUE / RED (starts **BLUE**, check it on the screen) |
 | **Back** | Flywheel speed source **DIAL / TABLE** (starts DIAL) |
-| **Sticks, LT, RT** | Not used. The turret has no manual control and the shooter wheels cannot be reversed from this OpMode |
+| **Sticks, LT, bumpers** | Not used. The turret has no manual control, the intake is the driver's, and the shooter wheels cannot be reversed from this OpMode |
 | **MODE button** (the center **guide** button or the **Left Stick Button**, both work for now) | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). Turns field-centric back on after the safety rule. The INIT screen shows which button registers |
 
 **Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen shows loop time, the alliance, **PRE-REV**, the firing sequence step and what it is **Waiting for**, and **OK to shoot?** (both wheels, for information: the volley itself checks the flywheel only).
@@ -224,9 +224,9 @@ The robot does **not** drive. Move it **by hand** to a spot where the camera see
 
 | Control | What it does |
 |---|---|
-| **Right Trigger** (hold) | **FIRE a volley.** Waits until the flywheel is at speed and the turret is on target (in TABLE mode the camera must also see the hive), then opens the gate, feeds the balls one at a time, lifts the gate for the last ball, and closes it. **Let go = abort** (gate closes, intake stops). After it finishes, let go and press again to fire again |
+| **Right Trigger** (hold) | **FIRE a volley.** Waits until the flywheel is at speed and the turret is on target (in TABLE mode the camera must also see the hive), then opens the gate, feeds the balls one at a time, and closes it (no lift step). **Let go = abort** (gate closes, intake stops). After it finishes, let go and press again to fire again |
 | **D-pad Up** (tap) | **PRE-REV** on / off: the wheels spin without firing, so the spin-up wait is over before you fire. Shown big on the screen. Starts OFF |
-| **Right Bumper** (hold) | **INTAKE** (pick up balls). The gate stays where it is. While a volley is feeding or lifting, the sequence runs the intake instead |
+| **Right Bumper** (hold) | **INTAKE** (pick up balls). The gate stays where it is. While a volley is feeding, the sequence runs the intake instead |
 | **Left Bumper** (hold) | **REVERSE** both wheels and the intake (clear a jam). Beats everything. (The volley's feed time keeps running, so let go and press again afterwards) |
 | **X / B / Y** | Gate by hand: **X** CLOSED, **B** OPENED, **Y** LIFTED. They work **only while no volley is running** |
 | **Back** | Speed source **TABLE / DIAL**. TABLE (starts here): the table sets the flywheel speed, and a volley will **not** start with no camera target. DIAL: a fixed speed, no camera needed |
@@ -238,7 +238,7 @@ The robot does **not** drive. Move it **by hand** to a spot where the camera see
 
 | Job | TeleOp Alpha 13 | The test OpModes |
 |---|---|---|
-| Shoot | Driver **RT** (hold) = a whole volley | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
+| Shoot | Operator **RT** (hold) = a whole volley (the driver's RT only in SOLO MODE) | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
 | Gate | Automatic during a volley. Between volleys, operator **X** closed / **B** opened / **Y** lifted | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
 | Flywheel speed | Operator **D-pad Up / Down** | **B / A** (Ratio Alpha), **D-pad Up / Down** (Shot Table) |
 | Alliance | Operator **Start** | **Start** (Vision, Shot Table) |
