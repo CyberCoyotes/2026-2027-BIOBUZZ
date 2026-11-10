@@ -99,7 +99,7 @@ A drive team has up to 4 students/mentors: a drive coach, up to 3 drivers, and a
 | Role | Job |
 |---|---|
 | **Driver** (gamepad 1) | Drive, intake, hold Right Trigger to shoot. |
-| **Operator** (gamepad 2) | Alliance (Back), speed source (Start), turret presets, gate, jam clearing. Checks the alliance on the screen. |
+| **Operator** (gamepad 2) | Alliance (Start), speed source (Back), gate (X / B / Y), floating the turret by hand (A), intake and reverse (bumpers). Checks the alliance on the screen. |
 | **Human player** | Adds nectar through the LOADING ZONE only (G427): one per hive tip, or all of it once 1:00 is left (G426). Counts tips. Does not touch the robot. |
 | **Drive coach** | Watches the clock and the field, calls the PARK time, picks the OpMode and presses INIT/start for the drivers (allowed by G423). |
 
