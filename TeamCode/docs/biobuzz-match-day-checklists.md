@@ -49,7 +49,7 @@
 ## F. TELEOP
 
 - [ ] Alliance correct on screen. ALWAYS-TRACK on.
-- [ ] The operator holds the **Right Trigger** to fire (one-person match: the driver presses **LOGO** for SOLO MODE first, then fires with the driver's Right Trigger). The sequence waits for the wheels and the turret by itself (the screen says **Waiting for** what is missing). Let go to abort. One volley per press.
+- [ ] The operator holds the **Right Trigger** to fire (one-person match: the driver presses **LOGO** for SOLO MODE first, then fires with the driver's Right Trigger). The sequence waits for the wheels and the turret by itself (the screen says **Waiting for** what is missing). It keeps feeding while held: let go when the balls are gone, and hold **Y** if the last ball needs a push.
 - [ ] Pre-rev with the driver's **D-pad Up** while driving to the spot. Check **PRE-REV** is OFF again if you do not want the wheels spinning.
 - [ ] Never more than 4 balls on the robot (G407).
 - [ ] At 1:00 left, human player may add all nectar. Our robot does not need to change anything.

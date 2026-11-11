@@ -15,8 +15,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 /*
  * Firing Sequence Testing
  * An iterative OpMode for trying out FiringSequence (hold one button, and the robot waits until it
- * is ready, opens the gate, feeds the balls one at a time, and closes the gate) and the PRE-REV
- * toggle. It uses gamepad1 only.
+ * is ready, opens the gate and keeps feeding balls until you let go) and the PRE-REV toggle. It uses gamepad1 only.
  *   FiringSequence        -> the steps (no hardware, it only gives orders)
  *   ShooterSubsystem      -> spins the flywheel and the hood wheel (isFlywheelAtSpeed() is the check)
  *   ShooterServoSubsystem -> the gate: CLOSED, OPENED, LIFTED
@@ -32,17 +31,21 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Right Trigger (hold) -> FIRE a volley. It waits until the flywheel is at speed and the turret is
  *                           aimed (the camera says tx is within 2 degrees for 0.15 s, and in TABLE mode
  *                           the camera must see the hive), then it runs
- *                           the gate and the intake by itself. Let go at any time = abort: the gate
- *                           closes and the intake stops. After it finishes, let go and press again
- *                           to fire again.
+ *                           the gate and the intake by itself. The gate STAYS OPEN and the intake keeps
+ *                           feeding for as long as you HOLD the trigger (no timer), pausing by itself
+ *                           when the flywheel is not at speed or the turret is not aimed. Let go =
+ *                           the volley ends: the gate closes (gently) and the intake stops.
  *   D-pad Up (tap)       -> PRE-REV on / off. The wheels spin without firing, so the spin-up wait is
  *                           over before you fire. It is shown big on the screen. Starts OFF.
  *   Right Bumper (hold)  -> INTAKE (pick up balls). The gate stays where it is. While a volley is
  *                           FEEDING, the sequence runs the intake instead.
  *   Left Bumper (hold)   -> REVERSE both wheels AND the intake (clearing a jam). Beats everything.
- *   X / B / Y            -> the gate by hand: X CLOSED, B OPENED, Y LIFTED (one move per press).
- *                           They work ONLY while no volley is running. (The sequence closes the
- *                           gate at the start and the end of every volley.)
+ *   X / B / Y            -> the gate by hand: X CLOSED, B OPENED (one move per press), and Y (HOLD)
+ *                           LIFTED, which pushes the very last ball up into the flywheel (OPENED is
+ *                           the position between LIFTED and CLOSED).
+ *                           X and B work ONLY while no volley is running. Y: while a volley FEEDS,
+ *                           hold it to lift and let go to go back to OPENED. Between volleys, let go
+ *                           and the gate CLOSES gently. While a volley WAITS, Y does nothing.
  *   Back                 -> switch the speed source TABLE <-> DIAL (one switch per press).
  *                           TABLE (starts here): the flywheel speed comes from the shot table while
  *                           the camera sees the hive. A volley will NOT start with no target.
@@ -59,21 +62,28 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   1. INIT. Check "Vision State" says TARGET_VISIBLE and the alliance is right. The gate goes to
  *      CLOSED. Nothing moves.
  *   2. No balls first (the chute empty). Hold Right Trigger. Watch the screen: "Sequence step"
- *      should go WAIT_FOR_READY -> FEED -> LIFT -> DONE, and the gate CLOSED -> OPENED -> LIFTED ->
- *      CLOSED. Then let go.
+ *      should go WAIT_FOR_READY -> FEED, and the gate CLOSED -> OPENED. It STAYS in FEED with the
+ *      gate OPENED for as long as you hold. Then let go: the gate closes gently and the intake
+ *      reverses for that moment.
  *   3. Hold Right Trigger and let go in the middle of FEED. The gate must close and the intake stop
  *      at once ("Last volley: ABORTED during FEED").
  *   4. PRE-REV: tap D-pad Up. The wheels spin. Time how long Right Trigger takes to start feeding
  *      with and without it ("Last volley: seconds to ready").
- *   5. Now with 4 balls. Hold Right Trigger. Do ALL 4 balls leave? Write down "flywheel dips" (is it
- *      about 4?) and "total seconds". If a ball is left behind, raise FEED_SECONDS in
- *      FiringSequence. (There is no LIFT step any more: it wedged the last ball, issue #63.
- *      Watch whether a ball is caught when the gate closes at the end.) To check that the intake moves the balls at all, set
- *      INTAKE_WAITS_FOR_SPEED to false in FiringSequence.
+ *   5. Now with 4 balls. Hold Right Trigger and keep holding. Do the balls leave? Write down "flywheel
+ *      dips" (the balls are light, so there may be none) and "intake paused" seconds. If the last
+ *      ball is left behind, HOLD Y while the trigger is still held: the gate lifts and pushes it in.
+ *      Let go of Y and the gate goes back to OPENED. Let go of the trigger when the balls are gone.
+ *      Watch whether a ball is caught when the gate closes at the end. To check that the intake
+ *      moves the balls at all, set INTAKE_WAITS_FOR_SPEED to false in FiringSequence.
  *   6. Cover the camera lens in TABLE mode, hold Right Trigger: it must NOT start feeding, and the
  *      screen says NO TARGET.
  *   7. Hold Left Bumper while firing: the intake reverses.
  *   8. With the gate CLOSED and no volley, hold Right Bumper to pick up balls: they must stay in.
+ *   9. While feeding, turn the turret away by hand (or move the robot so the camera is off the hive by
+ *      more than 2 degrees): the intake must PAUSE and the screen says "turret not aimed". Aim it
+ *      back and the intake starts again.
+ *  10. With no volley, hold Y: the gate LIFTS. Let go: it CLOSES gently, and the intake reverses for
+ *      the length of the close (about 2 s from LIFTED).
  *
  * SAFE USE: the wheels are fast. Keep hands, hair and loose clothing away from them, and from the
  * intake and the turret. Keep a hand near the Stop button.
@@ -195,10 +205,10 @@ public class FiringSequenceAlpha extends OpMode {
      */
     private void addControlsTelemetry() {
         telemetry.addLine("--- CONTROLS ---");
-        telemetry.addLine("Right Trigger (hold) = FIRE a volley (let go = abort)");
+        telemetry.addLine("Right Trigger (hold) = FIRE a volley (it feeds until you let go)");
         telemetry.addLine("D-pad Up = PRE-REV on / off");
         telemetry.addLine("Right Bumper (hold) = INTAKE   Left Bumper (hold) = REVERSE (jam)");
-        telemetry.addLine("X / B / Y = gate CLOSED / OPENED / LIFTED (only when no volley runs)");
+        telemetry.addLine("X / B = gate CLOSED / OPENED (only when no volley runs)   Y (HOLD) = gate LIFTED (last ball)");
         telemetry.addLine("Back = speed source TABLE / DIAL   START = alliance BLUE / RED");
     }
 
@@ -400,6 +410,7 @@ public class FiringSequenceAlpha extends OpMode {
         boolean liftedNewPress = isNewPress(gateLiftedNow, wasGateLiftedPressed);
         wasGateClosedPressed = gateClosedNow;
         wasGateOpenedPressed = gateOpenedNow;
+        boolean liftedReleased = wasGateLiftedPressed && !gateLiftedNow;
         wasGateLiftedPressed = gateLiftedNow;
 
         // What speed do we want? During the feed and the end of a volley we freeze it, so
@@ -471,7 +482,7 @@ public class FiringSequenceAlpha extends OpMode {
             turretReady = turretErrorDegrees <= NO_CAMERA_TURRET_READY_DEGREES;
         }
         boolean readyToStart = shooterSubsystem.isFlywheelAtSpeed() && turretReady;
-        firingSequence.update(fireHeld, readyToStart, shooterSubsystem.isFlywheelAtSpeed());
+        firingSequence.update(fireHeld, readyToStart, shooterSubsystem.isFlywheelAtSpeed(), turretReady);
 
         // The gate. CLOSING is GENTLE (goToClosedGently), like the TeleOp, so a single ball left in the
         // way is pushed aside instead of slammed or wedged. The sequence is in charge while a volley
@@ -483,8 +494,15 @@ public class FiringSequenceAlpha extends OpMode {
             shooterServoSubsystem.goToClosedGently();
             gateControl = "firing sequence";
         } else if (gateCommand == FiringSequence.GateCommand.OPEN) {
-            shooterServoSubsystem.goToOpened();
-            gateControl = "firing sequence";
+            // Feeding: the gate stays OPENED until the trigger is let go, except that holding Y LIFTS it
+            // (to push the last ball up into the flywheel). Let go of Y and it goes back to OPENED.
+            if (gateLiftedNow) {
+                shooterServoSubsystem.goToLifted();
+                gateControl = "firing sequence feeding, Y HELD: LIFTED";
+            } else {
+                shooterServoSubsystem.goToOpened();
+                gateControl = "firing sequence";
+            }
         } else if (closedNewPress) {
             shooterServoSubsystem.goToClosedGently();
             gateControl = "manual (X)";
@@ -493,7 +511,13 @@ public class FiringSequenceAlpha extends OpMode {
             gateControl = "manual (B)";
         } else if (liftedNewPress) {
             shooterServoSubsystem.goToLifted();
-            gateControl = "manual (Y)";
+            gateControl = "manual (Y held: LIFTED)";
+        } else if (liftedReleased && shooterServoSubsystem.isLifted()) {
+            // Y was let go while LIFTED and no volley is running: back to CLOSED, gently.
+            shooterServoSubsystem.goToClosedGently();
+            gateControl = "manual (Y let go: CLOSED, gently)";
+        } else if (gateLiftedNow && shooterServoSubsystem.isLifted()) {
+            gateControl = "manual (Y held: LIFTED)";
         } else {
             gateControl = "manual (no press)";
         }
@@ -518,7 +542,7 @@ public class FiringSequenceAlpha extends OpMode {
                 intakeControl = "firing sequence: FEEDING";
             } else {
                 intakeSubsystem.stop();
-                intakeControl = "firing sequence: waiting for the flywheel";
+                intakeControl = "firing sequence: intake PAUSED (" + firingSequence.getIntakePauseReason() + ")";
             }
         } else if (intakeHeld) {
             intakeSubsystem.intake();
