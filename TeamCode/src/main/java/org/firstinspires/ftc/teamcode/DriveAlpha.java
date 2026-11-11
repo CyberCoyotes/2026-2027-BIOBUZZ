@@ -199,7 +199,9 @@ public class DriveAlpha extends OpMode {
      */
     private void addRawGamepadTelemetry() {
         telemetry.addLine("--- RAW GAMEPAD 1 (hands off = all zeros / false) ---");
-        telemetry.addData("Controller type", gamepad1.type());
+        // The SDK guesses the type. Our Logitech controller can show up as XBOX_360 in X mode: that is
+        // only the SDK's label, it is not an Xbox controller.
+        telemetry.addData("Controller type (the SDK's guess, ours is a Logitech)", gamepad1.type());
         telemetry.addData("Left stick x, y", "%.2f, %.2f",
                 gamepad1.left_stick_x, gamepad1.left_stick_y);
         telemetry.addData("Right stick x, y", "%.2f, %.2f",

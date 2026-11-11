@@ -5,7 +5,7 @@ Print this and keep it at the driver station. It lists **what every button does 
 **Controller:** Logitech F310 / F710, switch on the back set to **X** (XInput), not D.
 - Face buttons: **A, B, X, Y**. Bumpers: **LB / RB**. Triggers: **LT / RT**. Stick buttons: **LS / RS** (press the stick in).
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
-- **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In the TeleOp, gamepad 2's Start switches the alliance and gamepad 2's B opens the gate, so pair before START.)
+- **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In the TeleOp, **Start on either gamepad** switches the alliance, and gamepad 2's B opens the gate, so pair before START.)
 
 **Names on the Driver Station:** `TeleOp - Alpha 13`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Drive Alpha` (shown for now, for the field-centric test). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
 
@@ -27,7 +27,9 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **RB** | **Intake** (pull balls in). **The intake is the driver's only** |
 | **LB** | **Reverse the intake** (push balls out). Beats RB and a volley's feed |
 | **RT** (hold) | **Does not fire.** The operator's RT fires. **Only in SOLO MODE** (LOGO) does the driver's RT fire a volley too |
-| **LOGO** (the center **guide** button) | **SOLO MODE** on / off, for a one-person match (starts OFF). The INIT screen has a "LOGO test (gamepad1)" line to check the button reaches the Robot Controller |
+| **LOGO** (the center **guide** button) | **SOLO MODE** on / off, for a one-person match (starts OFF) |
+| **START** | **Alliance** BLUE / RED, the same as the operator's Start (starts **BLUE**, check it on the screen) |
+| **BACK** | Drive **FIELD-centric / ROBOT-centric** toggle, the same as the operator's LOGO |
 | **D-pad Up** | **PRE-REV** on / off: the wheels spin without firing (starts OFF) |
 | **A / B / X / Y** | Not used (the gate moved to the operator's X / B / Y) |
 | **D-pad Left** | **Re-aim** (field-centric): the way the robot faces right now is "away from me". Does not touch the Pinpoint |
@@ -43,10 +45,10 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **D-pad Up / Down** | Flywheel target RPM **+ / - 100** (range 500 to 1450) |
 | **D-pad Right / Left** | Hood / flywheel **ratio + / - 0.05** (range 1.00 to 3.00, starts 2.00) |
 | **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the turret is on target, then opens the gate, feeds the balls one at a time, and closes it (no lift step). **One volley per press.** **Let go to ABORT** (gate closes, intake stops). Unless PRE-REV is on, both wheels go to 0 power |
-| **Start** | **Alliance** BLUE / RED (starts **BLUE**, check it on the screen) |
+| **Start** | **Alliance** BLUE / RED (starts **BLUE**, check it on the screen). The driver's Start does the same |
 | **Back** | Flywheel speed source **DIAL / TABLE** (starts DIAL) |
 | **Sticks, LT, bumpers** | Not used. The turret has no manual control, the intake is the driver's, and the shooter wheels cannot be reversed from this OpMode |
-| **MODE button** (the center **guide** button or the **Left Stick Button**, both work for now) | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). Turns field-centric back on after the safety rule. The INIT screen shows which button registers |
+| **LOGO** (the center **guide** button, or the **Left Stick Button**) | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). Turns field-centric back on after the safety rule. The driver's **BACK** does the same. (The physical **MODE** button cannot be read by the code: see the controls sheet. The INIT screen has a **BUTTON TEST** to check your controller.) |
 
 **Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen shows loop time, the alliance, **PRE-REV**, the firing sequence step and what it is **Waiting for**, and **OK to shoot?** (both wheels, for information: the volley itself checks the flywheel only).
 
@@ -241,7 +243,7 @@ The robot does **not** drive. Move it **by hand** to a spot where the camera see
 | Shoot | Operator **RT** (hold) = a whole volley (the driver's RT only in SOLO MODE) | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
 | Gate | Automatic during a volley. Between volleys, operator **X** closed / **B** opened / **Y** lifted | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
 | Flywheel speed | Operator **D-pad Up / Down** | **B / A** (Ratio Alpha), **D-pad Up / Down** (Shot Table) |
-| Alliance | Operator **Start** | **Start** (Vision, Shot Table) |
+| Alliance | **Start** on either gamepad | **Start** (Vision, Shot Table) |
 | Slow mode | Driver **LT** | Driver **RT** (Drive Alpha) |
 
 If a button here doesn't match the robot, the code changed. Update this sheet.

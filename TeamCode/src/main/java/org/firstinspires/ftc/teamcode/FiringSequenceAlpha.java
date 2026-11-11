@@ -435,18 +435,20 @@ public class FiringSequenceAlpha extends OpMode {
         boolean readyToStart = shooterSubsystem.isFlywheelAtSpeed() && turretReady;
         firingSequence.update(fireHeld, readyToStart, shooterSubsystem.isFlywheelAtSpeed());
 
-        // The gate. The sequence is in charge while a volley runs. Otherwise the manual buttons
-        // work. If more than one is pressed on the same loop, CLOSED wins, then OPENED, then LIFTED.
+        // The gate. CLOSING is GENTLE (goToClosedGently), like the TeleOp, so a single ball left in the
+        // way is pushed aside instead of slammed or wedged. The sequence is in charge while a volley
+        // runs. Otherwise the manual buttons work. If more than one is pressed on the same loop,
+        // CLOSED wins, then OPENED, then LIFTED.
         FiringSequence.GateCommand gateCommand = firingSequence.getGateCommand();
         String gateControl;
         if (gateCommand == FiringSequence.GateCommand.CLOSE) {
-            shooterServoSubsystem.goToClosed();
+            shooterServoSubsystem.goToClosedGently();
             gateControl = "firing sequence";
         } else if (gateCommand == FiringSequence.GateCommand.OPEN) {
             shooterServoSubsystem.goToOpened();
             gateControl = "firing sequence";
         } else if (closedNewPress) {
-            shooterServoSubsystem.goToClosed();
+            shooterServoSubsystem.goToClosedGently();
             gateControl = "manual (X)";
         } else if (openedNewPress) {
             shooterServoSubsystem.goToOpened();
@@ -457,6 +459,8 @@ public class FiringSequenceAlpha extends OpMode {
         } else {
             gateControl = "manual (no press)";
         }
+        // Walk a gentle close along. (Does nothing when no gentle close is going on.)
+        shooterServoSubsystem.update();
 
         // The intake. Reverse goes first, so clearing a jam always works. Then the sequence (while
         // it is feeding). Then the driver's own intake button.
