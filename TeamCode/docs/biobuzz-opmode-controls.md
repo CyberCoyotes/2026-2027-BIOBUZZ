@@ -44,7 +44,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **A** (hold) | **Float** the turret so you can turn it by hand. Let go and it tracks the hive again |
 | **D-pad Up / Down** | Flywheel target RPM **+ / - 100** (range 500 to 1450) |
 | **D-pad Right / Left** | Hood / flywheel **ratio + / - 0.05** (range 1.00 to 3.00, starts 2.00) |
-| **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the turret is on target, then opens the gate, feeds the balls one at a time, and closes it (no lift step). **One volley per press.** **Let go to ABORT** (gate closes, intake stops). Unless PRE-REV is on, both wheels go to 0 power |
+| **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the camera says the turret is aimed (within 2 degrees for 0.15 s), then opens the gate, feeds the balls one at a time, and closes it (no lift step). **One volley per press.** **Let go to ABORT** (gate closes, intake stops). Unless PRE-REV is on, both wheels go to 0 power |
 | **Start** | **Alliance** BLUE / RED (starts **BLUE**, check it on the screen). The driver's Start does the same |
 | **Back** | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). Turns field-centric back on after the safety rule. The driver's **BACK** does the same. (The physical **MODE** button cannot be read by the code: see the controls sheet. The INIT screen has a **BUTTON TEST** to check your controller.) |
 | **LOGO** (the center **guide** button) | Flywheel speed source **DIAL / TABLE** (starts DIAL). (On the driver's controller the same button is the SOLO MODE toggle.) |
@@ -226,7 +226,7 @@ The robot does **not** drive. Move it **by hand** to a spot where the camera see
 
 | Control | What it does |
 |---|---|
-| **Right Trigger** (hold) | **FIRE a volley.** Waits until the flywheel is at speed and the turret is on target (in TABLE mode the camera must also see the hive), then opens the gate, feeds the balls one at a time, and closes it (no lift step). **Let go = abort** (gate closes, intake stops). After it finishes, let go and press again to fire again |
+| **Right Trigger** (hold) | **FIRE a volley.** Waits until the flywheel is at speed and the camera says the turret is aimed (within 2 degrees for 0.15 s; with no camera in DIAL mode the turret just has to be holding still, and in TABLE mode the camera must see the hive), then opens the gate, feeds the balls one at a time, and closes it (no lift step). **Let go = abort** (gate closes, intake stops). After it finishes, let go and press again to fire again |
 | **D-pad Up** (tap) | **PRE-REV** on / off: the wheels spin without firing, so the spin-up wait is over before you fire. Shown big on the screen. Starts OFF |
 | **Right Bumper** (hold) | **INTAKE** (pick up balls). The gate stays where it is. While a volley is feeding, the sequence runs the intake instead |
 | **Left Bumper** (hold) | **REVERSE** both wheels and the intake (clear a jam). Beats everything. (The volley's feed time keeps running, so let go and press again afterwards) |

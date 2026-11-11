@@ -36,8 +36,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   (a plain class, see subsystems/FiringSequence.java) runs a whole VOLLEY by itself:
  *     HOLD the OPERATOR's Right Trigger (gamepad2) -> the wheels spin (if they are not already). The
  *     volley WAITS
- *     until the flywheel is at speed AND the turret is on target AND (in TABLE mode) the camera sees
- *     the hive right now. Then the gate OPENS and the intake feeds the balls one at a time (it runs
+ *     until the flywheel is at speed AND the camera says the turret is aimed (tx within 2 degrees for
+ *     0.15 s) AND (in TABLE mode) the camera sees the hive right now. (With no camera in DIAL mode the
+ *     turret just has to be holding still.) Then the gate OPENS and the intake feeds the balls one at a time (it runs
  *     only while the flywheel is at speed), then the gate CLOSES. (There is no LIFT step any more:
  *     its timing was off and it wedged the last ball.)
  *     Let go of the trigger at any time to ABORT: the gate closes and the intake stops. A held
@@ -186,7 +187,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *                       speed from the DIAL or the TABLE (see THE SHOT TABLE below), and the hood
  *                       wheel at that x the ratio dial. Let go to ABORT: the gate closes, the
  *                       intake stops, and (unless PRE-REV is ON) both wheels go to 0 power. A (hold)
- *                       floats the turret, so then the turret is not on target and a volley waits.
+ *                       floats the turret, so then a volley waits (the screen says it is floating).
  *   Start            -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
  *                       (Gamepad1's START does the same.)
  *   Back             -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC). If
@@ -409,6 +410,22 @@ public class BiobuzzTeleOp extends OpMode {
     // The target counts as "aimed at" when tx is within this many degrees of zero.
     private static final double AIMED_TOLERANCE_DEGREES = 2.0;
 
+    // The camera must say "centered" (tx within AIMED_TOLERANCE_DEGREES) for this many seconds IN A ROW
+    // before a volley may start. This is the "settled" check.
+    // WHY NOT turretSubsystem.isOnTarget()? Auto-align picks a NEW target (angle - tx) every loop while
+    // tx is over ALIGN_REAIM_THRESHOLD_DEGREES (1.0), and the camera's tx jitters a little, so every
+    // pick clears the turret's own settle timer. The turret also stops pushing once it is within 1.5
+    // degrees of its target. So it could rest at tx = 1.4 for ever: over the re-aim threshold (so it
+    // kept picking new targets) but inside the turret's own band (so it never moved), and
+    // isOnTarget() never became true. The volley sat in WAIT_FOR_READY while the turret looked locked
+    // on (found on the robot, issue #63). The camera is the real truth about aim anyway.
+    private static final double AIMED_HOLD_SECONDS = 0.15;
+
+    // With NO camera target (DIAL mode only) there is no tx to check. The turret then counts as ready
+    // when it is under our control (not floating) and within this many degrees of the angle it is
+    // holding.
+    private static final double NO_CAMERA_TURRET_READY_DEGREES = 3.0;
+
     // In TABLE mode, when the camera loses the hive, keep using the LAST table RPM for this many
     // seconds. After that the flywheel goes back to the dial. A short hold stops the wheels from
     // lurching if a tag drops out for a moment, and a limit stops a stale RPM from lasting.
@@ -493,6 +510,10 @@ public class BiobuzzTeleOp extends OpMode {
     private double lastTableRpm = 0.0;
     private boolean haveTableRpm = false;
     private ElapsedTime timeSinceTarget = new ElapsedTime();
+
+    // For the "aimed" check: how long the camera has said "centered" in a row (see AIMED_HOLD_SECONDS).
+    private ElapsedTime aimedTimer = new ElapsedTime();
+    private boolean wasAimedNow = false;
 
     // What the buttons were doing LAST loop. A press lasts many loops (about 50 per second),
     // but we want it to count only ONCE. So we only act when it was NOT pressed last loop
@@ -699,17 +720,28 @@ public class BiobuzzTeleOp extends OpMode {
     /*
      * The words for "what is the volley still waiting for?", shown while a volley waits.
      */
-    private String getWaitingText(boolean flywheelAtSpeed, boolean hasTarget, boolean aimedAtHive) {
+    private String getWaitingText(boolean flywheelAtSpeed, boolean hasTarget, boolean aimedNow,
+                                  boolean aimedAtHive, boolean turretHeld) {
         String waiting = "";
         if (!flywheelAtSpeed) {
             waiting = waiting + "flywheel not at speed   ";
         }
-        if (tableMode && !hasTarget) {
+        if (!turretHeld) {
+            waiting = waiting + "turret is floating (gamepad2 A is held)   ";
+        } else if (hasTarget) {
+            if (!aimedNow) {
+                waiting = waiting + String.format("turret not aimed yet (the camera says %.1f deg off, it needs %.1f or less)   ",
+                        Math.abs(visionSubsystem.getTxDegrees()), AIMED_TOLERANCE_DEGREES);
+            } else if (!aimedAtHive) {
+                waiting = waiting + "camera is centered, making sure it stays that way   ";
+            }
+        } else if (tableMode) {
             waiting = waiting + "NO TARGET (the camera must see the hive; gamepad2 LOGO switches to DIAL for a shot without the camera)   ";
-        } else if (tableMode && !aimedAtHive) {
-            waiting = waiting + "turret not aimed yet   ";
-        } else if (!tableMode && !turretSubsystem.isOnTarget()) {
-            waiting = waiting + "turret not settled   ";
+        } else {
+            double turretErrorDegrees = Math.abs(turretSubsystem.getTargetAngleDegrees() - turretSubsystem.getAngleDegrees());
+            if (turretErrorDegrees > NO_CAMERA_TURRET_READY_DEGREES) {
+                waiting = waiting + String.format("turret not settled (%.1f deg from the angle it is holding)   ", turretErrorDegrees);
+            }
         }
         if (waiting.isEmpty()) {
             return "nothing, ready to fire";
@@ -1399,20 +1431,34 @@ public class BiobuzzTeleOp extends OpMode {
         turretSubsystem.update();
 
         // The FIRING SEQUENCE. It comes AFTER the shooter and turret updates, so "flywheel at speed"
-        // and "turret on target" are fresh. READY TO START means: the flywheel is at speed (the
-        // flywheel ONLY, like ShootAndParkAuto) AND the turret's half is true. In TABLE mode the
-        // turret's half is that the camera sees the hive RIGHT NOW, is centered on it, and the turret
-        // has settled. In DIAL mode there is no camera to wait for, so the turret just has to have
-        // settled.
+        // and the turret's answers are fresh. READY TO START means: the flywheel is at speed (the
+        // flywheel ONLY, like ShootAndParkAuto) AND the turret's half is true:
+        //   - The turret must be under our control. If it is floating (gamepad2 A held), a volley waits.
+        //   - If the camera sees the hive (either speed source), the CAMERA decides: tx must be within
+        //     AIMED_TOLERANCE_DEGREES for AIMED_HOLD_SECONDS in a row. (We do not use
+        //     turretSubsystem.isOnTarget(): see the note at AIMED_HOLD_SECONDS.)
+        //   - No camera target in TABLE mode: not ready (TABLE needs the camera).
+        //   - No camera target in DIAL mode: the turret just has to be within
+        //     NO_CAMERA_TURRET_READY_DEGREES of the angle it is holding.
         boolean flywheelAtSpeed = shooterSubsystem.isFlywheelAtSpeed();
-        boolean aimedAtHive = hasTarget
-                && Math.abs(visionSubsystem.getTxDegrees()) <= AIMED_TOLERANCE_DEGREES
-                && turretSubsystem.isOnTarget();
+        boolean turretHeld = turretSubsystem.getState() == TurretSubsystem.TurretState.POSITION;
+        boolean aimedNow = hasTarget
+                && Math.abs(visionSubsystem.getTxDegrees()) <= AIMED_TOLERANCE_DEGREES;
+        if (aimedNow && !wasAimedNow) {
+            aimedTimer.reset();
+        }
+        wasAimedNow = aimedNow;
+        boolean aimedAtHive = aimedNow && aimedTimer.seconds() >= AIMED_HOLD_SECONDS;
         boolean turretReady;
-        if (tableMode) {
+        if (!turretHeld) {
+            turretReady = false;
+        } else if (hasTarget) {
             turretReady = aimedAtHive;
+        } else if (tableMode) {
+            turretReady = false;
         } else {
-            turretReady = turretSubsystem.isOnTarget();
+            double turretErrorDegrees = Math.abs(turretSubsystem.getTargetAngleDegrees() - turretSubsystem.getAngleDegrees());
+            turretReady = turretErrorDegrees <= NO_CAMERA_TURRET_READY_DEGREES;
         }
         boolean readyToStart = flywheelAtSpeed && turretReady;
         firingSequence.update(fireHeld, readyToStart, flywheelAtSpeed);
@@ -1587,7 +1633,7 @@ public class BiobuzzTeleOp extends OpMode {
         // log. While a volley waits, say what it is waiting for.
         firingSequence.addTelemetry(telemetry);
         if (firingSequence.getState() == FiringSequence.SequenceState.WAIT_FOR_READY) {
-            telemetry.addData("Waiting for", getWaitingText(flywheelAtSpeed, hasTarget, aimedAtHive));
+            telemetry.addData("Waiting for", getWaitingText(flywheelAtSpeed, hasTarget, aimedNow, aimedAtHive, turretHeld));
         }
 
         // The intake prints its own "--- INTAKE ---" heading, so we add our line under it.
@@ -1611,20 +1657,18 @@ public class BiobuzzTeleOp extends OpMode {
             }
         }
 
-        // Is the turret's half of the firing gate open? The camera must say we are centered on
-        // the hive, AND the turret must say it has reached its target and settled.
-        boolean aimed = hasTarget
-                && Math.abs(visionSubsystem.getTxDegrees()) <= AIMED_TOLERANCE_DEGREES;
+        // Is the turret's half of the firing gate open? The camera must say we are centered on the
+        // hive (within AIMED_TOLERANCE_DEGREES) for AIMED_HOLD_SECONDS in a row.
         String aimText;
         if (!hasTarget) {
             aimText = "NO TARGET";
-        } else if (aimed && turretSubsystem.isOnTarget()) {
-            aimText = "YES - turret is aimed";
-        } else if (aimed) {
-            aimText = "almost - camera is centered, turret is still settling";
+        } else if (aimedAtHive) {
+            aimText = String.format("YES - the camera says we are aimed (%.1f deg off)", Math.abs(visionSubsystem.getTxDegrees()));
+        } else if (aimedNow) {
+            aimText = "almost - the camera is centered, making sure it stays that way";
         } else {
-            aimText = String.format("NO - off target by %.1f deg (tx)",
-                    visionSubsystem.getTxDegrees());
+            aimText = String.format("NO - off target by %.1f deg (tx), it needs %.1f or less",
+                    visionSubsystem.getTxDegrees(), AIMED_TOLERANCE_DEGREES);
         }
         telemetry.addData("Turret aimed?", aimText);
 

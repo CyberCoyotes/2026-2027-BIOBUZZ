@@ -30,7 +30,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *
  * GAMEPAD 1:
  *   Right Trigger (hold) -> FIRE a volley. It waits until the flywheel is at speed and the turret is
- *                           on target (and, in TABLE mode, the camera sees the hive), then it runs
+ *                           aimed (the camera says tx is within 2 degrees for 0.15 s, and in TABLE mode
+ *                           the camera must see the hive), then it runs
  *                           the gate and the intake by itself. Let go at any time = abort: the gate
  *                           closes and the intake stops. After it finishes, let go and press again
  *                           to fire again.
@@ -109,9 +110,24 @@ public class FiringSequenceAlpha extends OpMode {
     // says we are more than this far off (degrees), so the turret can settle.
     private static final double ALIGN_REAIM_THRESHOLD_DEGREES = 1.0;
 
-    // "Aimed" means the camera says the hive's tx is this small (degrees) AND the turret says it is
-    // on target.
+    // "Aimed" means the camera says the hive's tx is this small (degrees) for AIMED_HOLD_SECONDS.
     private static final double AIMED_TOLERANCE_DEGREES = 2.0;
+
+    // The camera must say "centered" (tx within AIMED_TOLERANCE_DEGREES) for this many seconds IN A ROW
+    // before a volley may start. This is the "settled" check.
+    // WHY NOT turretSubsystem.isOnTarget()? Auto-align picks a NEW target (angle - tx) every loop while
+    // tx is over ALIGN_REAIM_THRESHOLD_DEGREES (1.0), and the camera's tx jitters a little, so every
+    // pick clears the turret's own settle timer. The turret also stops pushing once it is within 1.5
+    // degrees of its target. So it could rest at tx = 1.4 for ever: over the re-aim threshold (so it
+    // kept picking new targets) but inside the turret's own band (so it never moved), and
+    // isOnTarget() never became true. The volley sat in WAIT_FOR_READY while the turret looked locked
+    // on (found on the robot, issue #63). The camera is the real truth about aim anyway.
+    private static final double AIMED_HOLD_SECONDS = 0.15;
+
+    // With NO camera target (DIAL mode only) there is no tx to check. The turret then counts as ready
+    // when it is under our control (not floating) and within this many degrees of the angle it is
+    // holding.
+    private static final double NO_CAMERA_TURRET_READY_DEGREES = 3.0;
 
     // Reverse power is NEGATIVE so the motors spin the other way (the same as ShotTableAlpha).
     // This is for the two shooter wheels. The intake reverses at its own power dial.
@@ -144,6 +160,10 @@ public class FiringSequenceAlpha extends OpMode {
     private double lastTableRpm = 0.0;
     private boolean haveTableRpm = false;
     private ElapsedTime timeSinceTarget = new ElapsedTime();
+
+    // For the "aimed" check: how long the camera has said "centered" in a row (see AIMED_HOLD_SECONDS).
+    private ElapsedTime aimedTimer = new ElapsedTime();
+    private boolean wasAimedNow = false;
 
     // The flywheel RPM we are really using, and a note on where it came from for the screen.
     private double commandedRpm = 0.0;
@@ -276,17 +296,25 @@ public class FiringSequenceAlpha extends OpMode {
     /*
      * The words for "what are we still waiting for?", shown while a volley waits.
      */
-    private String getWaitingText(boolean hasTarget, boolean aimedAtHive) {
+    private String getWaitingText(boolean hasTarget, boolean aimedNow, boolean aimedAtHive) {
         String waiting = "";
         if (!shooterSubsystem.isFlywheelAtSpeed()) {
             waiting = waiting + "flywheel not at speed   ";
         }
-        if (useTable && !hasTarget) {
+        if (hasTarget) {
+            if (!aimedNow) {
+                waiting = waiting + String.format("turret not aimed yet (the camera says %.1f deg off, it needs %.1f or less)   ",
+                        Math.abs(visionSubsystem.getTxDegrees()), AIMED_TOLERANCE_DEGREES);
+            } else if (!aimedAtHive) {
+                waiting = waiting + "camera is centered, making sure it stays that way   ";
+            }
+        } else if (useTable) {
             waiting = waiting + "NO TARGET (the camera must see the hive)   ";
-        } else if (useTable && !aimedAtHive) {
-            waiting = waiting + "turret not aimed yet   ";
-        } else if (!useTable && !turretSubsystem.isOnTarget()) {
-            waiting = waiting + "turret not settled   ";
+        } else {
+            double turretErrorDegrees = Math.abs(turretSubsystem.getTargetAngleDegrees() - turretSubsystem.getAngleDegrees());
+            if (turretErrorDegrees > NO_CAMERA_TURRET_READY_DEGREES) {
+                waiting = waiting + String.format("turret not settled (%.1f deg from the angle it is holding)   ", turretErrorDegrees);
+            }
         }
         if (waiting.isEmpty()) {
             return "nothing, ready to fire";
@@ -419,18 +447,27 @@ public class FiringSequenceAlpha extends OpMode {
         shooterSubsystem.update();
         turretSubsystem.update();
 
-        // The firing sequence. It comes AFTER the updates, so isFlywheelAtSpeed() and isOnTarget()
-        // are fresh. The turret half of "ready": in TABLE mode the camera must see the hive RIGHT
-        // NOW and be centered on it, and the turret must have settled. In DIAL mode there is no
-        // camera to check, so the turret just has to have settled.
-        boolean aimedAtHive = hasTarget
-                && Math.abs(visionSubsystem.getTxDegrees()) <= AIMED_TOLERANCE_DEGREES
-                && turretSubsystem.isOnTarget();
+        // The firing sequence. It comes AFTER the updates, so isFlywheelAtSpeed() is fresh. The turret
+        // half of "ready" (the same as BiobuzzTeleOp): if the camera sees the hive (either speed
+        // source), the CAMERA decides: tx within AIMED_TOLERANCE_DEGREES for AIMED_HOLD_SECONDS in a
+        // row. (Not turretSubsystem.isOnTarget(): see the note at AIMED_HOLD_SECONDS.) No camera target
+        // in TABLE mode: not ready. No camera target in DIAL mode: the turret just has to be within
+        // NO_CAMERA_TURRET_READY_DEGREES of the angle it is holding.
+        boolean aimedNow = hasTarget
+                && Math.abs(visionSubsystem.getTxDegrees()) <= AIMED_TOLERANCE_DEGREES;
+        if (aimedNow && !wasAimedNow) {
+            aimedTimer.reset();
+        }
+        wasAimedNow = aimedNow;
+        boolean aimedAtHive = aimedNow && aimedTimer.seconds() >= AIMED_HOLD_SECONDS;
         boolean turretReady;
-        if (useTable) {
+        if (hasTarget) {
             turretReady = aimedAtHive;
+        } else if (useTable) {
+            turretReady = false;
         } else {
-            turretReady = turretSubsystem.isOnTarget();
+            double turretErrorDegrees = Math.abs(turretSubsystem.getTargetAngleDegrees() - turretSubsystem.getAngleDegrees());
+            turretReady = turretErrorDegrees <= NO_CAMERA_TURRET_READY_DEGREES;
         }
         boolean readyToStart = shooterSubsystem.isFlywheelAtSpeed() && turretReady;
         firingSequence.update(fireHeld, readyToStart, shooterSubsystem.isFlywheelAtSpeed());
@@ -497,7 +534,7 @@ public class FiringSequenceAlpha extends OpMode {
         telemetry.addData("Intake control", intakeControl);
 
         if (firingSequence.getState() == FiringSequence.SequenceState.WAIT_FOR_READY) {
-            telemetry.addData("Waiting for", getWaitingText(hasTarget, aimedAtHive));
+            telemetry.addData("Waiting for", getWaitingText(hasTarget, aimedNow, aimedAtHive));
         }
 
         telemetry.addLine("--- SHOT ---");

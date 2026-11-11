@@ -43,7 +43,7 @@ So the most useful thing we can say to a partner before a match is: "Please just
 1. **Reload.** Get up to 4 balls (the limit, G407).
 2. **Drive to the correct side of the hive.** The raised cell flips after every tip, and it faces the other way each time (see `biobuzz-hive-apriltag-geometry.md`). The turret lets us shoot from anywhere on the right side without lining up the chassis precisely.
 3. **Aim.** The turret tracks the hive with the Limelight (ALWAYS-TRACK). The camera must see our alliance's tags, so the alliance setting has to be right.
-4. **Spin up.** Pre-rev with the driver's **D-pad Up** while driving to the spot, then the operator **holds the Right Trigger**. The firing sequence waits until the flywheel is at speed and the turret is on target.
+4. **Spin up.** Pre-rev with the driver's **D-pad Up** while driving to the spot, then the operator **holds the Right Trigger**. The firing sequence waits until the flywheel is at speed and the camera says the turret is aimed.
 5. **Shoot.** The sequence opens the gate and feeds one ball at a time. A ball dips the wheel speed, so the next ball waits until the flywheel recovers. Let go of the trigger to abort.
 6. **Check for a tip**, then go to step 1 again, from the other side.
 
