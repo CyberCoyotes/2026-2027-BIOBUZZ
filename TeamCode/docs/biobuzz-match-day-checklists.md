@@ -29,7 +29,7 @@
 - [ ] Exactly **4 POLLEN** touching the robot.
 - [ ] Robot sitting still after INIT. **Keep it still** so the Pinpoint can calibrate its gyro.
 - [ ] Screen says **Pinpoint status: READY**.
-- [ ] Screen shows the **alliance we are playing**, not just BLUE by default. (TeleOp starts as BLUE; operator presses **Start** to switch. A wrong alliance aims at the other hive and does not look like a failure.)
+- [ ] Screen shows the **alliance we are playing**, not just BLUE by default. (TeleOp starts as BLUE; **Start** on either gamepad switches it. A wrong alliance aims at the other hive and does not look like a failure.)
 - [ ] With the robot pointed at the hive, the screen shows a target (not **NO TARGET**).
 - [ ] Partner talk done: Auto plans and start spots match, who parks where (see `biobuzz-auto-strategy.md` section 7).
 - [ ] Human player knows to add nectar only after a tip (one per tip) until 1:00 is left.
@@ -49,7 +49,8 @@
 ## F. TELEOP
 
 - [ ] Alliance correct on screen. ALWAYS-TRACK on.
-- [ ] Wait for **"OK to shoot? YES"** before opening the gate.
+- [ ] The operator holds the **Right Trigger** to fire (one-person match: the driver presses **LOGO** for SOLO MODE first, then fires with the driver's Right Trigger). The sequence waits for the wheels and the turret by itself (the screen says **Waiting for** what is missing). It keeps feeding while held: let go when the balls are gone, and hold **Y** if the last ball needs a push.
+- [ ] Pre-rev with the driver's **D-pad Up** while driving to the spot. Check **PRE-REV** is OFF again if you do not want the wheels spinning.
 - [ ] Never more than 4 balls on the robot (G407).
 - [ ] At 1:00 left, human player may add all nectar. Our robot does not need to change anything.
 - [ ] At about 0:20 the drive coach calls the PARK time (see `biobuzz-game-strategy.md` section 6).

@@ -15,8 +15,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 /*
  * Firing Sequence Testing
  * An iterative OpMode for trying out FiringSequence (hold one button, and the robot waits until it
- * is ready, opens the gate, feeds the balls one at a time, lifts the gate for the last ball, and
- * closes the gate) and the PRE-REV toggle. It uses gamepad1 only.
+ * is ready, opens the gate and keeps feeding balls until you let go) and the PRE-REV toggle. It uses gamepad1 only.
  *   FiringSequence        -> the steps (no hardware, it only gives orders)
  *   ShooterSubsystem      -> spins the flywheel and the hood wheel (isFlywheelAtSpeed() is the check)
  *   ShooterServoSubsystem -> the gate: CLOSED, OPENED, LIFTED
@@ -30,18 +29,23 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *
  * GAMEPAD 1:
  *   Right Trigger (hold) -> FIRE a volley. It waits until the flywheel is at speed and the turret is
- *                           on target (and, in TABLE mode, the camera sees the hive), then it runs
- *                           the gate and the intake by itself. Let go at any time = abort: the gate
- *                           closes and the intake stops. After it finishes, let go and press again
- *                           to fire again.
+ *                           aimed (the camera says tx is within 2 degrees for 0.15 s, and in TABLE mode
+ *                           the camera must see the hive), then it runs
+ *                           the gate and the intake by itself. The gate STAYS OPEN and the intake keeps
+ *                           feeding for as long as you HOLD the trigger (no timer), pausing by itself
+ *                           when the flywheel is not at speed or the turret is not aimed. Let go =
+ *                           the volley ends: the gate closes (gently) and the intake stops.
  *   D-pad Up (tap)       -> PRE-REV on / off. The wheels spin without firing, so the spin-up wait is
  *                           over before you fire. It is shown big on the screen. Starts OFF.
  *   Right Bumper (hold)  -> INTAKE (pick up balls). The gate stays where it is. While a volley is
- *                           FEEDING or LIFTING, the sequence runs the intake instead.
+ *                           FEEDING, the sequence runs the intake instead.
  *   Left Bumper (hold)   -> REVERSE both wheels AND the intake (clearing a jam). Beats everything.
- *   X / B / Y            -> the gate by hand: X CLOSED, B OPENED, Y LIFTED (one move per press).
- *                           They work ONLY while no volley is running. (The sequence closes the
- *                           gate at the start and the end of every volley.)
+ *   X / B / Y            -> the gate by hand: X CLOSED, B OPENED (one move per press), and Y (HOLD)
+ *                           LIFTED, which pushes the very last ball up into the flywheel (OPENED is
+ *                           the position between LIFTED and CLOSED).
+ *                           X and B work ONLY while no volley is running. Y: while a volley FEEDS,
+ *                           hold it to lift and let go to go back to OPENED. Between volleys, let go
+ *                           and the gate CLOSES gently. While a volley WAITS, Y does nothing.
  *   Back                 -> switch the speed source TABLE <-> DIAL (one switch per press).
  *                           TABLE (starts here): the flywheel speed comes from the shot table while
  *                           the camera sees the hive. A volley will NOT start with no target.
@@ -50,27 +54,36 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      (Pairing the controller on the Driver Station is Start + A. If you do that while this
  *       OpMode is running, it also switches the alliance, so check it on the screen.)
  *
- * Priority for the intake, highest first: Left Bumper (jam), the firing sequence (feeding and
- * lifting), Right Bumper (pick up).
+ * Priority for the intake, highest first: Left Bumper (jam), the gate closing (the intake reverses by
+ * itself for as long as the gate walks toward CLOSED), the firing sequence (feeding), Right Bumper
+ * (pick up).
  *
  * THE TEST ORDER (write the numbers in TeamCode/docs/biobuzz-test-and-match-log.md)
  *   1. INIT. Check "Vision State" says TARGET_VISIBLE and the alliance is right. The gate goes to
  *      CLOSED. Nothing moves.
  *   2. No balls first (the chute empty). Hold Right Trigger. Watch the screen: "Sequence step"
- *      should go WAIT_FOR_READY -> FEED -> LIFT -> DONE, and the gate CLOSED -> OPENED -> LIFTED ->
- *      CLOSED. Then let go.
+ *      should go WAIT_FOR_READY -> FEED, and the gate CLOSED -> OPENED. It STAYS in FEED with the
+ *      gate OPENED for as long as you hold. Then let go: the gate closes gently and the intake
+ *      reverses for that moment.
  *   3. Hold Right Trigger and let go in the middle of FEED. The gate must close and the intake stop
  *      at once ("Last volley: ABORTED during FEED").
  *   4. PRE-REV: tap D-pad Up. The wheels spin. Time how long Right Trigger takes to start feeding
  *      with and without it ("Last volley: seconds to ready").
- *   5. Now with 4 balls. Hold Right Trigger. Do ALL 4 balls leave? Write down "flywheel dips" (is it
- *      about 4?) and "total seconds". If a ball is left behind, raise FEED_SECONDS or
- *      GATE_LIFT_SECONDS in FiringSequence. To check that the intake moves the balls at all, set
- *      INTAKE_WAITS_FOR_SPEED to false in FiringSequence.
+ *   5. Now with 4 balls. Hold Right Trigger and keep holding. Do the balls leave? Write down "flywheel
+ *      dips" (the balls are light, so there may be none) and "intake paused" seconds. If the last
+ *      ball is left behind, HOLD Y while the trigger is still held: the gate lifts and pushes it in.
+ *      Let go of Y and the gate goes back to OPENED. Let go of the trigger when the balls are gone.
+ *      Watch whether a ball is caught when the gate closes at the end. To check that the intake
+ *      moves the balls at all, set INTAKE_WAITS_FOR_SPEED to false in FiringSequence.
  *   6. Cover the camera lens in TABLE mode, hold Right Trigger: it must NOT start feeding, and the
  *      screen says NO TARGET.
  *   7. Hold Left Bumper while firing: the intake reverses.
  *   8. With the gate CLOSED and no volley, hold Right Bumper to pick up balls: they must stay in.
+ *   9. While feeding, turn the turret away by hand (or move the robot so the camera is off the hive by
+ *      more than 2 degrees): the intake must PAUSE and the screen says "turret not aimed". Aim it
+ *      back and the intake starts again.
+ *  10. With no volley, hold Y: the gate LIFTS. Let go: it CLOSES gently, and the intake reverses for
+ *      the length of the close (about 2 s from LIFTED).
  *
  * SAFE USE: the wheels are fast. Keep hands, hair and loose clothing away from them, and from the
  * intake and the turret. Keep a hand near the Stop button.
@@ -108,9 +121,24 @@ public class FiringSequenceAlpha extends OpMode {
     // says we are more than this far off (degrees), so the turret can settle.
     private static final double ALIGN_REAIM_THRESHOLD_DEGREES = 1.0;
 
-    // "Aimed" means the camera says the hive's tx is this small (degrees) AND the turret says it is
-    // on target.
+    // "Aimed" means the camera says the hive's tx is this small (degrees) for AIMED_HOLD_SECONDS.
     private static final double AIMED_TOLERANCE_DEGREES = 2.0;
+
+    // The camera must say "centered" (tx within AIMED_TOLERANCE_DEGREES) for this many seconds IN A ROW
+    // before a volley may start. This is the "settled" check.
+    // WHY NOT turretSubsystem.isOnTarget()? Auto-align picks a NEW target (angle - tx) every loop while
+    // tx is over ALIGN_REAIM_THRESHOLD_DEGREES (1.0), and the camera's tx jitters a little, so every
+    // pick clears the turret's own settle timer. The turret also stops pushing once it is within 1.5
+    // degrees of its target. So it could rest at tx = 1.4 for ever: over the re-aim threshold (so it
+    // kept picking new targets) but inside the turret's own band (so it never moved), and
+    // isOnTarget() never became true. The volley sat in WAIT_FOR_READY while the turret looked locked
+    // on (found on the robot, issue #63). The camera is the real truth about aim anyway.
+    private static final double AIMED_HOLD_SECONDS = 0.15;
+
+    // With NO camera target (DIAL mode only) there is no tx to check. The turret then counts as ready
+    // when it is under our control (not floating) and within this many degrees of the angle it is
+    // holding.
+    private static final double NO_CAMERA_TURRET_READY_DEGREES = 3.0;
 
     // Reverse power is NEGATIVE so the motors spin the other way (the same as ShotTableAlpha).
     // This is for the two shooter wheels. The intake reverses at its own power dial.
@@ -144,11 +172,15 @@ public class FiringSequenceAlpha extends OpMode {
     private boolean haveTableRpm = false;
     private ElapsedTime timeSinceTarget = new ElapsedTime();
 
+    // For the "aimed" check: how long the camera has said "centered" in a row (see AIMED_HOLD_SECONDS).
+    private ElapsedTime aimedTimer = new ElapsedTime();
+    private boolean wasAimedNow = false;
+
     // The flywheel RPM we are really using, and a note on where it came from for the screen.
     private double commandedRpm = 0.0;
     private String rpmSource = "none yet";
 
-    // During a volley's FEED, LIFT and DONE steps the RPM is frozen, so the target does not move
+    // During a volley's FEED and DONE steps the RPM is frozen, so the target does not move
     // while the balls are going through.
     private boolean rpmFrozen = false;
     private double frozenRpm = 0.0;
@@ -173,10 +205,10 @@ public class FiringSequenceAlpha extends OpMode {
      */
     private void addControlsTelemetry() {
         telemetry.addLine("--- CONTROLS ---");
-        telemetry.addLine("Right Trigger (hold) = FIRE a volley (let go = abort)");
+        telemetry.addLine("Right Trigger (hold) = FIRE a volley (it feeds until you let go)");
         telemetry.addLine("D-pad Up = PRE-REV on / off");
         telemetry.addLine("Right Bumper (hold) = INTAKE   Left Bumper (hold) = REVERSE (jam)");
-        telemetry.addLine("X / B / Y = gate CLOSED / OPENED / LIFTED (only when no volley runs)");
+        telemetry.addLine("X / B = gate CLOSED / OPENED (only when no volley runs)   Y (HOLD) = gate LIFTED (last ball)");
         telemetry.addLine("Back = speed source TABLE / DIAL   START = alliance BLUE / RED");
     }
 
@@ -275,17 +307,25 @@ public class FiringSequenceAlpha extends OpMode {
     /*
      * The words for "what are we still waiting for?", shown while a volley waits.
      */
-    private String getWaitingText(boolean hasTarget, boolean aimedAtHive) {
+    private String getWaitingText(boolean hasTarget, boolean aimedNow, boolean aimedAtHive) {
         String waiting = "";
         if (!shooterSubsystem.isFlywheelAtSpeed()) {
             waiting = waiting + "flywheel not at speed   ";
         }
-        if (useTable && !hasTarget) {
+        if (hasTarget) {
+            if (!aimedNow) {
+                waiting = waiting + String.format("turret not aimed yet (the camera says %.1f deg off, it needs %.1f or less)   ",
+                        Math.abs(visionSubsystem.getTxDegrees()), AIMED_TOLERANCE_DEGREES);
+            } else if (!aimedAtHive) {
+                waiting = waiting + "camera is centered, making sure it stays that way   ";
+            }
+        } else if (useTable) {
             waiting = waiting + "NO TARGET (the camera must see the hive)   ";
-        } else if (useTable && !aimedAtHive) {
-            waiting = waiting + "turret not aimed yet   ";
-        } else if (!useTable && !turretSubsystem.isOnTarget()) {
-            waiting = waiting + "turret not settled   ";
+        } else {
+            double turretErrorDegrees = Math.abs(turretSubsystem.getTargetAngleDegrees() - turretSubsystem.getAngleDegrees());
+            if (turretErrorDegrees > NO_CAMERA_TURRET_READY_DEGREES) {
+                waiting = waiting + String.format("turret not settled (%.1f deg from the angle it is holding)   ", turretErrorDegrees);
+            }
         }
         if (waiting.isEmpty()) {
             return "nothing, ready to fire";
@@ -370,14 +410,14 @@ public class FiringSequenceAlpha extends OpMode {
         boolean liftedNewPress = isNewPress(gateLiftedNow, wasGateLiftedPressed);
         wasGateClosedPressed = gateClosedNow;
         wasGateOpenedPressed = gateOpenedNow;
+        boolean liftedReleased = wasGateLiftedPressed && !gateLiftedNow;
         wasGateLiftedPressed = gateLiftedNow;
 
-        // What speed do we want? During the feed, the lift and the end of a volley we freeze it, so
+        // What speed do we want? During the feed and the end of a volley we freeze it, so
         // the target does not move while balls are going through.
         boolean hasTarget = visionSubsystem.hasTarget();
         FiringSequence.SequenceState sequenceStep = firingSequence.getState();
         boolean feedingOrLater = sequenceStep == FiringSequence.SequenceState.FEED
-                || sequenceStep == FiringSequence.SequenceState.LIFT
                 || sequenceStep == FiringSequence.SequenceState.DONE;
         double wantedRpm;
         if (feedingOrLater) {
@@ -419,61 +459,90 @@ public class FiringSequenceAlpha extends OpMode {
         shooterSubsystem.update();
         turretSubsystem.update();
 
-        // The firing sequence. It comes AFTER the updates, so isFlywheelAtSpeed() and isOnTarget()
-        // are fresh. The turret half of "ready": in TABLE mode the camera must see the hive RIGHT
-        // NOW and be centered on it, and the turret must have settled. In DIAL mode there is no
-        // camera to check, so the turret just has to have settled.
-        boolean aimedAtHive = hasTarget
-                && Math.abs(visionSubsystem.getTxDegrees()) <= AIMED_TOLERANCE_DEGREES
-                && turretSubsystem.isOnTarget();
+        // The firing sequence. It comes AFTER the updates, so isFlywheelAtSpeed() is fresh. The turret
+        // half of "ready" (the same as BiobuzzTeleOp): if the camera sees the hive (either speed
+        // source), the CAMERA decides: tx within AIMED_TOLERANCE_DEGREES for AIMED_HOLD_SECONDS in a
+        // row. (Not turretSubsystem.isOnTarget(): see the note at AIMED_HOLD_SECONDS.) No camera target
+        // in TABLE mode: not ready. No camera target in DIAL mode: the turret just has to be within
+        // NO_CAMERA_TURRET_READY_DEGREES of the angle it is holding.
+        boolean aimedNow = hasTarget
+                && Math.abs(visionSubsystem.getTxDegrees()) <= AIMED_TOLERANCE_DEGREES;
+        if (aimedNow && !wasAimedNow) {
+            aimedTimer.reset();
+        }
+        wasAimedNow = aimedNow;
+        boolean aimedAtHive = aimedNow && aimedTimer.seconds() >= AIMED_HOLD_SECONDS;
         boolean turretReady;
-        if (useTable) {
+        if (hasTarget) {
             turretReady = aimedAtHive;
+        } else if (useTable) {
+            turretReady = false;
         } else {
-            turretReady = turretSubsystem.isOnTarget();
+            double turretErrorDegrees = Math.abs(turretSubsystem.getTargetAngleDegrees() - turretSubsystem.getAngleDegrees());
+            turretReady = turretErrorDegrees <= NO_CAMERA_TURRET_READY_DEGREES;
         }
         boolean readyToStart = shooterSubsystem.isFlywheelAtSpeed() && turretReady;
-        firingSequence.update(fireHeld, readyToStart, shooterSubsystem.isFlywheelAtSpeed());
+        firingSequence.update(fireHeld, readyToStart, shooterSubsystem.isFlywheelAtSpeed(), turretReady);
 
-        // The gate. The sequence is in charge while a volley runs. Otherwise the manual buttons
-        // work. If more than one is pressed on the same loop, CLOSED wins, then OPENED, then LIFTED.
+        // The gate. CLOSING is GENTLE (goToClosedGently), like the TeleOp, so a single ball left in the
+        // way is pushed aside instead of slammed or wedged. The sequence is in charge while a volley
+        // runs. Otherwise the manual buttons work. If more than one is pressed on the same loop,
+        // CLOSED wins, then OPENED, then LIFTED.
         FiringSequence.GateCommand gateCommand = firingSequence.getGateCommand();
         String gateControl;
         if (gateCommand == FiringSequence.GateCommand.CLOSE) {
-            shooterServoSubsystem.goToClosed();
+            shooterServoSubsystem.goToClosedGently();
             gateControl = "firing sequence";
         } else if (gateCommand == FiringSequence.GateCommand.OPEN) {
-            shooterServoSubsystem.goToOpened();
-            gateControl = "firing sequence";
-        } else if (gateCommand == FiringSequence.GateCommand.LIFT) {
-            shooterServoSubsystem.goToLifted();
-            gateControl = "firing sequence";
+            // Feeding: the gate stays OPENED until the trigger is let go, except that holding Y LIFTS it
+            // (to push the last ball up into the flywheel). Let go of Y and it goes back to OPENED.
+            if (gateLiftedNow) {
+                shooterServoSubsystem.goToLifted();
+                gateControl = "firing sequence feeding, Y HELD: LIFTED";
+            } else {
+                shooterServoSubsystem.goToOpened();
+                gateControl = "firing sequence";
+            }
         } else if (closedNewPress) {
-            shooterServoSubsystem.goToClosed();
+            shooterServoSubsystem.goToClosedGently();
             gateControl = "manual (X)";
         } else if (openedNewPress) {
             shooterServoSubsystem.goToOpened();
             gateControl = "manual (B)";
         } else if (liftedNewPress) {
             shooterServoSubsystem.goToLifted();
-            gateControl = "manual (Y)";
+            gateControl = "manual (Y held: LIFTED)";
+        } else if (liftedReleased && shooterServoSubsystem.isLifted()) {
+            // Y was let go while LIFTED and no volley is running: back to CLOSED, gently.
+            shooterServoSubsystem.goToClosedGently();
+            gateControl = "manual (Y let go: CLOSED, gently)";
+        } else if (gateLiftedNow && shooterServoSubsystem.isLifted()) {
+            gateControl = "manual (Y held: LIFTED)";
         } else {
             gateControl = "manual (no press)";
         }
+        // Walk a gentle close along. (Does nothing when no gentle close is going on.)
+        shooterServoSubsystem.update();
 
-        // The intake. Reverse goes first, so clearing a jam always works. Then the sequence (while
-        // it is feeding or lifting). Then the driver's own intake button.
+        // The intake. Reverse goes first, so clearing a jam always works. Then, any time the gate is
+        // walking toward CLOSED (from OPENED or from LIFTED), the intake runs in REVERSE for exactly that
+        // long, on its own (the same as the TeleOp), so a ball in the gate's way is pushed back out
+        // instead of pulled in against the closing gate. Then the sequence (while it is feeding). Then
+        // the driver's own intake button.
         String intakeControl;
         if (reverseHeld) {
             intakeSubsystem.reverse();
             intakeControl = "Left Bumper (REVERSE)";
+        } else if (shooterServoSubsystem.isClosingGently()) {
+            intakeSubsystem.reverse();
+            intakeControl = "gate closing: REVERSE (automatic)";
         } else if (firingSequence.ownsIntake()) {
             if (firingSequence.wantsIntake()) {
                 intakeSubsystem.intake();
                 intakeControl = "firing sequence: FEEDING";
             } else {
                 intakeSubsystem.stop();
-                intakeControl = "firing sequence: waiting for the flywheel";
+                intakeControl = "firing sequence: intake PAUSED (" + firingSequence.getIntakePauseReason() + ")";
             }
         } else if (intakeHeld) {
             intakeSubsystem.intake();
@@ -496,7 +565,7 @@ public class FiringSequenceAlpha extends OpMode {
         telemetry.addData("Intake control", intakeControl);
 
         if (firingSequence.getState() == FiringSequence.SequenceState.WAIT_FOR_READY) {
-            telemetry.addData("Waiting for", getWaitingText(hasTarget, aimedAtHive));
+            telemetry.addData("Waiting for", getWaitingText(hasTarget, aimedNow, aimedAtHive));
         }
 
         telemetry.addLine("--- SHOT ---");
