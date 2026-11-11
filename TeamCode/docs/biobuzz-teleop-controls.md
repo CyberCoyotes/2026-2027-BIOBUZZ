@@ -21,7 +21,7 @@ The driver drives and runs the **intake** (the intake is the driver's only). **T
 | **A** | — |
 | **B** | — |
 | **X** | — |
-| **Y** | — |
+| **Y** (HOLD) | **Only in SOLO MODE** (see the Guide button): shooter gate **LIFTED**, to push the very last ball into the flywheel, the same as the operator's Y. With SOLO MODE off, it does nothing |
 | **Left Bumper (LB)** | **REVERSE** the intake: push balls out. Beats the Right Bumper and a volley's feed, so clearing a jam always works |
 | **Right Bumper (RB)** | **INTAKE**: pull balls in (also carries them up the transfer chute). **The intake is the driver's only**: the operator's bumpers do nothing |
 | **Left Trigger (LT)** (hold) | **SLOW MODE** (40% speed) for careful lining up |
@@ -32,7 +32,7 @@ The driver drives and runs the **intake** (the intake is the driver's only). **T
 | **D-pad Right** | — |
 | **Start** | **ALLIANCE** BLUE / RED, the same as the operator's Start. Starts as **BLUE**. **Check it on the screen.** (**Start + A** also pairs this controller on the Driver Station: pair before START, or check the alliance afterward) |
 | **Back** | Drive **FIELD-CENTRIC / ROBOT-CENTRIC** toggle, the same as the operator's Back. If the safety rule switched field-centric off, it turns it back on |
-| **Guide** (center logo button) | **SOLO MODE** on / off, for a **one-person match** (starts **OFF**). While it is ON, your Right Trigger fires a volley, and the screen says **SOLO MODE ON**. Press it again to switch it OFF. It works during INIT too |
+| **Guide** (center logo button) | **SOLO MODE** on / off, for a **one-person match** (starts **OFF**). While it is ON, your Right Trigger fires a volley, your **Y** lifts the gate, and the screen says **SOLO MODE ON**. Press it again to switch it OFF. It works during INIT too |
 
 ### The firing sequence (the operator holds the Right Trigger)
 1. **The operator holds RT** (the driver's RT in SOLO MODE). The wheels spin (if they are not already) and the screen says **Waiting for** whatever is missing, with numbers: **flywheel not at speed**, **turret not aimed yet (the camera says 2.6 deg off, it needs 2.0 or less)**, **turret is floating** (the operator is holding A), or **NO TARGET** (in TABLE mode the camera must see the hive). The **camera** decides whether the turret is aimed: it must read within 2 degrees for a moment (0.15 s), so the volley does not start while the turret is still swinging in.
@@ -48,7 +48,8 @@ The driver drives and runs the **intake** (the intake is the driver's only). **T
   - **While the volley is FEEDING** (RT held, the wheels at speed): hold **Y** to lift, let go and the gate goes **back to OPENED** and the volley carries on. This is the normal way to get the last ball out. Nothing closes the gate, and there is no reverse (OPENED is not a close).
   - **Between volleys:** hold **Y** to lift, let go and the gate **CLOSES gently**, with the automatic reverse (about 2 s from LIFTED).
   - **While the volley is only WAITING:** Y does nothing (the gate is held CLOSED).
-- **SOLO MODE (one person):** press **LOGO** on gamepad 1. Now the driver's Right Trigger fires too (the operator's still works if there is one). In a solo match **nobody can use the operator's buttons**: the gate buttons, the dials and DIAL / TABLE (gamepad 2 LOGO). You **can** still set the alliance (**START**) and switch field / robot centric (**BACK**) yourself. The speed source now starts on **TABLE**, so in a solo match **the camera must see the hive before a volley will start**. If the camera cannot see it, someone has to press gamepad 2 **LOGO** to switch to **DIAL** before the match. LOGO is known to reach the Robot Controller on our controllers; the INIT screen's **BUTTON TEST** shows every button each gamepad reports if you want to check.
+  - **In SOLO MODE the driver's Y does the same job as the operator's Y**, with all three rules above. With SOLO MODE off, the driver's Y does nothing.
+- **SOLO MODE (one person):** press **LOGO** on gamepad 1. Now the driver's Right Trigger fires too and the driver's **Y** (hold) lifts the gate (the operator's buttons still work if there is one). In a solo match **nobody can use the rest of the operator's buttons**: gate CLOSED / OPENED (X / B), the dials and DIAL / TABLE (gamepad 2 LOGO). You **can** still set the alliance (**START**) and switch field / robot centric (**BACK**) yourself. The speed source now starts on **TABLE**, so in a solo match **the camera must see the hive before a volley will start**. If the camera cannot see it, someone has to press gamepad 2 **LOGO** to switch to **DIAL** before the match. LOGO is known to reach the Robot Controller on our controllers; the INIT screen's **BUTTON TEST** shows every button each gamepad reports if you want to check.
 - **Not tested on a robot yet:** whether the last ball leaves with the Y lift, whether pausing the intake when the turret is off feels right (a flickering camera pauses it for a moment), and whether a ball gets caught when the gate closes. The flywheel RPM and the ratio stay **frozen for as long as you hold RT**, so if you move to a different spot, let go and press RT again.
 
 ### Driver tips
@@ -117,4 +118,4 @@ The shooter wheels **cannot be reversed** from the controllers any more (the old
 ### Operator tips
 - The intake is the **driver's only**. Your bumpers do nothing.
 - The gate positions are tuned in `ShooterServoSubsystem` (`CLOSED_POSITION`, `OPENED_POSITION`, `LIFTED_POSITION`). The screen shows the position we **commanded**: a servo cannot report where it really is.
-- **Right now free (blank) on gamepad 2:** both sticks, both bumpers, Left Trigger. **Free on gamepad 1:** A, B, X, Y, D-pad Down, D-pad Right. (Gamepad 1's Right Trigger only does something in SOLO MODE, its D-pad Up is PRE-REV, Start is the alliance, Back is the drive toggle and LOGO is the SOLO MODE toggle.)
+- **Right now free (blank) on gamepad 2:** both sticks, both bumpers, Left Trigger. **Free on gamepad 1:** A, B, X, D-pad Down, D-pad Right. (Gamepad 1's Right Trigger and Y only do something in SOLO MODE, its D-pad Up is PRE-REV, Start is the alliance, Back is the drive toggle and LOGO is the SOLO MODE toggle.)

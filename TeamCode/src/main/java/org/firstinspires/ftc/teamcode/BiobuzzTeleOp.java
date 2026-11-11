@@ -49,8 +49,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   WHO FIRES: the OPERATOR's Right Trigger (gamepad2). The driver's Right Trigger does NOT fire, unless
  *     SOLO MODE is ON. SOLO MODE is for a match with ONE person driving: the driver presses gamepad1
  *     LOGO (the center "guide" button) to switch it ON / OFF (it starts OFF, and it works in INIT too).
- *     While it is ON the driver's Right Trigger fires too, and the screen says SOLO MODE ON. In a
- *     solo match nobody can use the operator's buttons (the gate buttons, the dials, DIAL / TABLE),
+ *     While it is ON the driver's Right Trigger fires too and the driver's Y (HOLD) lifts the gate
+ *     (issue #78), and the screen says SOLO MODE ON. In a
+ *     solo match nobody can use the rest of the operator's buttons (gate CLOSED / OPENED, the dials, DIAL / TABLE),
  *     so set the speed source with gamepad 2 (LOGO) first if you can. (The driver CAN set the
  *     alliance with START and switch field / robot centric with BACK, see below.) The LOGO button is
  *     known to reach the Robot Controller on our Logitech controllers.
@@ -184,6 +185,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   B -> shooter GATE OPENED (lets the ball through)
  *   Y -> HOLD for shooter GATE LIFTED (pushes the very last ball up into the flywheel; with no ball
  *        behind it, nothing else would). OPENED is the position BETWEEN LIFTED and CLOSED.
+ *        (The driver's Y does the same, but ONLY in SOLO MODE. Everything below works the same
+ *        for either gamepad's Y.)
  *        - While a volley FEEDS (the trigger is held, the wheels are at speed): hold Y to LIFT, let
  *          go and the gate goes back to OPENED and the volley carries on.
  *        - Between volleys: hold Y to LIFT, let go and the gate CLOSES gently (with the intake
@@ -236,7 +239,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Right Trigger -> does NOT fire. The OPERATOR's Right Trigger fires. Only in SOLO MODE (LOGO) does
  *      the driver's Right Trigger fire too. At the start the shot is DIAL mode, flywheel 1300 RPM and
  *      hood wheel 2600 RPM (a ratio of 2.00).
- *   X / B / Y    -> not used. (The shooter gate moved to the operator's X / B / Y.)
+ *   Y (HOLD)     -> ONLY in SOLO MODE (LOGO): shooter GATE LIFTED, the same as the operator's Y (see
+ *      GAMEPAD 2 below, and issue #78). With SOLO MODE off, the driver's Y does nothing.
+ *   X / B        -> not used. (The shooter gate moved to the operator's X / B.)
  *
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (SPEED CONTROL in RPM, read from the wheel encoders)
  *   D-pad Up / Down    -> flywheel target RPM UP / DOWN by FLYWHEEL_RPM_STEP
@@ -608,6 +613,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE   (the intake is the driver's only)");
         telemetry.addLine("LOGO = SOLO MODE on / off (one-person match: then the driver's Right Trigger fires too)");
+        telemetry.addLine("Y (HOLD) = gate LIFTED, SOLO MODE only (to push the last ball in)");
         telemetry.addLine("D-pad Up = PRE-REV on / off (wheels spin without firing)");
         telemetry.addLine("START = alliance BLUE / RED   BACK = drive FIELD-CENTRIC / ROBOT-CENTRIC");
         telemetry.addLine("D-pad Left = RE-AIM (the way the robot faces now is away from me)");
@@ -1268,7 +1274,11 @@ public class BiobuzzTeleOp extends OpMode {
         // The operator's face buttons move the shooter gate. (A is the turret float button.)
         boolean gateClosedPressed = gamepad2.x;
         boolean gateOpenedPressed = gamepad2.b;
-        boolean gateLiftedPressed = gamepad2.y;
+        // LIFTED is the one gate button the DRIVER can use too, but ONLY in SOLO MODE (gamepad1 LOGO),
+        // the same way the driver's Right Trigger only fires in SOLO MODE. In a solo match nobody
+        // is on gamepad 2, so without this the last ball could not be lifted into the flywheel.
+        // The driver's X and B do NOT work the gate: solo only needs LIFTED (issue #78).
+        boolean gateLiftedPressed = gamepad2.y || (soloMode && gamepad1.y);
         boolean turretFloatPressed = gamepad2.a;
         boolean dpadUpPressed = gamepad2.dpad_up;
         boolean dpadDownPressed = gamepad2.dpad_down;
@@ -1491,7 +1501,8 @@ public class BiobuzzTeleOp extends OpMode {
         //     the Y button: while Y is HELD the gate is LIFTED instead (to push the last ball up into
         //     the flywheel), and when Y is let go the gate goes back to OPENED and the volley carries on.
         //   - The trigger is let go: it closes the gate gently (once).
-        // Between volleys the operator's buttons work: X = CLOSED, B = OPENED, and Y (HOLD) = LIFTED:
+        // Between volleys the operator's buttons work: X = CLOSED, B = OPENED, and Y (HOLD) = LIFTED
+        // (the driver's Y too, in SOLO MODE):
         // let go of Y and the gate closes gently, because CLOSED is the gate's normal position.
         // X and B count as ONE press only on the loop where they go from "not pressed" to "pressed",
         // so holding them does not keep re-sending the move. We work the presses out every loop,
