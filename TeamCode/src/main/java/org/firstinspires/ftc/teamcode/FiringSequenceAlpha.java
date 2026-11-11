@@ -51,8 +51,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      (Pairing the controller on the Driver Station is Start + A. If you do that while this
  *       OpMode is running, it also switches the alliance, so check it on the screen.)
  *
- * Priority for the intake, highest first: Left Bumper (jam), the firing sequence (feeding),
- * Right Bumper (pick up).
+ * Priority for the intake, highest first: Left Bumper (jam), the gate closing (the intake reverses by
+ * itself for as long as the gate walks toward CLOSED), the firing sequence (feeding), Right Bumper
+ * (pick up).
  *
  * THE TEST ORDER (write the numbers in TeamCode/docs/biobuzz-test-and-match-log.md)
  *   1. INIT. Check "Vision State" says TARGET_VISIBLE and the alliance is right. The gate goes to
@@ -499,12 +500,18 @@ public class FiringSequenceAlpha extends OpMode {
         // Walk a gentle close along. (Does nothing when no gentle close is going on.)
         shooterServoSubsystem.update();
 
-        // The intake. Reverse goes first, so clearing a jam always works. Then the sequence (while
-        // it is feeding). Then the driver's own intake button.
+        // The intake. Reverse goes first, so clearing a jam always works. Then, any time the gate is
+        // walking toward CLOSED (from OPENED or from LIFTED), the intake runs in REVERSE for exactly that
+        // long, on its own (the same as the TeleOp), so a ball in the gate's way is pushed back out
+        // instead of pulled in against the closing gate. Then the sequence (while it is feeding). Then
+        // the driver's own intake button.
         String intakeControl;
         if (reverseHeld) {
             intakeSubsystem.reverse();
             intakeControl = "Left Bumper (REVERSE)";
+        } else if (shooterServoSubsystem.isClosingGently()) {
+            intakeSubsystem.reverse();
+            intakeControl = "gate closing: REVERSE (automatic)";
         } else if (firingSequence.ownsIntake()) {
             if (firingSequence.wantsIntake()) {
                 intakeSubsystem.intake();

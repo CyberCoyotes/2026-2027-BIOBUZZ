@@ -59,6 +59,12 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   The intake is the DRIVER's only (gamepad1 bumpers; the operator's bumpers do nothing). REVERSE (Left
  *     Bumper) beats the volley, which beats INTAKE (Right Bumper). (If you clear a jam in the middle of a
  *     volley, the feed clock keeps running, so let go and press again.)
+ *   GATE CLOSING AUTO-REVERSE: any time the gate walks from OPENED to CLOSED, or from LIFTED to CLOSED,
+ *     the intake runs in REVERSE for exactly that long (about 0.75 s from OPENED, about 2 s from LIFTED),
+ *     so a ball in the gate's way is pushed back out instead of being pulled in against the closing
+ *     gate. It happens after every volley, on an abort, and on the manual X button. It beats the
+ *     driver's INTAKE button while the gate is closing. The screen says "gate closing: REVERSE
+ *     (automatic)". An instant close (STOP) does not do it: STOP stops everything.
  *   The READY check uses the FLYWHEEL ONLY (ShooterSubsystem.isFlywheelAtSpeed()), like
  *     ShootAndParkAuto, and the screen shows the hood wheel's error. The "OK to shoot?" line on the
  *     screen is still the old both-wheels check, for information.
@@ -1498,13 +1504,24 @@ public class BiobuzzTeleOp extends OpMode {
         // Walk a gentle close along. (Does nothing when no gentle close is going on.)
         shooterServoSubsystem.update();
 
-        // Intake. It is the DRIVER's only (gamepad1 bumpers: the operator's bumpers do nothing). REVERSE
-        // goes first (Left Bumper), so clearing a jam always works. Then the firing sequence, while it
-        // is feeding. Then INTAKE (Right Bumper).
+        // Intake. It is the DRIVER's only (gamepad1 bumpers: the operator's bumpers do nothing).
+        //   1. REVERSE (Left Bumper) goes first, so clearing a jam always works.
+        //   2. GATE CLOSING: any time the gate is walking toward CLOSED (from OPENED, or from LIFTED),
+        //      the intake runs in REVERSE for exactly that long, on its own. A ball that is in the
+        //      gate's way is pushed back out of it instead of being pulled in against the closing
+        //      gate and wedged. This beats the driver's INTAKE button (pulling balls in while the gate
+        //      shuts is what wedges them), and it ends the loop the gate arrives at CLOSED.
+        //      (isClosingGently() was brought up to date by shooterServoSubsystem.update() just above.)
+        //   3. Then the firing sequence, while it is feeding. (It cannot overlap with 2: the gate is
+        //      OPENED while it feeds, and opening ends a gentle close.)
+        //   4. Then INTAKE (Right Bumper).
         String intakeControl;
         if (gamepad1.left_bumper) {
             intakeSubsystem.reverse();
             intakeControl = "Left Bumper (REVERSE)";
+        } else if (shooterServoSubsystem.isClosingGently()) {
+            intakeSubsystem.reverse();
+            intakeControl = "gate closing: REVERSE (automatic)";
         } else if (firingSequence.ownsIntake()) {
             if (firingSequence.wantsIntake()) {
                 intakeSubsystem.intake();
