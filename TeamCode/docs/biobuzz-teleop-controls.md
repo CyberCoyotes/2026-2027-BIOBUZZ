@@ -4,7 +4,7 @@ Print this and keep it at the driver station. It matches **`TeleOp - Alpha 13`**
 
 **Pairing:** on the Driver Station, press **Start + A** on the driver's controller (gamepad 1) and **Start + B** on the operator's controller (gamepad 2).
 **Logitech controller (F310 / F710):** set the switch on the back to **X** (XInput mode), not D. The buttons are then labeled A, B, X, Y like the code. Bumpers are **LB / RB** and triggers are **LT / RT**. Left Trigger = LT, Right Trigger = RT. (The screen may call it an "XBOX_360" controller: that is only the SDK's label for a Logitech in X mode.)
-**Do not press the physical MODE button while driving.** On a Logitech controller MODE is a hardware switch that swaps the D-pad and the left stick (its LED lights). With it on, the drive stick would read as the D-pad and the robot would not drive. If the LED is on, press MODE again. The robot's code cannot read the MODE button, which is why the drive toggle is on **LOGO** and **BACK** (see below).
+**Do not press the physical MODE button while driving.** On a Logitech controller MODE is a hardware switch that swaps the D-pad and the left stick (its LED lights). With it on, the drive stick would read as the D-pad and the robot would not drive. If the LED is on, press MODE again. The robot's code cannot read the MODE button, so the drive toggle is on **BACK** (on both controllers) instead.
 
 **Safety:** keep hands, hair, and loose clothing away from the shooter wheels, and keep everyone out of the path of the ball. Keep a hand near the **Stop** button when testing the turret.
 
@@ -31,7 +31,7 @@ The driver drives and runs the **intake** (the intake is the driver's only). **T
 | **D-pad Left** | **RE-AIM** (for field-centric drive): "the way the robot faces right now is **away from me**." Press it if the robot was turned or bumped, or if a practice start was not in the Auto orientation. It does not touch the Pinpoint. It also turns field-centric back on after the safety rule (see the tips) |
 | **D-pad Right** | — |
 | **Start** | **ALLIANCE** BLUE / RED, the same as the operator's Start. Starts as **BLUE**. **Check it on the screen.** (**Start + A** also pairs this controller on the Driver Station: pair before START, or check the alliance afterward) |
-| **Back** | Drive **FIELD-CENTRIC / ROBOT-CENTRIC** toggle, the same as the operator's LOGO. If the safety rule switched field-centric off, it turns it back on |
+| **Back** | Drive **FIELD-CENTRIC / ROBOT-CENTRIC** toggle, the same as the operator's Back. If the safety rule switched field-centric off, it turns it back on |
 | **Guide** (center logo button) | **SOLO MODE** on / off, for a **one-person match** (starts **OFF**). While it is ON, your Right Trigger fires a volley, and the screen says **SOLO MODE ON**. Press it again to switch it OFF. It works during INIT too |
 
 ### The firing sequence (the operator holds the Right Trigger)
@@ -42,10 +42,10 @@ The driver drives and runs the **intake** (the intake is the driver's only). **T
 - **Let go at any time to ABORT.** The gate closes, the intake stops, and the balls not yet shot stay in the chute.
 - **The gate closes GENTLY.** It walks toward CLOSED in about three quarters of a second instead of snapping shut, so a single ball left in the way is **pushed aside** instead of slammed or wedged. Opening is instant. (The speed is `GENTLE_CLOSE_SPEED_POSITION_PER_SECOND` in `ShooterServoSubsystem`: smaller is gentler but slower. Not tuned on a robot yet.) Pressing STOP closes it at once.
 - **PRE-REV (the driver's D-pad Up)** spins the wheels while you drive to the spot. When RT is pressed the volley starts as soon as the turret is ready.
-- **No camera and TABLE mode:** the volley will not start. The operator switches to **DIAL** (gamepad 2 **Back**) for a shot without the camera.
+- **No camera and TABLE mode:** the volley will not start. The operator switches to **DIAL** (gamepad 2 **LOGO**) for a shot without the camera.
 - **Clearing a jam:** the driver holds **Left Bumper** (reverse the intake). It beats the volley. The volley's clock keeps running, so the operator should **let go and press RT again** afterward.
 - **The operator's X / B / Y gate buttons are an override and only work between volleys.** During a volley the sequence is in charge of the gate.
-- **SOLO MODE (one person):** press **LOGO** on gamepad 1. Now the driver's Right Trigger fires too (the operator's still works if there is one). In a solo match **nobody can use the operator's buttons**: the gate buttons, the dials and DIAL / TABLE (gamepad 2 Back). You **can** still set the alliance (**START**) and switch field / robot centric (**BACK**) yourself. So set DIAL / TABLE with gamepad 2 first if you can, or live with **DIAL**. LOGO is known to reach the Robot Controller on our controllers; the INIT screen's **BUTTON TEST** shows every button each gamepad reports if you want to check.
+- **SOLO MODE (one person):** press **LOGO** on gamepad 1. Now the driver's Right Trigger fires too (the operator's still works if there is one). In a solo match **nobody can use the operator's buttons**: the gate buttons, the dials and DIAL / TABLE (gamepad 2 LOGO). You **can** still set the alliance (**START**) and switch field / robot centric (**BACK**) yourself. So set DIAL / TABLE with gamepad 2 first if you can, or live with **DIAL**. LOGO is known to reach the Robot Controller on our controllers; the INIT screen's **BUTTON TEST** shows every button each gamepad reports if you want to check.
 - **Not tested on a robot yet:** whether all 4 balls leave (the feed time is a starting guess, `FEED_SECONDS` 3.0 in `FiringSequence`), and whether a ball gets caught when the gate closes at the end of the feed (there is no lift step now).
 
 ### Driver tips
@@ -83,10 +83,10 @@ The operator **fires** (Right Trigger), sets the shooter speeds (RPM), moves the
 | **D-pad Left** | Ratio (hood wheel / flywheel) **DOWN** 0.05 |
 | **D-pad Right** | Ratio (hood wheel / flywheel) **UP** 0.05 |
 | **Start** | Switch the **alliance** BLUE / RED. It starts as **BLUE**. **Check it on the screen** before the match: the wrong alliance aims at the other hive. The driver's Start does the same |
-| **Back** | Switch the flywheel speed source **DIAL / TABLE**. It starts on **DIAL** |
-| **Guide** (center **LOGO** button) | **Drive toggle**: switch the drive **FIELD-CENTRIC / ROBOT-CENTRIC**. It starts **FIELD-CENTRIC**. If the safety rule switched field-centric off, this turns it back on. The driver's **BACK** does the same |
+| **Back** | **Drive toggle**: switch the drive **FIELD-CENTRIC / ROBOT-CENTRIC**. It starts **FIELD-CENTRIC**. If the safety rule switched field-centric off, this turns it back on. The driver's **Back** does the same |
+| **Guide** (center **LOGO** button) | Switch the flywheel speed source **DIAL / TABLE**. It starts on **DIAL**. (On the *driver's* controller the same LOGO button is the SOLO MODE toggle, a different job.) |
 
-**Why LOGO and BACK, and not the physical MODE button?** The coach asked for the drive toggle on MODE, but the FTC SDK's `Gamepad` class has no field for the Logitech MODE button, and Logitech says MODE is a hardware switch that swaps the D-pad and the left stick. So the code cannot read it. **To check on your own controller:** at INIT, look at the **BUTTON TEST** lines on the screen (they list every button each gamepad reports) and press MODE. If **nothing** in the list changes, the code cannot read it (you will probably see the stick and the D-pad swap if its LED lights: press MODE again to turn it off). If something **does** change, tell us which one and the toggle moves onto it (one line in `BiobuzzTeleOp`: `isDriveToggleButtonPressedOnDriverPad()` for gamepad 1, `isModeButtonPressed()` for gamepad 2). The **Left Stick Button** (press the left stick in) also toggles the drive mode on gamepad 2. It is a thumbstick press, so it is not in the table.
+**Why BACK, and not the physical MODE button?** The code cannot read the Logitech MODE button: the FTC SDK's `Gamepad` class has no field for it, and Logitech says MODE is a hardware switch that swaps the D-pad and the left stick. The INIT screen has a **BUTTON TEST** that lists every button each gamepad reports, if you want to see for yourself. If a button there ever changes when you press MODE, tell us which one and the toggle can move onto it (one line each in `BiobuzzTeleOp`: `isDriveToggleButtonPressedOnDriverPad()` and `isDriveToggleButtonPressedOnOperatorPad()`).
 
 One move per press for the gate, the dials, Start, Back and the drive toggle. **Holding a button does not repeat it.** Press again for the next step.
 
@@ -114,4 +114,4 @@ The shooter wheels **cannot be reversed** from the controllers any more (the old
 ### Operator tips
 - The intake is the **driver's only**. Your bumpers do nothing.
 - The gate positions are tuned in `ShooterServoSubsystem` (`CLOSED_POSITION`, `OPENED_POSITION`, `LIFTED_POSITION`). The screen shows the position we **commanded**: a servo cannot report where it really is.
-- **Right now free (blank) on gamepad 2:** both sticks, both bumpers, Left Trigger. **Free on gamepad 1:** A, B, X, Y, D-pad Down, D-pad Right. (Gamepad 1's Right Trigger only does something in SOLO MODE, its D-pad Up is PRE-REV, Start is the alliance and Back is the drive toggle.)
+- **Right now free (blank) on gamepad 2:** both sticks, both bumpers, Left Trigger. **Free on gamepad 1:** A, B, X, Y, D-pad Down, D-pad Right. (Gamepad 1's Right Trigger only does something in SOLO MODE, its D-pad Up is PRE-REV, Start is the alliance, Back is the drive toggle and LOGO is the SOLO MODE toggle.)

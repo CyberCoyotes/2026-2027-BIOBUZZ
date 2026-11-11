@@ -47,9 +47,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     LOGO (the center "guide" button) to switch it ON / OFF (it starts OFF, and it works in INIT too).
  *     While it is ON the driver's Right Trigger fires too, and the screen says SOLO MODE ON. In a
  *     solo match nobody can use the operator's buttons (the gate buttons, the dials, DIAL / TABLE),
- *     so set the speed source with gamepad 2 first if you can. (The driver CAN set the alliance with
- *     START and switch field / robot centric with BACK, see below.) The LOGO button is known to
- *     reach the Robot Controller on our Logitech controllers.
+ *     so set the speed source with gamepad 2 (LOGO) first if you can. (The driver CAN set the
+ *     alliance with START and switch field / robot centric with BACK, see below.) The LOGO button is
+ *     known to reach the Robot Controller on our Logitech controllers.
  *   PRE-REV: the driver's D-pad Up switches the wheels ON / OFF while you drive to the shooting
  *     spot, so the 4 seconds of spin-up are not paid at every volley. It starts OFF, and the screen
  *     says PRE-REV ON. It does not touch the gate or the intake.
@@ -87,16 +87,13 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   DRIVER, whichever way the robot is turned. (Before, "forward" always meant the way the robot
  *   faces. That is still there: ROBOT-CENTRIC.) It uses DriveSubsystem.driveFieldCentric() and the
  *   Pinpoint's heading.
- *   - THE DRIVE TOGGLE (FIELD-CENTRIC <-> ROBOT-CENTRIC) is on BOTH gamepads: gamepad2 LOGO (the
- *     center "guide" button, or the Left Stick Button), and gamepad1 BACK. The drive mode is on the
- *     screen next to the alliance line, big.
- *     THE PHYSICAL "MODE" BUTTON: the coach wanted the toggle on the Logitech MODE button. The FTC
- *     SDK's Gamepad class has no field for it, and Logitech says MODE is a hardware switch that
- *     swaps the D-pad and the left stick (its LED lights when swapped). So the code cannot read it,
- *     and the toggle is on LOGO and BACK instead. The INIT screen has a "BUTTON TEST" that shows
- *     every button each gamepad reports, so you can press MODE and see for yourself. If something
- *     DOES change, move the toggle: see isDriveToggleButtonPressed(). WARNING: do not press MODE on
- *     the driver's controller while driving. If its LED is on, the left stick reads as the D-pad.
+ *   - THE DRIVE TOGGLE (FIELD-CENTRIC <-> ROBOT-CENTRIC) is BACK on BOTH gamepads. The drive mode is
+ *     on the screen next to the alliance line, big.
+ *     THE PHYSICAL "MODE" BUTTON cannot be used: the FTC SDK's Gamepad class has no field for it, and
+ *     Logitech says MODE is a hardware switch that swaps the D-pad and the left stick (its LED
+ *     lights when swapped). The INIT screen has a "BUTTON TEST" that shows every button each gamepad
+ *     reports. WARNING: do not press MODE on the driver's controller while driving. If its LED is
+ *     on, the left stick reads as the D-pad and the robot will not drive. Press MODE again.
  *   - THE DRIVER's D-pad Left RE-AIMS: "the way the robot faces right now is away from me". It only
  *     changes which way forward means. The Pinpoint is NEVER reset, because the turret's hive
  *     memory depends on its heading and position.
@@ -118,7 +115,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     (0.25 s) after START, or its heading jumps (the same check that protects the hive memory),
  *     field-centric switches ITSELF OFF and the robot drives ROBOT-CENTRIC. The screen says why. It
  *     does NOT switch itself back on, because a restarted Pinpoint has a new zero. The drive toggle
- *     (gamepad2 LOGO or gamepad1 BACK) or the driver's D-pad Left turns it on again.
+ *     (BACK on either gamepad) or the driver's D-pad Left turns it on again.
  *     GLITCH DEBOUNCE (added after the first robot test, where a weak battery made the Pinpoint blink
  *     and field-centric kept switching off): a gap SHORTER than 0.25 s is a glitch, not a restart. The
  *     drive keeps the LAST good heading (HOLD_LAST_HEADING_DURING_GLITCH), the hive memory is kept, and
@@ -192,10 +189,10 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *                       floats the turret, so then the turret is not on target and a volley waits.
  *   Start            -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
  *                       (Gamepad1's START does the same.)
- *   Back             -> switch the flywheel speed source DIAL <-> TABLE (starts as DIAL)
- *   LOGO             -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC). If
+ *   Back             -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC). If
  *                       field-centric was switched off by the safety rule, it turns it back ON.
- *                       (Or the Left Stick Button. Gamepad1's BACK does the same, see above.)
+ *                       (Gamepad1's BACK does the same.)
+ *   LOGO             -> switch the flywheel speed source DIAL <-> TABLE (starts as DIAL)
  *   Both sticks, both bumpers, Left Trigger: not used. (The intake is the driver's only.)
  *   The turret has no other operator control. It tracks the hive all the time (see ALWAYS-TRACK
  *   below). It will not go past +/-120 degrees (see TurretSubsystem). 0 degrees is where
@@ -213,7 +210,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      It does not touch the Pinpoint. It also turns field-centric back on after the safety rule.
  *   D-pad Up     -> PRE-REV on / off: the wheels spin without firing (see NEW IN ALPHA 13).
  *   START        -> switch alliance BLUE <-> RED, the same as gamepad2's START.
- *   BACK         -> switch the drive FIELD-CENTRIC <-> ROBOT-CENTRIC, the same as gamepad2's LOGO.
+ *   BACK         -> switch the drive FIELD-CENTRIC <-> ROBOT-CENTRIC, the same as gamepad2's BACK.
  *   Right Bumper -> INTAKE (pull balls in)      Left Bumper -> REVERSE (push balls out)
  *      (Left Bumper beats Right Bumper, so clearing a jam always works. Only the DRIVER has the
  *       intake: the operator's bumpers do nothing. The intake runs at the power set in
@@ -238,7 +235,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   (the shooter's isAtSpeed()). It drops back to WAIT after a ball slows the wheels.
  *   ShooterRPMAlpha has the same wheel speed control on its own, for testing.
  *
- * THE SHOT TABLE (TABLE mode, switched with gamepad2 Back)
+ * THE SHOT TABLE (TABLE mode, switched with gamepad2 LOGO)
  *   The Limelight is on the turret. It reads ty, how far UP the hive's AprilTags appear in its
  *   view, and ShotTable turns that into a flywheel RPM. (Closer = bigger ty = lower RPM.)
  *   - DIAL mode: the flywheel uses the operator's dial, exactly like before. This is the safe
@@ -315,13 +312,8 @@ public class BiobuzzTeleOp extends OpMode {
     // ------------------------------------------------------------------
     // Field-centric drive (issue #54)
     // ------------------------------------------------------------------
-    // THE DRIVE TOGGLE (FIELD-CENTRIC <-> ROBOT-CENTRIC). On the operator's controller (gamepad2) it is
-    // LOGO (the center Logitech logo button, called "guide" in the SDK) and the Left Stick Button. Set
-    // the one you do NOT want to false. On the driver's controller (gamepad1) it is BACK. The physical
-    // MODE button cannot be used: the SDK has no field for it (see THE PHYSICAL "MODE" BUTTON in the
-    // header, and isDriveToggleButtonPressed() below).
-    private static final boolean MODE_BUTTON_GUIDE_ENABLED = true;
-    private static final boolean MODE_BUTTON_LEFT_STICK_ENABLED = true;
+    // THE DRIVE TOGGLE (FIELD-CENTRIC <-> ROBOT-CENTRIC) is BACK on BOTH gamepads. The physical MODE
+    // button cannot be used: the SDK has no field for it (see THE PHYSICAL "MODE" BUTTON in the header).
 
     // The field headings that decide which way "away from the driver" is. 0 degrees is straight
     // toward the right wall, 90 is up the field, and turning left is positive (the same as Pedro
@@ -514,7 +506,7 @@ public class BiobuzzTeleOp extends OpMode {
     private boolean wasDpadDownPressed = false;
     private boolean wasStartPressed = false;
     private boolean wasDriverStartPressed = false;
-    private boolean wasBackPressed = false;
+    private boolean wasSpeedSourceTogglePressed = false;
 
     // The push the turret got this loop to follow the robot's spin, for the screen.
     private double turretFeedforward = 0.0;
@@ -557,7 +549,7 @@ public class BiobuzzTeleOp extends OpMode {
     // true once the driver pressed D-pad Left: the offset is then the driver's, not the alliance's.
     private boolean driverReAimed = false;
 
-    private boolean wasModeButtonPressed = false;
+    private boolean wasOperatorDriveTogglePressed = false;
     private boolean wasDriverDriveTogglePressed = false;
     private boolean wasReAimPressed = false;
 
@@ -581,8 +573,8 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("START = alliance BLUE / RED   BACK = drive FIELD-CENTRIC / ROBOT-CENTRIC");
         telemetry.addLine("D-pad Left = RE-AIM (the way the robot faces now is away from me)");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
-        telemetry.addLine("START = alliance BLUE / RED   BACK = flywheel speed DIAL / TABLE");
-        telemetry.addLine("LOGO (or Left Stick Button) = drive FIELD-CENTRIC / ROBOT-CENTRIC");
+        telemetry.addLine("START = alliance BLUE / RED   BACK = drive FIELD-CENTRIC / ROBOT-CENTRIC");
+        telemetry.addLine("LOGO = flywheel speed DIAL / TABLE");
         telemetry.addLine("D-pad Up / Down = flywheel RPM up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
         telemetry.addLine("X = gate CLOSED   B = gate OPENED   Y = gate LIFTED   (only between volleys)");
@@ -641,15 +633,15 @@ public class BiobuzzTeleOp extends OpMode {
     }
 
     /*
-     * The BUTTON TEST for the INIT screen: every button each gamepad reports, plus the sticks and the
-     * D-pad, so you can see exactly what the Robot Controller gets. Try the physical MODE button on
-     * each controller: if NOTHING in these lines changes, the code cannot read it. (Logitech MODE is a
-     * hardware switch that swaps the D-pad and the left stick, so if its LED lights you will see a
-     * D-pad press show up as stick movement and the other way round. Press MODE again to turn it OFF
-     * before you drive!) Shown only before START, so it does not crowd the screen while driving.
+     * The BUTTON TEST for the INIT screen: every button each gamepad reports, plus the left stick, so
+     * you can see exactly what the Robot Controller gets. (The Logitech MODE button is a hardware
+     * switch that swaps the D-pad and the left stick, and the code cannot read it. If its LED is on you
+     * will see a D-pad press show up as stick movement and the other way round: press MODE again to
+     * turn it OFF before you drive!) Shown only before START, so it does not crowd the screen while
+     * driving.
      */
     private void addButtonTestTelemetry() {
-        telemetry.addLine("--- BUTTON TEST (press MODE: does anything here change? If not, the code cannot read it) ---");
+        telemetry.addLine("--- BUTTON TEST (every button each gamepad reports. The physical MODE button is not readable: if its LED is on, press it again) ---");
         telemetry.addData("Gamepad1 buttons now", getPressedButtonsText(gamepad1));
         telemetry.addData("Gamepad1 left stick x, y", "%.2f, %.2f", gamepad1.left_stick_x, gamepad1.left_stick_y);
         telemetry.addData("Gamepad2 buttons now", getPressedButtonsText(gamepad2));
@@ -713,7 +705,7 @@ public class BiobuzzTeleOp extends OpMode {
             waiting = waiting + "flywheel not at speed   ";
         }
         if (tableMode && !hasTarget) {
-            waiting = waiting + "NO TARGET (the camera must see the hive; gamepad2 Back switches to DIAL for a shot without the camera)   ";
+            waiting = waiting + "NO TARGET (the camera must see the hive; gamepad2 LOGO switches to DIAL for a shot without the camera)   ";
         } else if (tableMode && !aimedAtHive) {
             waiting = waiting + "turret not aimed yet   ";
         } else if (!tableMode && !turretSubsystem.isOnTarget()) {
@@ -726,16 +718,16 @@ public class BiobuzzTeleOp extends OpMode {
     }
 
     /*
-     * START on either gamepad switches the alliance (BLUE <-> RED), and gamepad2 Back switches where
+     * START on either gamepad switches the alliance (BLUE <-> RED), and gamepad2 LOGO switches where
      * the flywheel speed comes from (DIAL <-> TABLE). One switch per press. This works
      * before and after START, so the operator can set both during INIT.
      */
     private void checkModeButtons() {
         boolean startPressed = gamepad2.start;
         boolean driverStartPressed = gamepad1.start;
-        boolean backPressed = gamepad2.back;
+        boolean speedSourceTogglePressed = gamepad2.guide;   // gamepad2 LOGO
 
-        if (isNewPress(backPressed, wasBackPressed)) {
+        if (isNewPress(speedSourceTogglePressed, wasSpeedSourceTogglePressed)) {
             tableMode = !tableMode;
         }
         // START on EITHER gamepad switches the alliance. Each gamepad is watched on its own, so
@@ -754,7 +746,7 @@ public class BiobuzzTeleOp extends OpMode {
 
         wasStartPressed = startPressed;
         wasDriverStartPressed = driverStartPressed;
-        wasBackPressed = backPressed;
+        wasSpeedSourceTogglePressed = speedSourceTogglePressed;
     }
 
     /*
@@ -940,30 +932,19 @@ public class BiobuzzTeleOp extends OpMode {
      * WHY NOT THE PHYSICAL "MODE" BUTTON: the coach asked for it, but the FTC SDK's Gamepad class has
      * no field for the Logitech MODE button (it is a hardware switch that swaps the D-pad and left
      * stick). If the INIT screen's BUTTON TEST ever shows a button that changes when MODE is pressed,
-     * point this method (and isModeButtonPressed() for gamepad2) at it. One line each.
+     * point these two methods at it. One line each.
      */
     private boolean isDriveToggleButtonPressedOnDriverPad() {
         return gamepad1.back;
     }
 
-    /*
-     * True when the operator is pressing a drive toggle button on gamepad2: LOGO (the center "guide"
-     * button) or the Left Stick Button (see MODE_BUTTON_GUIDE_ENABLED and
-     * MODE_BUTTON_LEFT_STICK_ENABLED).
-     */
-    private boolean isModeButtonPressed() {
-        boolean pressed = false;
-        if (MODE_BUTTON_GUIDE_ENABLED && gamepad2.guide) {
-            pressed = true;
-        }
-        if (MODE_BUTTON_LEFT_STICK_ENABLED && gamepad2.left_stick_button) {
-            pressed = true;
-        }
-        return pressed;
+    // True when the operator is pressing the DRIVE TOGGLE button on gamepad2. It is BACK too.
+    private boolean isDriveToggleButtonPressedOnOperatorPad() {
+        return gamepad2.back;
     }
 
     /*
-     * The drive toggle (gamepad2 LOGO or gamepad1 BACK) and the driver's D-pad Left. Call it once
+     * The drive toggle (BACK on either gamepad) and the driver's D-pad Left. Call it once
      * per loop.
      *   TOGGLE: if the safety rule switched field-centric off, turn it back ON. Otherwise switch
      *         between FIELD-CENTRIC and ROBOT-CENTRIC.
@@ -972,12 +953,12 @@ public class BiobuzzTeleOp extends OpMode {
      *         turns field-centric back on if the safety rule had switched it off.
      */
     private void checkDriveModeButtons() {
-        boolean modePressed = isModeButtonPressed();
+        boolean operatorTogglePressed = isDriveToggleButtonPressedOnOperatorPad();
         boolean driverTogglePressed = isDriveToggleButtonPressedOnDriverPad();
         boolean reAimPressed = gamepad1.dpad_left;
 
         // Each gamepad is watched on its own, so holding one down never hides a press on the other.
-        if (isNewPress(modePressed, wasModeButtonPressed)
+        if (isNewPress(operatorTogglePressed, wasOperatorDriveTogglePressed)
                 || isNewPress(driverTogglePressed, wasDriverDriveTogglePressed)) {
             if (fieldCentricBlocked) {
                 // Resume. (If the Pinpoint is still not READY, the safety rule switches it off
@@ -996,7 +977,7 @@ public class BiobuzzTeleOp extends OpMode {
             fieldCentricBlocked = false;
         }
 
-        wasModeButtonPressed = modePressed;
+        wasOperatorDriveTogglePressed = operatorTogglePressed;
         wasDriverDriveTogglePressed = driverTogglePressed;
         wasReAimPressed = reAimPressed;
     }
@@ -1016,11 +997,11 @@ public class BiobuzzTeleOp extends OpMode {
      */
     private String getDriveModeText() {
         if (!fieldCentricWanted) {
-            return "ROBOT-CENTRIC (gamepad2 LOGO or gamepad1 BACK switches to FIELD-CENTRIC)";
+            return "ROBOT-CENTRIC (BACK on either gamepad switches to FIELD-CENTRIC)";
         }
         if (fieldCentricBlocked) {
             return "ROBOT-CENTRIC: field-centric was switched off because " + fieldCentricBlockedReason
-                    + ". Gamepad2 LOGO, gamepad1 BACK or the driver's D-pad Left turns it on again.";
+                    + ". BACK on either gamepad or the driver's D-pad Left turns it on again.";
         }
         if (isPinpointInGlitch()) {
             return String.format("FIELD-CENTRIC (the Pinpoint is not READY: holding the last heading, %.2f of %.2f s)",
@@ -1151,9 +1132,9 @@ public class BiobuzzTeleOp extends OpMode {
         // button map again here. That keeps it on the screen until START.
         telemetry.addData("Status", "Ready to start!");
         telemetry.addData("Alliance (START on either gamepad)", visionSubsystem.getAlliance());
-        telemetry.addData("DRIVE MODE (gamepad2 LOGO or gamepad1 BACK)", getDriveModeText());
+        telemetry.addData("DRIVE MODE (BACK on either gamepad)", getDriveModeText());
         telemetry.addData("SOLO MODE (gamepad1 LOGO)", soloMode ? "ON  (the driver's Right Trigger fires too)" : "off (only the operator fires)");
-        telemetry.addData("Flywheel speed source (gamepad2 Back)", getModeText());
+        telemetry.addData("Flywheel speed source (gamepad2 LOGO)", getModeText());
         visionSubsystem.addTelemetry(telemetry);
         // Check that the Pinpoint says READY before START. (The robot must be still until then.)
         pinpointSubsystem.addTelemetry(telemetry);
@@ -1513,7 +1494,7 @@ public class BiobuzzTeleOp extends OpMode {
         }
         // Always on the screen: aiming at the wrong alliance's hive is not an obvious failure.
         telemetry.addData("Alliance (START on either gamepad)", visionSubsystem.getAlliance());
-        telemetry.addData("DRIVE MODE (gamepad2 LOGO or gamepad1 BACK)", getDriveModeText());
+        telemetry.addData("DRIVE MODE (BACK on either gamepad)", getDriveModeText());
         if (soloMode) {
             telemetry.addData("SOLO MODE (gamepad1 LOGO)", "ON  (the driver's Right Trigger fires too)");
         } else {
@@ -1548,7 +1529,7 @@ public class BiobuzzTeleOp extends OpMode {
         // The dials: what the operator has asked for. (They take effect while the driver holds the
         // Right Trigger, or while PRE-REV is ON.)
         telemetry.addLine("--- SHOOTER DIALS (RPM) ---");
-        telemetry.addData("Flywheel speed source (gamepad2 Back)", getModeText());
+        telemetry.addData("Flywheel speed source (gamepad2 LOGO)", getModeText());
         telemetry.addData("Using", rpmSource);
         if (flywheelCapped) {
             telemetry.addData("Flywheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
