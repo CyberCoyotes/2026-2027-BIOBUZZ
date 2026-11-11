@@ -199,7 +199,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Back             -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC). If
  *                       field-centric was switched off by the safety rule, it turns it back ON.
  *                       (Gamepad1's BACK does the same.)
- *   LOGO             -> switch the flywheel speed source DIAL <-> TABLE (starts as DIAL)
+ *   LOGO             -> switch the flywheel speed source DIAL <-> TABLE (starts as TABLE, the camera)
  *   Both sticks, both bumpers, Left Trigger: not used. (The intake is the driver's only.)
  *   The turret has no other operator control. It tracks the hive all the time (see ALWAYS-TRACK
  *   below). It will not go past +/-120 degrees (see TurretSubsystem). 0 degrees is where
@@ -508,8 +508,11 @@ public class BiobuzzTeleOp extends OpMode {
     private int ratioHundredths = RATIO_HUNDREDTHS_START;
 
     // Where the flywheel speed comes from: false = the DIAL, true = the shot TABLE.
-    // It starts on the DIAL, the fallback that needs no camera.
-    private boolean tableMode = false;
+    // It starts on the TABLE (the camera sets the speed), because that is how we want to shoot.
+    // Two things to know about starting there: a volley will not start until the camera sees the
+    // hive, and in a SOLO match nobody can press gamepad 2 LOGO to switch to the DIAL.
+    // (Until the camera has seen the hive, the flywheel just uses the dial's number, 1300.)
+    private boolean tableMode = true;
 
     // The last RPM the table gave, and whether it has given one yet. timeSinceTarget counts the
     // seconds since the camera last saw the hive (it is reset every loop the hive is in view).

@@ -47,7 +47,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the camera says the turret is aimed (within 2 degrees for 0.15 s), then opens the gate, feeds the balls one at a time, and closes it (no lift step). **One volley per press.** **Let go to ABORT** (gate closes, intake stops). Unless PRE-REV is on, both wheels go to 0 power |
 | **Start** | **Alliance** BLUE / RED (starts **BLUE**, check it on the screen). The driver's Start does the same |
 | **Back** | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). Turns field-centric back on after the safety rule. The driver's **BACK** does the same. (The physical **MODE** button cannot be read by the code: see the controls sheet. The INIT screen has a **BUTTON TEST** to check your controller.) |
-| **LOGO** (the center **guide** button) | Flywheel speed source **DIAL / TABLE** (starts DIAL). (On the driver's controller the same button is the SOLO MODE toggle.) |
+| **LOGO** (the center **guide** button) | Flywheel speed source **TABLE / DIAL** (starts **TABLE**, the camera). (On the driver's controller the same button is the SOLO MODE toggle.) |
 | **Sticks, LT, bumpers** | Not used. The turret has no manual control, the intake is the driver's, and the shooter wheels cannot be reversed from this OpMode |
 
 **Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen shows loop time, the alliance, **PRE-REV**, the firing sequence step and what it is **Waiting for**, and **OK to shoot?** (both wheels, for information: the volley itself checks the flywheel only).

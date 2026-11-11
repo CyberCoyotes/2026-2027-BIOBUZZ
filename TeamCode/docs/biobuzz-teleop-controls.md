@@ -46,7 +46,7 @@ The driver drives and runs the **intake** (the intake is the driver's only). **T
 - **No camera and TABLE mode:** the volley will not start. The operator switches to **DIAL** (gamepad 2 **LOGO**) for a shot without the camera.
 - **Clearing a jam:** the driver holds **Left Bumper** (reverse the intake). It beats the volley. The volley's clock keeps running, so the operator should **let go and press RT again** afterward.
 - **The operator's X / B / Y gate buttons are an override and only work between volleys.** During a volley the sequence is in charge of the gate.
-- **SOLO MODE (one person):** press **LOGO** on gamepad 1. Now the driver's Right Trigger fires too (the operator's still works if there is one). In a solo match **nobody can use the operator's buttons**: the gate buttons, the dials and DIAL / TABLE (gamepad 2 LOGO). You **can** still set the alliance (**START**) and switch field / robot centric (**BACK**) yourself. So set DIAL / TABLE with gamepad 2 first if you can, or live with **DIAL**. LOGO is known to reach the Robot Controller on our controllers; the INIT screen's **BUTTON TEST** shows every button each gamepad reports if you want to check.
+- **SOLO MODE (one person):** press **LOGO** on gamepad 1. Now the driver's Right Trigger fires too (the operator's still works if there is one). In a solo match **nobody can use the operator's buttons**: the gate buttons, the dials and DIAL / TABLE (gamepad 2 LOGO). You **can** still set the alliance (**START**) and switch field / robot centric (**BACK**) yourself. The speed source now starts on **TABLE**, so in a solo match **the camera must see the hive before a volley will start**. If the camera cannot see it, someone has to press gamepad 2 **LOGO** to switch to **DIAL** before the match. LOGO is known to reach the Robot Controller on our controllers; the INIT screen's **BUTTON TEST** shows every button each gamepad reports if you want to check.
 - **Not tested on a robot yet:** whether all 4 balls leave (the feed time is a starting guess, `FEED_SECONDS` 3.0 in `FiringSequence`), and whether a ball gets caught when the gate closes at the end of the feed (there is no lift step now).
 
 ### Driver tips
@@ -78,14 +78,14 @@ The operator **fires** (Right Trigger), sets the shooter speeds (RPM), moves the
 | **Left Bumper (LB)** | — (the intake is the driver's only) |
 | **Right Bumper (RB)** | — (the intake is the driver's only) |
 | **Left Trigger (LT)** | — |
-| **Right Trigger (RT)** (hold) | **FIRE a volley** (see *The firing sequence* on the driver page). The turret is already tracking the hive. The wheels use the flywheel speed from the **DIAL** (starts at flywheel 1300 RPM, hood wheel 2600 RPM) or the **TABLE**, whichever you picked. **Let go to ABORT**: the gate closes and the intake stops. Unless PRE-REV is on, both wheels go to 0 power (they coast down). **One volley per press** |
+| **Right Trigger (RT)** (hold) | **FIRE a volley** (see *The firing sequence* on the driver page). The turret is already tracking the hive. The wheels use the flywheel speed from the **TABLE** (the camera; **the default**) or the **DIAL** (starts at flywheel 1300 RPM, hood wheel 2600 RPM), whichever you picked. **Let go to ABORT**: the gate closes and the intake stops. Unless PRE-REV is on, both wheels go to 0 power (they coast down). **One volley per press** |
 | **D-pad Up** | Flywheel target **UP** 100 RPM |
 | **D-pad Down** | Flywheel target **DOWN** 100 RPM |
 | **D-pad Left** | Ratio (hood wheel / flywheel) **DOWN** 0.05 |
 | **D-pad Right** | Ratio (hood wheel / flywheel) **UP** 0.05 |
 | **Start** | Switch the **alliance** BLUE / RED. It starts as **BLUE**. **Check it on the screen** before the match: the wrong alliance aims at the other hive. The driver's Start does the same |
 | **Back** | **Drive toggle**: switch the drive **FIELD-CENTRIC / ROBOT-CENTRIC**. It starts **FIELD-CENTRIC**. If the safety rule switched field-centric off, this turns it back on. The driver's **Back** does the same |
-| **Guide** (center **LOGO** button) | Switch the flywheel speed source **DIAL / TABLE**. It starts on **DIAL**. (On the *driver's* controller the same LOGO button is the SOLO MODE toggle, a different job.) |
+| **Guide** (center **LOGO** button) | Switch the flywheel speed source **TABLE / DIAL**. It starts on **TABLE**. (On the *driver's* controller the same LOGO button is the SOLO MODE toggle, a different job.) |
 
 **Why BACK, and not the physical MODE button?** The code cannot read the Logitech MODE button: the FTC SDK's `Gamepad` class has no field for it, and Logitech says MODE is a hardware switch that swaps the D-pad and the left stick. The INIT screen has a **BUTTON TEST** that lists every button each gamepad reports, if you want to see for yourself. If a button there ever changes when you press MODE, tell us which one and the toggle can move onto it (one line each in `BiobuzzTeleOp`: `isDriveToggleButtonPressedOnDriverPad()` and `isDriveToggleButtonPressedOnOperatorPad()`).
 
