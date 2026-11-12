@@ -5,11 +5,13 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.subsystems.BiobuzzLog;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.FiringSequence;
 import org.firstinspires.ftc.teamcode.subsystems.HiveBearingMemory;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.PowerMonitorSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShotTable;
@@ -496,6 +498,8 @@ public class BiobuzzTeleOp extends OpMode {
     private TurretSubsystem turretSubsystem;
     private VisionSubsystem visionSubsystem;
     private PinpointSubsystem pinpointSubsystem;
+    // The battery black box (see PowerMonitorSubsystem). It only reads and writes the log.
+    private PowerMonitorSubsystem powerMonitorSubsystem;
     private HiveBearingMemory hiveMemory;
     private ShotTable shotTable;
     private FiringSequence firingSequence;
@@ -859,6 +863,21 @@ public class BiobuzzTeleOp extends OpMode {
     }
 
     /*
+     * Switches field-centric off (the drive goes ROBOT-CENTRIC) and remembers WHY, for the screen.
+     * It also writes the reason AND the battery's state to the Robot Controller log, because the
+     * screen only shows the reason until the next one, and the battery is the first thing to check.
+     * (Only the FIRST reason counts: while it is already off, a second reason changes nothing.)
+     */
+    private void blockFieldCentric(String reason) {
+        if (!fieldCentricBlocked) {
+            BiobuzzLog.warning("FIELD-CENTRIC SWITCHED OFF because %s; %s",
+                    reason, powerMonitorSubsystem.getSummaryText());
+        }
+        fieldCentricBlocked = true;
+        fieldCentricBlockedReason = reason;
+    }
+
+    /*
      * Throws away the remembered hive direction when the Pinpoint cannot be trusted, and switches
      * FIELD-CENTRIC drive off for the same reason (a bad heading would make the robot drive the
      * wrong way). Call it once per loop, right after pinpointSubsystem.update(). It only ever
@@ -890,9 +909,8 @@ public class BiobuzzTeleOp extends OpMode {
                 // Too long to be a glitch, so treat it as a restart.
                 hiveMemory.clear();
                 haveLastPinpointHeading = false;
-                fieldCentricBlocked = true;
-                fieldCentricBlockedReason = String.format("the Pinpoint was not READY for more than %.2f seconds",
-                        PINPOINT_GLITCH_TOLERANCE_SECONDS);
+                blockFieldCentric(String.format("the Pinpoint was not READY for more than %.2f seconds",
+                        PINPOINT_GLITCH_TOLERANCE_SECONDS));
             }
             return;
         }
@@ -910,20 +928,21 @@ public class BiobuzzTeleOp extends OpMode {
                 // little. Check against the (smaller) resume limit.
                 if (change > RESUME_MAX_HEADING_CHANGE_DEGREES) {
                     hiveMemory.clear();
-                    fieldCentricBlocked = true;
-                    fieldCentricBlockedReason = String.format(
+                    blockFieldCentric(String.format(
                             "the Pinpoint came back from a glitch with its heading %.0f degrees off (it probably restarted)",
-                            change);
+                            change));
                 } else {
                     pinpointGlitchCount = pinpointGlitchCount + 1;
                     if (gapSeconds > pinpointLongestGlitchSeconds) {
                         pinpointLongestGlitchSeconds = gapSeconds;
                     }
+                    // Write it down: a glitch that fixed itself is the clue we are looking for.
+                    BiobuzzLog.warning("Pinpoint GLITCH #%d (came back by itself after %.2f s, heading moved %.0f deg); %s",
+                            pinpointGlitchCount, gapSeconds, change, powerMonitorSubsystem.getSummaryText());
                 }
             } else if (change > MAX_PINPOINT_HEADING_JUMP_DEGREES) {
                 hiveMemory.clear();
-                fieldCentricBlocked = true;
-                fieldCentricBlockedReason = String.format("the Pinpoint heading jumped %.0f degrees", change);
+                blockFieldCentric(String.format("the Pinpoint heading jumped %.0f degrees", change));
             }
         }
         lastPinpointHeadingDegrees = heading;
@@ -1159,6 +1178,8 @@ public class BiobuzzTeleOp extends OpMode {
         // The Pinpoint zeros its position and calibrates its gyro here, so the robot must be
         // STILL during INIT. If the config has no "pinpoint", this does not stop the OpMode.
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
+        // The battery black box. It only reads the hubs, so it is safe at INIT.
+        powerMonitorSubsystem = new PowerMonitorSubsystem(hardwareMap);
         hiveMemory = new HiveBearingMemory();
         shotTable = new ShotTable();
         firingSequence = new FiringSequence();
@@ -1176,6 +1197,7 @@ public class BiobuzzTeleOp extends OpMode {
         // source can be set (and checked) before START.
         visionSubsystem.update();
         pinpointSubsystem.update();
+        powerMonitorSubsystem.update();
         checkModeButtons();
 
         // The drive: the alliance (just checked above) decides which way "away from the driver" is.
@@ -1191,6 +1213,8 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addData("DRIVE MODE (BACK on either gamepad)", getDriveModeText());
         telemetry.addData("SOLO MODE (gamepad1 LOGO)", soloMode ? "ON  (the driver's Right Trigger fires too)" : "off (only the operator fires)");
         telemetry.addData("Flywheel speed source (gamepad2 LOGO)", getModeText());
+        // The battery: a fresh one reads about 13 V here. Swap it if it is much lower.
+        powerMonitorSubsystem.addTelemetry(telemetry);
         visionSubsystem.addTelemetry(telemetry);
         // Check that the Pinpoint says READY before START. (The robot must be still until then.)
         pinpointSubsystem.addTelemetry(telemetry);
@@ -1222,6 +1246,10 @@ public class BiobuzzTeleOp extends OpMode {
         updateDriveFrameFromAlliance();
         fieldCentricBlocked = false;
         fieldCentricBlockedReason = "";
+
+        // The battery numbers on the screen should be about THIS match, not about INIT.
+        powerMonitorSubsystem.resetStatistics();
+        BiobuzzLog.info("TeleOp STARTED; %s", powerMonitorSubsystem.getSummaryText());
     }
 
     /*
@@ -1247,6 +1275,7 @@ public class BiobuzzTeleOp extends OpMode {
         intakeSubsystem.update();
         visionSubsystem.update();
         pinpointSubsystem.update();
+        powerMonitorSubsystem.update();
         checkPinpointHealth();
 
         // 2. Read the gamepads and decide what to do.
@@ -1608,6 +1637,9 @@ public class BiobuzzTeleOp extends OpMode {
         } else {
             telemetry.addData("PRE-REV (driver D-pad Up)", "off");
         }
+
+        // The battery black box. If something blinks, look here (and in the log) FIRST.
+        powerMonitorSubsystem.addTelemetry(telemetry);
 
         telemetry.addLine("--- DRIVE ---");
         telemetry.addData("Drive Control", driveControl);

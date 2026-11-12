@@ -42,7 +42,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit
  * DROP LOG (a black box for finding why the Pinpoint stops saying READY): every time the status
  * goes from READY to something else, update() records the story of that "drop": which statuses it
  * went through, how long it lasted, and how far the HEADING moved while it was happening. The
- * screen shows it. It changes nothing the robot does. HOW TO READ IT:
+ * screen shows it, and every drop is also written to the Robot Controller log (see BiobuzzLog), so
+ * it can be read after the match. It changes nothing the robot does. HOW TO READ IT:
  *   - FAULT_X_POD / FAULT_Y_POD / FAULT_NO_PODS: a pod cable is loose or a pod is failing. The gyro
  *     (and so the heading) may carry on fine, so look at "heading moved": a small number means the
  *     heading survived.
@@ -238,6 +239,9 @@ public class PinpointSubsystem {
                 if (lastDropSeconds > longestDropSeconds) {
                     longestDropSeconds = lastDropSeconds;
                 }
+                // Also write it to the Robot Controller log, so it can be read after the match.
+                BiobuzzLog.info("Pinpoint drop #%d ended: %.2f s, heading moved %.0f deg, story: %s",
+                        dropCount, lastDropSeconds, lastDropHeadingChangeDegrees, lastDropStory);
             }
             hasBeenReady = true;
             lastReadyHeadingDegrees = headingDegrees;
@@ -257,6 +261,8 @@ public class PinpointSubsystem {
             dropStartHeadingDegrees = lastReadyHeadingDegrees;
             lastDropStory = status.toString();
             lastStatusInDrop = status;
+            BiobuzzLog.warning("Pinpoint drop #%d STARTED: status %s (last READY heading %.1f deg)",
+                    dropCount, status.toString(), lastReadyHeadingDegrees);
         } else if (status != lastStatusInDrop) {
             // Still not READY, but the status changed (for example a fault, then CALIBRATING).
             addToDropStory(status);
