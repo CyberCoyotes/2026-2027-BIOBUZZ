@@ -7,7 +7,7 @@
 > - **Hub:** you said the Control Hub stands on its end with its **USB ports at the ceiling** and its **logo facing the middle of the robot**. USB is `UP` in the code. The logo direction depends on **which wall** the hub is bolted to (left wall: `RIGHT`, right wall: `LEFT`, back: `FORWARD`, front: `BACKWARD`). *(Superseded: you then said left wall, so it is `RIGHT`.)*
 > - **A trap this exposed (and fixed):** my first default (logo `UP`) is physically impossible with USB `UP`. The real SDK **throws** on that pair, which would have **crashed the TeleOp at INIT**. `ImuSubsystem` now catches it, logs it, shows why on the screen, and falls back to robot-centric. Laptop checks guard it, and a mutation test (the bad setting put back) turns one red.
 > - **Pollen:** the manual (section 9.8) says POLLEN are about 2.8 in **Gopher ResisDent polyethylene** balls, so my static-electricity hypothesis is **stronger** than I first rated it. I was also wrong to say the manual did not give the material, and to say "nectar": your robot only takes in pollen.
-> - These changes are on the suggestions branch. This review branch has only this document.
+> - **Merged into `main` on 2026-11-12:** the suggestions branch went in as `5c3e46d` and this document's corrections as `f547949`, so `main` now has both the code and the docs. (These notes were written before either merge.)
 
 ## 0. The 60-second version
 
@@ -234,7 +234,7 @@ The goal is "a student who did not write this can change it safely". Ask these i
 
 ## 4. The code-suggestions branch
 
-Branch: `claude/stoic-pasteur-ggp2jy-code-suggestions` (12 commits on top of the session branch). **Nothing is merged and no pull request was opened.**
+Branch: `claude/stoic-pasteur-ggp2jy-code-suggestions` (12 commits on top of the session branch). **It was merged into `main` on 2026-11-12 as `5c3e46d`, a merge commit, so `git revert -m 1 5c3e46d` undoes all of it.** I did not open a pull request: the merge was done directly, on your instruction. The table below describes the commits as they were when it was written; their hashes are still valid in `main`'s history.
 
 | Commit | What | Risk | Depends on | On/off | How to test on the robot |
 |---|---|---|---|---|---|
@@ -259,7 +259,7 @@ Branch: `claude/stoic-pasteur-ggp2jy-code-suggestions` (12 commits on top of the
 
 - **No split of `loop()`** (finding 1): 512 lines of behavior that no saved test covers. Plan in 2.2.
 - **Nothing that depends on an open `[CONFIRM]`:** the one-ready-check decision (#62), the Auto's switch away from `isOnTarget()` (#63 session 3), the gate positions, hood wheel behavior, the flavors and `main` versus `master`. Your protocol says to stop and ask. They are in section 5.
-- ~~No rename to "TeleOp - Alpha 14".~~ **Done at your request** (`6a9938c`), on the suggestions branch only. **This review branch still has Alpha 13** because it has not got the changes that make it Alpha 14. If you merge only the review branch, nothing renames. If you merge the suggestions branch, the name changes with it.
+- ~~No rename to "TeleOp - Alpha 14".~~ **Done at your request** (`6a9938c`), and now in `main` (merged as `5c3e46d`): the TeleOp, the three Autos' `preselectTeleOp` and the live docs all say "TeleOp - Alpha 14". (Before that merge, the review branch still said Alpha 13 because it did not have the changes that make it Alpha 14.)
 - **`DriveAlpha` unchanged.** It still has the old Pinpoint-heading drive. Retire it or point it at `ImuSubsystem` after the TeleOp's IMU drive is confirmed.
 - **Did not touch** `FtcRobotController/`, the Gradle files, or the Pedro files.
 - **Did not add a dependency.** The laptop checks use only the FTC jars you already depend on, downloaded on a laptop and not into the build.
