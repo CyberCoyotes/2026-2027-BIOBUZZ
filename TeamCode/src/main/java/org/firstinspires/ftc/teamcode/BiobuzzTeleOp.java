@@ -58,9 +58,19 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   PRE-REV: the driver's D-pad Up switches the wheels ON / OFF while you drive to the shooting
  *     spot, so the 4 seconds of spin-up are not paid at every volley. It starts OFF, and the screen
  *     says PRE-REV ON. It does not touch the gate or the intake.
- *   The gate buttons (operator X / B / Y) are an OVERRIDE. Between volleys X, B and Y all work.
+ *   The gate buttons (operator X / Y) are an OVERRIDE. Between volleys X and Y both work.
  *     While a volley WAITS (the gate is held CLOSED) they do nothing. While it FEEDS the gate is
- *     OPENED, and holding Y LIFTS it (see LIFTED below); X and B do nothing.
+ *     OPENED, and holding Y LIFTS it (see LIFTED below); X does nothing.
+ *   FORCED SHOT (operator B, HOLD): the override for "the checks are wrong". B used to be a plain
+ *     "gate OPENED" button, and it did nothing while a volley waited. Now, while B is HELD: the wheels
+ *     spin (at the dial or table speed, even with the trigger let go and PRE-REV off), the gate OPENS,
+ *     and the intake runs forward, WITHOUT waiting for the flywheel to be at speed or the turret to be
+ *     aimed. Let go of B and the gate CLOSES by itself, with the same short intake REVERSE as any other
+ *     close (see GATE CLOSING AUTO-REVERSE). If the trigger is still held then, the volley starts over
+ *     and waits for READY as normal. Y still lifts during a forced shot. The screen says FORCED SHOT.
+ *     The driver has no forced shot (not even in SOLO MODE). It is for when the camera is dead or the
+ *     READY check is stuck: if the flywheel is slow the shot will be weak. (Coach answer in issue #63:
+ *     the gate buttons were "an override between volleys only". The forced shot is the one exception.)
  *   The intake is the DRIVER's only (gamepad1 bumpers; the operator's bumpers do nothing). REVERSE (Left
  *     Bumper) beats the volley, which beats INTAKE (Right Bumper).
  *   GATE CLOSING AUTO-REVERSE: any time the gate closes from OPENED or from LIFTED,
@@ -182,7 +192,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *
  * GAMEPAD 2 (the operator) has NO layers. Every button always does the same thing:
  *   X -> shooter GATE CLOSED (holds the ball back)
- *   B -> shooter GATE OPENED (lets the ball through)
+ *   B -> HOLD for a FORCED SHOT: wheels on, gate OPENED and intake running right now, even when the
+ *        READY checks say "not ready". Let go and the gate CLOSES (with the intake reversing for that
+ *        moment). See NEW IN ALPHA 13. (B used to be a one-press "gate OPENED" button.)
  *   Y -> HOLD for shooter GATE LIFTED (pushes the very last ball up into the flywheel; with no ball
  *        behind it, nothing else would). OPENED is the position BETWEEN LIFTED and CLOSED.
  *        (The driver's Y does the same, but ONLY in SOLO MODE. Everything below works the same
@@ -192,9 +204,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *        - Between volleys: hold Y to LIFT, let go and the gate CLOSES (with the intake
  *          reversing for that moment, see GATE CLOSING AUTO-REVERSE).
  *        - While a volley WAITS: ignored.
- *      X and B are ONE move per press. The gate positions are CLOSED_POSITION, OPENED_POSITION and
- *       LIFTED_POSITION in ShooterServoSubsystem. If more than one is pressed on the same loop,
- *       CLOSED wins, then OPENED, then Y. X and B only work BETWEEN volleys: during a volley the
+ *      X is ONE move per press. The gate positions are CLOSED_POSITION, OPENED_POSITION and
+ *       LIFTED_POSITION in ShooterServoSubsystem. If X and Y are pressed on the same loop,
+ *       CLOSED wins. X only works BETWEEN volleys: during a volley (and a forced shot) the
  *       firing sequence is in charge of the gate, see NEW IN ALPHA 13.)
  *   A -> HOLD to STOP the turret (it floats, so you can turn it by hand). Let go and it goes
  *        back to tracking the hive.
@@ -241,7 +253,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      hood wheel 2600 RPM (a ratio of 2.00).
  *   Y (HOLD)     -> ONLY in SOLO MODE (LOGO): shooter GATE LIFTED, the same as the operator's Y (see
  *      GAMEPAD 2 below, and issue #78). With SOLO MODE off, the driver's Y does nothing.
- *   X / B        -> not used. (The shooter gate moved to the operator's X / B.)
+ *   X / B        -> not used. (The shooter gate and the FORCED SHOT are the operator's X / B / Y.)
  *
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (SPEED CONTROL in RPM, read from the wheel encoders)
  *   D-pad Up / Down    -> flywheel target RPM UP / DOWN by FLYWHEEL_RPM_STEP
@@ -542,7 +554,6 @@ public class BiobuzzTeleOp extends OpMode {
     // but we want it to count only ONCE. So we only act when it was NOT pressed last loop
     // and IS pressed now.
     private boolean wasGateClosedPressed = false;
-    private boolean wasGateOpenedPressed = false;
     private boolean wasGateLiftedPressed = false;
     private boolean wasDpadLeftPressed = false;
     private boolean wasDpadRightPressed = false;
@@ -622,7 +633,8 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("LOGO = flywheel speed DIAL / TABLE");
         telemetry.addLine("D-pad Up / Down = flywheel RPM up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
-        telemetry.addLine("X = gate CLOSED   B = gate OPENED   Y (HOLD) = gate LIFTED, to push the last ball in");
+        telemetry.addLine("X = gate CLOSED   Y (HOLD) = gate LIFTED, to push the last ball in");
+        telemetry.addLine("B (HOLD) = FORCED SHOT: wheels on, gate OPEN, intake runs, even if not ready (let go = gate closes)");
         telemetry.addLine("Right Trigger (hold) = FIRE a volley (let go = abort)");
         telemetry.addLine("A (hold) = float the turret by hand (it tracks again when you let go)");
     }
@@ -1272,8 +1284,10 @@ public class BiobuzzTeleOp extends OpMode {
 
         // ---- Gamepad 2 (operator) ----
         // The operator's face buttons move the shooter gate. (A is the turret float button.)
+        // B is the FORCED SHOT: HOLD it to shoot even when the READY checks say "not ready" (see the
+        // firing sequence below). The driver has no forced shot, not even in SOLO MODE.
         boolean gateClosedPressed = gamepad2.x;
-        boolean gateOpenedPressed = gamepad2.b;
+        boolean forcedShotHeld = gamepad2.b;
         // LIFTED is the one gate button the DRIVER can use too, but ONLY in SOLO MODE (gamepad1 LOGO),
         // the same way the driver's Right Trigger only fires in SOLO MODE. In a solo match nobody
         // is on gamepad 2, so without this the last ball could not be lifted into the flywheel.
@@ -1365,7 +1379,8 @@ public class BiobuzzTeleOp extends OpMode {
         // from the last loop. It changes only in step 3 below.)
         FiringSequence.SequenceState sequenceStep = firingSequence.getState();
         boolean feedingOrLater = sequenceStep == FiringSequence.SequenceState.FEED
-                || sequenceStep == FiringSequence.SequenceState.DONE;
+                || sequenceStep == FiringSequence.SequenceState.DONE
+                || sequenceStep == FiringSequence.SequenceState.FORCED;
         double shotRatio = ratio;
         if (feedingOrLater) {
             if (!shotFrozen) {
@@ -1421,13 +1436,17 @@ public class BiobuzzTeleOp extends OpMode {
         // Shooter wheels. They spin while the driver HOLDS the Right Trigger (to fire) or while PRE-REV
         // is ON, at the same speed either way: the DIAL or the TABLE, frozen during a volley (see
         // above). (There is no wheel reverse in this OpMode any more.)
-        boolean wheelsWanted = fireHeld || preRevOn;
+        // The FORCED SHOT (operator B, held) spins them too, so a forced shot is a real shot even with
+        // the trigger let go and PRE-REV off.
+        boolean wheelsWanted = fireHeld || forcedShotHeld || preRevOn;
         String shooterControl;
         if (wheelsWanted) {
             // The shooter's speed control holds each wheel at its target, even when a ball slows it
             // down or the battery drains.
             shooterSubsystem.setTargetRpms(flywheelTargetRpm, hoodWheelTargetRpm);
-            if (fireHeld && operatorFireHeld) {
+            if (forcedShotHeld) {
+                shooterControl = "Operator B (FORCED SHOT)";
+            } else if (fireHeld && operatorFireHeld) {
                 shooterControl = "Operator Right Trigger (FIRE)";
             } else if (fireHeld) {
                 shooterControl = "Driver Right Trigger (FIRE, SOLO MODE)";
@@ -1489,7 +1508,9 @@ public class BiobuzzTeleOp extends OpMode {
             turretReady = turretErrorDegrees <= NO_CAMERA_TURRET_READY_DEGREES;
         }
         boolean readyToStart = flywheelAtSpeed && turretReady;
-        firingSequence.update(fireHeld, readyToStart, flywheelAtSpeed, turretReady);
+        // forcedShotHeld (operator B) skips the readiness checks: the sequence opens the gate and runs
+        // the intake at once, and closes the gate when B is let go.
+        firingSequence.update(fireHeld, forcedShotHeld, readyToStart, flywheelAtSpeed, turretReady);
 
         // Shooter gate. Every move is instant, at the servo's top speed. When the gate closes from OPENED
         // or LIFTED, the INTAKE runs in reverse for a short time to push a ball out of the way (see the
@@ -1500,16 +1521,18 @@ public class BiobuzzTeleOp extends OpMode {
         //   - FEEDING: it holds the gate OPENED, until the trigger is let go. The one exception is
         //     the Y button: while Y is HELD the gate is LIFTED instead (to push the last ball up into
         //     the flywheel), and when Y is let go the gate goes back to OPENED and the volley carries on.
+        //   - FORCED SHOT (operator B held): the same as FEEDING, but it does not wait for anything.
+        //     Y lifts here too. When B is let go the sequence closes the gate (once), and the intake
+        //     reverse below does the rest, so the gate goes back to CLOSED by itself.
         //   - The trigger is let go: it closes the gate (once).
-        // Between volleys the operator's buttons work: X = CLOSED, B = OPENED, and Y (HOLD) = LIFTED
+        // Between volleys the operator's buttons work: X = CLOSED, and Y (HOLD) = LIFTED
         // (the driver's Y too, in SOLO MODE):
         // let go of Y and the gate closes, because CLOSED is the gate's normal position.
-        // X and B count as ONE press only on the loop where they go from "not pressed" to "pressed",
-        // so holding them does not keep re-sending the move. We work the presses out every loop,
-        // even during a volley, so an old press never waits around. If more than one is pressed on the
-        // same loop, CLOSED wins, then OPENED, then LIFTED.
+        // X counts as ONE press only on the loop where it goes from "not pressed" to "pressed",
+        // so holding it does not keep re-sending the move. We work the presses out every loop,
+        // even during a volley, so an old press never waits around. If both are pressed on the
+        // same loop, CLOSED wins, then LIFTED.
         boolean closedNewPress = isNewPress(gateClosedPressed, wasGateClosedPressed);
-        boolean openedNewPress = isNewPress(gateOpenedPressed, wasGateOpenedPressed);
         boolean liftedNewPress = isNewPress(gateLiftedPressed, wasGateLiftedPressed);
         boolean liftedReleased = wasGateLiftedPressed && !gateLiftedPressed;
         FiringSequence.GateCommand gateCommand = firingSequence.getGateCommand();
@@ -1523,20 +1546,21 @@ public class BiobuzzTeleOp extends OpMode {
                 gateControl = "firing sequence feeding, Y HELD: LIFTED (pushing the last ball in)";
             } else {
                 shooterServoSubsystem.goToOpened();
-                gateControl = "firing sequence (OPENED)";
+                if (forcedShotHeld) {
+                    gateControl = "FORCED SHOT (B held): OPENED, checks skipped";
+                } else {
+                    gateControl = "firing sequence (OPENED)";
+                }
             }
         } else if (closedNewPress) {
             shooterServoSubsystem.goToClosed();
             gateControl = "manual (X)";
-        } else if (openedNewPress) {
-            shooterServoSubsystem.goToOpened();
-            gateControl = "manual (B)";
         } else if (liftedNewPress) {
             shooterServoSubsystem.goToLifted();
             gateControl = "manual (Y held: LIFTED)";
         } else if (liftedReleased && shooterServoSubsystem.isLifted()) {
             // Y was let go while the gate was LIFTED, and no volley is running: back to CLOSED. (The
-            // isLifted() check keeps this from closing a gate that X or B has already moved.)
+            // isLifted() check keeps this from closing a gate that X has already moved.)
             shooterServoSubsystem.goToClosed();
             gateControl = "manual (Y let go: CLOSED)";
         } else if (gateLiftedPressed && shooterServoSubsystem.isLifted()) {
@@ -1583,7 +1607,6 @@ public class BiobuzzTeleOp extends OpMode {
         wasDpadUpPressed = dpadUpPressed;
         wasDpadDownPressed = dpadDownPressed;
         wasGateClosedPressed = gateClosedPressed;
-        wasGateOpenedPressed = gateOpenedPressed;
         wasGateLiftedPressed = gateLiftedPressed;
         wasDpadLeftPressed = dpadLeftPressed;
         wasDpadRightPressed = dpadRightPressed;
