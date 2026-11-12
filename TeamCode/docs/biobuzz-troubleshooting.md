@@ -13,7 +13,7 @@
 | Home switch always reads the wrong way or the code cannot read it | Configured as "REV Touch Sensor" instead of **Digital Device**. | Reconfigure as a Digital Device. |
 | Gamepads do nothing | Not paired. | **Start + A** (driver) and **Start + B** (operator). Logitech switch on **X**. |
 | A gamepad was paired (or re-paired) while the TeleOp was running and the alliance flipped | Pairing is **Start + A** (driver) or **Start + B** (operator), so it also presses **START** in the OpMode, and START switches the alliance on **both** gamepads. | Check the alliance on the screen and press START again if it is wrong. Better: pair before pressing START on the Driver Station. |
-| The operator paired gamepad 2 while the TeleOp was running and the gate opened | **B** on gamepad 2 is the gate-OPENED button (it works between volleys), and the pairing combo Start + B presses it. (Gamepad 1's buttons do not move the gate.) | Press **X** on gamepad 2 to close it (it closes gently, and the intake reverses for that moment). Pair before START. |
+| The operator paired gamepad 2 while the TeleOp was running and the gate opened (and the wheels and the intake ran) | **B** on gamepad 2 is the FORCED SHOT button (wheels on, gate OPENED, intake running, checks skipped), and the pairing combo Start + B holds it. (Gamepad 1's buttons do not move the gate.) | Press **X** on gamepad 2 to close it (it closes gently, and the intake reverses for that moment). Pair before START. |
 
 ## Shooting
 

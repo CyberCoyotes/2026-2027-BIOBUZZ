@@ -19,7 +19,7 @@ The driver drives and runs the **intake** (the intake is the driver's only). **T
 | **Left Stick** (move) | Drive forward / backward and slide (strafe) left / right |
 | **Right Stick** (move) | Turn (push right to turn right) |
 | **A** | — |
-| **B** | — |
+| **B** (HOLD) | **Only in SOLO MODE:** the **FORCED SHOT**, the same as the operator's B (wheels on, gate OPENED, intake running, even if the READY checks say "not ready"; let go and the gate closes). With SOLO MODE off, it does nothing |
 | **X** | — |
 | **Y** (HOLD) | **Only in SOLO MODE** (see the Guide button): shooter gate **LIFTED**, to push the very last ball into the flywheel, the same as the operator's Y. With SOLO MODE off, it does nothing |
 | **Left Bumper (LB)** | **REVERSE** the intake: push balls out. Beats the Right Bumper and a volley's feed, so clearing a jam always works |
@@ -32,7 +32,7 @@ The driver drives and runs the **intake** (the intake is the driver's only). **T
 | **D-pad Right** | — |
 | **Start** | **ALLIANCE** BLUE / RED, the same as the operator's Start. Starts as **BLUE**. **Check it on the screen.** (**Start + A** also pairs this controller on the Driver Station: pair before START, or check the alliance afterward) |
 | **Back** | Drive **FIELD-CENTRIC / ROBOT-CENTRIC** toggle, the same as the operator's Back |
-| **Guide** (center logo button) | **SOLO MODE** on / off, for a **one-person match** (starts **OFF**). While it is ON, your Right Trigger fires a volley, your **Y** lifts the gate, and the screen says **SOLO MODE ON**. Press it again to switch it OFF. It works during INIT too |
+| **Guide** (center logo button) | **SOLO MODE** on / off, for a **one-person match** (starts **OFF**). While it is ON, your Right Trigger fires a volley, your **Y** lifts the gate, your **B** (hold) is the forced shot, and the screen says **SOLO MODE ON**. Press it again to switch it OFF. It works during INIT too |
 
 ### The firing sequence (the operator holds the Right Trigger)
 1. **The operator holds RT** (the driver's RT in SOLO MODE). The wheels spin (if they are not already) and the screen says **Waiting for** whatever is missing, with numbers: **flywheel not at speed**, **turret not aimed yet (the camera says 2.6 deg off, it needs 2.0 or less)**, **turret is floating** (the operator is holding A), or **NO TARGET** (in TABLE mode the camera must see the hive). The **camera** decides whether the turret is aimed: it must read within 2 degrees for a moment (0.15 s), so the volley does not start while the turret is still swinging in.
@@ -44,12 +44,13 @@ The driver drives and runs the **intake** (the intake is the driver's only). **T
 - **PRE-REV (the driver's D-pad Up)** spins the wheels while you drive to the spot. When RT is pressed the volley starts as soon as the turret is ready.
 - **No camera and TABLE mode:** the volley will not start. The operator switches to **DIAL** (gamepad 2 **LOGO**) for a shot without the camera.
 - **Clearing a jam:** the driver holds **Left Bumper** (reverse the intake). It beats the volley. When the driver lets go, the volley's feeding carries on by itself (there is no clock to run out).
-- **The operator's gate buttons are an override.** **X** (CLOSED) and **B** (OPENED) only work **between volleys**. **Y is HOLD-to-LIFT**: the gate is LIFTED while Y is held, to push the very last ball up into the flywheel (with no ball behind it, nothing else would). OPENED is the position between LIFTED and CLOSED.
+- **The operator's B is the FORCED SHOT** (an override for when the READY checks are wrong, for example the camera is dead or the turret says "not aimed" when it is). **HOLD B**: the wheels spin, the gate **OPENS** and the intake **runs forward right now**, without waiting for the flywheel to be at speed or the turret to be aimed. It works with RT held or not. **Let go and the gate CLOSES by itself**, with the automatic reverse (0.5 s). If RT is still held then, the volley starts over and waits for READY as normal. The screen says **FORCED SHOT**. If the flywheel is slow, the shot will be weak. You (the driver) can force a shot with **B** too, but **only in SOLO MODE** (issue #80).
+- **The operator's X (CLOSED) is an override** and only works **between volleys**. **Y is HOLD-to-LIFT**: the gate is LIFTED while Y is held, to push the very last ball up into the flywheel (with no ball behind it, nothing else would). OPENED is the position between LIFTED and CLOSED.
   - **While the volley is FEEDING** (RT held, the wheels at speed): hold **Y** to lift, let go and the gate goes **back to OPENED** and the volley carries on. This is the normal way to get the last ball out. Nothing closes the gate, and there is no reverse (OPENED is not a close).
   - **Between volleys:** hold **Y** to lift, let go and the gate **CLOSES**, with the automatic reverse (0.5 s).
-  - **While the volley is only WAITING:** Y does nothing (the gate is held CLOSED).
+  - **While the volley is only WAITING:** Y does nothing (the gate is held CLOSED). (Holding B skips the wait: see the forced shot above. Y lifts during a forced shot too.)
   - **In SOLO MODE the driver's Y does the same job as the operator's Y**, with all three rules above. With SOLO MODE off, the driver's Y does nothing.
-- **SOLO MODE (one person):** press **LOGO** on gamepad 1. Now the driver's Right Trigger fires too and the driver's **Y** (hold) lifts the gate (the operator's buttons still work if there is one). In a solo match **nobody can use the rest of the operator's buttons**: gate CLOSED / OPENED (X / B), the dials and DIAL / TABLE (gamepad 2 LOGO). You **can** still set the alliance (**START**) and switch field / robot centric (**BACK**) yourself. The speed source now starts on **TABLE**, so in a solo match **the camera must see the hive before a volley will start**. If the camera cannot see it, someone has to press gamepad 2 **LOGO** to switch to **DIAL** before the match. LOGO is known to reach the Robot Controller on our controllers; the INIT screen's **BUTTON TEST** shows every button each gamepad reports if you want to check.
+- **SOLO MODE (one person):** press **LOGO** on gamepad 1. Now the driver's Right Trigger fires too the driver's **Y** (hold) lifts the gate and the driver's **B** (hold) is the forced shot (the operator's buttons still work if there is one). In a solo match **nobody can use the rest of the operator's buttons**: gate CLOSED (X) and the FORCED SHOT (B), the dials and DIAL / TABLE (gamepad 2 LOGO). You **can** still set the alliance (**START**) and switch field / robot centric (**BACK**) yourself. The speed source now starts on **TABLE**, so in a solo match **the camera must see the hive before a volley will start**. If the camera cannot see it, someone has to press gamepad 2 **LOGO** to switch to **DIAL** before the match. LOGO is known to reach the Robot Controller on our controllers; the INIT screen's **BUTTON TEST** shows every button each gamepad reports if you want to check.
 - **Not tested on a robot yet:** whether the last ball leaves with the Y lift, whether pausing the intake when the turret is off feels right (a flickering camera pauses it for a moment), and whether a ball gets caught when the gate closes. The flywheel RPM and the ratio stay **frozen for as long as you hold RT**, so if you move to a different spot, let go and press RT again.
 
 ### Driver tips
@@ -60,7 +61,7 @@ The driver drives and runs the **intake** (the intake is the driver's only). **T
 - **The turret keeps pointing at the hive while you spin, even if the camera loses it.** The Pinpoint remembers which way the hive was. It gives up (screen: **Hive memory ... STALE**, turret holds still) if you drive more than **12 inches** or **5 seconds** pass without the camera seeing the hive. When the camera sees the hive again it takes over.
 - The turret **always tracks the hive**, so you don't need to hold anything to aim. If the screen says **NO TARGET**, the turret just holds where it is, so check the alliance and point the robot toward the hive.
 - The operator's **A** (hold) floats the turret, so don't be surprised if the turret stops following while they hold it.
-- **The shooter gate is the sequence's job during a volley**, and the operator's (X / B / Y on gamepad 2) between volleys. Your X / B / Y do nothing.
+- **The shooter gate is the sequence's job during a volley**, and the operator's (X / Y between volleys, B for a forced shot, all on gamepad 2). Your X does nothing, and your Y (lift) and B (forced shot) only work in SOLO MODE.
 - You do not wait for "OK to shoot" any more: the volley waits for you. It checks the **flywheel only** (within 25 RPM for 0.15 s), plus the turret. The screen also shows the **hood wheel's error** and the old **"OK to shoot?"** line (both wheels), for information.
 - **There is no way to reverse the shooter wheels** from the controllers. If a ball jams in the wheels, stop the robot and clear it by hand (power off first). The intake REVERSE (your Left Bumper) still works for the intake.
 
@@ -68,14 +69,14 @@ The driver drives and runs the **intake** (the intake is the driver's only). **T
 
 ## Gamepad 2: OPERATOR
 
-The operator **fires** (Right Trigger), sets the shooter speeds (RPM), moves the shooter gate between volleys, and picks the alliance. **The intake is the driver's**, not the operator's. **The operator does not aim the turret by hand.** **Every button always does the same thing** (no layers).
+The operator **fires** (Right Trigger), sets the shooter speeds (RPM), moves the shooter gate between volleys, can force a shot (B) when the checks are wrong, and picks the alliance. **The intake is the driver's**, not the operator's. **The operator does not aim the turret by hand.** **Every button always does the same thing** (no layers).
 
 | Button | What it does |
 |---|---|
 | **Left Stick** (move) | — |
 | **Right Stick** (move) | — |
 | **A** (hold) | **FLOAT the turret** so you can turn it by hand. Let go and it goes back to tracking the hive |
-| **B** | Shooter gate **OPENED** (lets the ball through). **Only between volleys** |
+| **B** (HOLD) | **FORCED SHOT**: wheels on, gate **OPENED** and intake running **right now**, even when the READY checks say "not ready". Works with RT held or not. **Let go and the gate CLOSES** (with the 0.5 s intake reverse). If RT is still held, the volley starts over at "waiting". Y still lifts. Use it when the camera or the READY check is wrong |
 | **X** | Shooter gate **CLOSED** (holds the ball back). **Only between volleys** |
 | **Y** (HOLD) | Shooter gate **LIFTED**, to push the very last ball into the flywheel. **Hold it while the volley is feeding** (RT still held): let go and the gate goes back to OPENED. **Between volleys:** let go and the gate closes. Ignored while the volley is only waiting. The firing sequence never lifts by itself |
 | **Left Bumper (LB)** | — (the intake is the driver's only) |
@@ -92,9 +93,9 @@ The operator **fires** (Right Trigger), sets the shooter speeds (RPM), moves the
 
 **Why BACK, and not the physical MODE button?** The code cannot read the Logitech MODE button: the FTC SDK's `Gamepad` class has no field for it, and Logitech says MODE is a hardware switch that swaps the D-pad and the left stick. The INIT screen has a **BUTTON TEST** that lists every button each gamepad reports, if you want to see for yourself. If a button there ever changes when you press MODE, tell us which one and the toggle can move onto it (one line each in `BiobuzzTeleOp`: `isDriveToggleButtonPressedOnDriverPad()` and `isDriveToggleButtonPressedOnOperatorPad()`).
 
-One move per press for the gate, the dials, Start, Back and the drive toggle. **Holding a button does not repeat it.** Press again for the next step.
+One move per press for X, the dials, Start, Back and the drive toggle. **Holding a button does not repeat it.** Press again for the next step. (B and Y are the two HOLD buttons.)
 
-**Gate priority:** if more than one gate button is pressed at the same time, **CLOSED wins, then OPENED, then LIFTED**. While a volley is running, X and B do nothing: the firing sequence runs the gate (Y still lifts it while feeding, see above).
+**Gate priority:** if X and Y are pressed at the same time, **CLOSED wins**. While a volley or a forced shot is running, X does nothing: the firing sequence runs the gate (Y still lifts it while feeding, see above).
 
 ### The turret: ALWAYS-TRACK
 The turret follows the hive **all the time**, with no button held, and it also follows the robot's spin. There is **no switch** for it any more: it is always ON. It never moves during INIT.
@@ -106,7 +107,7 @@ The turret follows the hive **all the time**, with no button held, and it also f
 ### Alliance and speed source
 **DIAL** is the speed the operator dialed in (below), and needs no camera. **TABLE** uses the shot table: while the camera sees the hive, the flywheel speed comes from how high the hive's tags appear (closer = lower RPM). If the camera loses the hive, the table's last speed is kept for **1 second**, then the flywheel goes back to the dial. The screen says which one is in use. The hood wheel is always the flywheel speed x the ratio dial.
 
-**Pairing warning:** gamepad 1 is paired with **Start + A** and gamepad 2 with **Start + B**. If you pair or re-pair either one while this OpMode is running, **Start flips the alliance** (it may flip to the wrong one), and **B opens the gate** (on gamepad 2). Pair before START, or check the **Alliance** line and the gate on the screen afterward.
+**Pairing warning:** gamepad 1 is paired with **Start + A** and gamepad 2 with **Start + B**. If you pair or re-pair either one while this OpMode is running, **Start flips the alliance** (it may flip to the wrong one), and **B starts a FORCED SHOT** (on gamepad 2: the wheels spin and the gate opens and the intake runs, for as long as the pairing combo holds B). **Keep hands and balls clear.** Pair before START, or check the **Alliance** line and the gate on the screen afterward.
 
 ### Shooter speeds (the dials)
 These set the RPMs the **Right Trigger** shot uses. The wheels only spin while the trigger is held (or PRE-REV is on), and the shooter's speed control holds each wheel at its target RPM. **During a volley the dials are frozen** (the flywheel RPM and the ratio keep their values until the volley ends), so turning a dial mid-volley does nothing until it is over.
@@ -118,4 +119,4 @@ The shooter wheels **cannot be reversed** from the controllers any more (the old
 ### Operator tips
 - The intake is the **driver's only**. Your bumpers do nothing.
 - The gate positions are tuned in `ShooterServoSubsystem` (`CLOSED_POSITION`, `OPENED_POSITION`, `LIFTED_POSITION`). The screen shows the position we **commanded**: a servo cannot report where it really is.
-- **Right now free (blank) on gamepad 2:** both sticks, both bumpers, Left Trigger. **Free on gamepad 1:** A, B, X, D-pad Down, D-pad Right. (Gamepad 1's Right Trigger and Y only do something in SOLO MODE, its D-pad Up is PRE-REV, Start is the alliance, Back is the drive toggle and LOGO is the SOLO MODE toggle.)
+- **Right now free (blank) on gamepad 2:** both sticks, both bumpers, Left Trigger. **Free on gamepad 1:** A, X, D-pad Down, D-pad Right. (Gamepad 1's Right Trigger, Y and B only do something in SOLO MODE, its D-pad Up is PRE-REV, Start is the alliance, Back is the drive toggle and LOGO is the SOLO MODE toggle.)

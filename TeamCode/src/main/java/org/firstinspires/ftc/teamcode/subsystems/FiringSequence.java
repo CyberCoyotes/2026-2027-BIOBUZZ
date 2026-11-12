@@ -46,6 +46,16 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *   ABORT / END: releasing the button at any step closes the gate once and gives the intake back. Any
  *   balls not yet shot stay in the chute.
  *
+ * FORCED SHOT (a 3rd step, FORCED, the operator's B button in the TeleOp)
+ *   An OVERRIDE for when a check is wrong or broken (the camera is dead, the turret says "not aimed"
+ *   but it is, the flywheel "never reaches speed"). While forceShot is true the sequence skips
+ *   WAIT_FOR_READY and the intake's pauses: the gate is OPENED and the intake runs forward, at
+ *   once. It works with the fire button held or not. Let go and the gate closes once (the OpMode then
+ *   reverses the intake for the length of the close). If the fire button is still held at that
+ *   moment, the volley starts over at WAIT_FOR_READY, so it cannot keep feeding on its own.
+ *   It does NOT touch the wheels: the OpMode decides to spin them. A forced shot with slow wheels
+ *   makes a weak shot. That is the price of the override.
+ *
  * AN OPTIONAL FEED LIMIT (for the Auto, which has no button to let go of)
  *   setMaxFeedSeconds(seconds) stops the feed after that many seconds: the gate CLOSES, the step
  *   becomes DONE, and it stays DONE until the button is released (so it cannot fire again by
@@ -94,7 +104,8 @@ public class FiringSequence {
         IDLE,            // No volley. The fire button is not held.
         WAIT_FOR_READY,  // Button held. Gate CLOSED. Waiting for readyToStart.
         FEED,            // Gate OPENED. Feeding balls, until the button is released.
-        DONE             // Only with a feed limit: the limit ran out. Gate CLOSED. Waiting for release.
+        DONE,            // Only with a feed limit: the limit ran out. Gate CLOSED. Waiting for release.
+        FORCED           // FORCED SHOT button held: gate OPENED and intake running, checks ignored.
     }
 
     // What the OpMode should tell the gate this loop.
@@ -156,6 +167,19 @@ public class FiringSequence {
      * getGateCommand(), ownsIntake() and wantsIntake().
      */
     public void update(boolean fireHeld, boolean readyToStart, boolean flywheelAtSpeed, boolean turretAimed) {
+        // No forced shot. (The Auto and the test OpMode use this one.)
+        update(fireHeld, false, readyToStart, flywheelAtSpeed, turretAimed);
+    }
+
+    /*
+     * The same, with the FORCED SHOT button (the TeleOp uses this one). forceShot = true means "shoot
+     * NOW, I know better than the checks": the gate OPENS and the intake runs forward whether or not the
+     * flywheel is at speed and the turret is aimed. It works with the fire button held or not. When
+     * forceShot goes back to false the gate CLOSES (once, and the OpMode reverses the intake for the
+     * length of the close, the same as the end of any volley). If the fire button is STILL held then,
+     * the volley starts over at WAIT_FOR_READY.
+     */
+    public void update(boolean fireHeld, boolean forceShot, boolean readyToStart, boolean flywheelAtSpeed, boolean turretAimed) {
         // The orders are only for this loop. Start from "not my job".
         gateCommand = GateCommand.NONE;
         ownsIntake = false;
@@ -167,10 +191,30 @@ public class FiringSequence {
         double loopSeconds = nowSeconds - lastLoopSeconds;
         lastLoopSeconds = nowSeconds;
 
+        // FORCED SHOT: it beats every check below. Gate OPENED, intake running, no questions asked.
+        if (forceShot) {
+            runForcedShot(flywheelAtSpeed);
+            return;
+        }
+
+        // The forced shot was just let go while the fire button is still held: close the gate once
+        // and go back to waiting for the checks, like a new volley. (If the fire button is NOT held,
+        // the "not held" block just below ends the volley and closes the gate.)
+        if (state == SequenceState.FORCED && fireHeld) {
+            lastResult = "forced shot ended, trigger still held: waiting for ready";
+            gateCommand = GateCommand.CLOSE;
+            state = SequenceState.WAIT_FOR_READY;
+            stepTimer.reset();
+            return;
+        }
+
         // The button is not held: no volley. If one was running, it is over (ended or aborted).
         if (!fireHeld) {
             if (state != SequenceState.IDLE) {
-                if (state == SequenceState.FEED) {
+                if (state == SequenceState.FORCED) {
+                    lastResult = "ended (forced shot let go)";
+                    volleySeconds = volleyTimer.seconds();
+                } else if (state == SequenceState.FEED) {
                     // The normal way to end a volley: the operator let go.
                     lastResult = "ended (let go while feeding)";
                     volleySeconds = volleyTimer.seconds();
@@ -246,6 +290,40 @@ public class FiringSequence {
                 gateCommand = GateCommand.CLOSE;
                 break;
         }
+    }
+
+    // FORCED SHOT, one loop of it. The operator is holding the forced shot button. Open the gate and run
+    // the intake NOW, even if the flywheel is not at speed or the turret is not aimed (the camera may be
+    // broken, or the "ready" check may be stuck). This is the only place that ignores the checks, so
+    // the screen says FORCED SHOT whenever it is running.
+    private void runForcedShot(boolean flywheelAtSpeed) {
+        if (state != SequenceState.FORCED) {
+            if (state == SequenceState.IDLE) {
+                // A forced shot with no volley running: start the log over, like a new volley.
+                volleyTimer.reset();
+                lastLoopSeconds = 0.0;
+                flywheelDipCount = 0;
+                flywheelWasAtSpeed = false;
+                pausedSeconds = 0.0;
+                secondsToReady = -1.0;
+                volleySeconds = -1.0;
+            }
+            // (From WAIT_FOR_READY or FEED the volley log just carries on.)
+            lastResult = "running (FORCED SHOT)";
+            state = SequenceState.FORCED;
+            stepTimer.reset();
+        }
+
+        gateCommand = GateCommand.OPEN;
+        ownsIntake = true;
+        intakeWanted = true;
+        intakePauseReason = "";
+
+        // A drop out of "at speed" is still about one ball, so keep counting.
+        if (flywheelWasAtSpeed && !flywheelAtSpeed) {
+            flywheelDipCount = flywheelDipCount + 1;
+        }
+        flywheelWasAtSpeed = flywheelAtSpeed;
     }
 
     // The orders while feeding: gate OPENED, and the intake runs when the flywheel is at speed and the
@@ -346,6 +424,9 @@ public class FiringSequence {
         }
         if (state == SequenceState.FEED) {
             telemetry.addData("Feeding for", "%.1f s   (intake paused %.1f s of it)", stepTimer.seconds(), pausedSeconds);
+        }
+        if (state == SequenceState.FORCED) {
+            telemetry.addData("FORCED SHOT", "%.1f s   (the checks are OFF: gate open, intake running)", stepTimer.seconds());
         }
         telemetry.addData("Flywheel dips this volley (about 1 per ball)", flywheelDipCount);
         telemetry.addData("Last volley", lastResult);

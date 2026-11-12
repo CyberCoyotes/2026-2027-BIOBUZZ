@@ -20,6 +20,13 @@ WHAT CHANGED
   3. BULK READS (USE_BULK_READS, AUTO): four hub trips per loop become about one per hub.
   4. A DRIVE ACCELERATION LIMIT in DriveSubsystem (0 to full in 0.2 s, stopping is never limited).
   5. This history moved out of the header into this file.
+  6. FORCED SHOT (issue #80): the operator HOLDS B to shoot even when the READY checks say "not ready". The
+     wheels spin, the gate OPENS and the intake runs forward at once; let go and the gate CLOSES (with
+     the usual intake reverse), or the volley restarts at WAIT_FOR_READY if the trigger is still held.
+     B was a one-press "gate OPENED" button that did nothing while a volley waited. The driver's B does
+     the same, but only in SOLO MODE. FiringSequence has a new FORCED step and a 5-argument update().
+     The Start + B pairing combo now holds a forced shot if it happens while the TeleOp runs. Not yet
+     run on the robot.
 ```
 
 ## ALPHA 13: THE FIRING SEQUENCE (issue #63)
