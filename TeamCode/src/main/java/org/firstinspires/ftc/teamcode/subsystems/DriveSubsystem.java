@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -35,6 +36,15 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *   rightRear  = forward - strafe + turn
  *   If any wheel would be asked for more than 100%, all four wheels are scaled down together,
  *   so the robot still moves in the direction the driver asked for, just a little slower.
+ *
+ * ACCELERATION LIMIT (so a slammed stick cannot spike the battery)
+ *   When four drive motors are told to go from stopped to full power in one instant, they all pull
+ *   a huge burst of current at once. The battery voltage sags for a moment, and a sag is the
+ *   usual cause of a hub, the Pinpoint or the camera blinking. A tall robot can also tip when it
+ *   lurches. So drive() lets each wheel's power RISE only as fast as MAX_POWER_CHANGE_PER_SECOND
+ *   (0 to full takes about 0.2 seconds, which a driver barely feels). SLOWING DOWN is never
+ *   limited: letting go of the stick stops the robot at once, and a wheel that has to reverse
+ *   goes to zero first and then ramps up the other way. LIMIT_ACCELERATION switches it off.
  *
  * STATE (what we told it to do) is the last drive() inputs, the power scale, and the wheel powers.
  * There are no sensors here, so there is no STATUS and no update() to call.
@@ -84,8 +94,8 @@ public class DriveSubsystem {
     // ------------------------------------------------------------------
     // BRAKE makes the robot stop quickly and lets it hold its spot, which helps when parking.
     // But the robot is TALL (up to 29 inches, with a turret and shooter on top), so stopping
-    // very suddenly from full speed could tip it. If that happens, try FLOAT, or ask for a
-    // limit on how fast the power can change.
+    // very suddenly from full speed could tip it. If that happens, try FLOAT. (The limit on how
+    // fast the power can RISE is below. It does not slow down stopping.)
     private static final DcMotor.ZeroPowerBehavior ZERO_POWER_BEHAVIOR =
             DcMotor.ZeroPowerBehavior.BRAKE;
 
@@ -101,6 +111,25 @@ public class DriveSubsystem {
     private static final double NORMAL_POWER_SCALE = 1.0;
 
     // ------------------------------------------------------------------
+    // Acceleration limit (see ACCELERATION LIMIT at the top of this file)
+    // ------------------------------------------------------------------
+    // true = a wheel's power may only RISE as fast as MAX_POWER_CHANGE_PER_SECOND allows.
+    // false = the wheels get exactly what the driver asked for, at once (how it worked before).
+    private static final boolean LIMIT_ACCELERATION = true;
+
+    // How fast one wheel's power may rise, in "power" per second (power goes from 0.0 to 1.0).
+    //   5.0 -> 0 to full takes 0.20 seconds. Gentle. Most drivers will not notice it.
+    //   10.0 -> 0.10 seconds. Barely there.
+    //   2.5 -> 0.40 seconds. Clearly softer, and the robot feels heavy.
+    // [CONFIRM] Let the driver try it. If the robot feels sluggish, raise this. If the battery
+    // still dips (see the POWER lines on the screen), or the robot still tips, lower it.
+    private static final double MAX_POWER_CHANGE_PER_SECOND = 5.0;
+
+    // The most time one step may count for, in seconds. If a loop stalls for a moment, we do not
+    // want the next loop to make up for it with one big jump in power.
+    private static final double MAX_RAMP_STEP_SECONDS = 0.05;
+
+    // ------------------------------------------------------------------
     // Hardware and data. Only this class changes these.
     // ------------------------------------------------------------------
     private DcMotor leftFrontMotor;
@@ -110,6 +139,9 @@ public class DriveSubsystem {
 
     // 1.0 is full speed. Slow mode lowers it (see setSlowMode).
     private double powerScale = NORMAL_POWER_SCALE;
+
+    // Times the steps of the acceleration limit: how long since drive() was last called.
+    private final ElapsedTime accelerationTimer = new ElapsedTime();
 
     // What we last asked for, kept so telemetry can show it.
     private double forwardInput = 0.0;
@@ -198,9 +230,52 @@ public class DriveSubsystem {
             rightRear = rightRear / largestPower;
         }
 
-        // Apply slow mode and the top speed limit.
+        // Apply slow mode and the top speed limit. These are the powers the driver WANTS.
         double scale = powerScale * MAX_DRIVE_POWER;
-        setWheelPowers(leftFront * scale, rightFront * scale, leftRear * scale, rightRear * scale);
+        double leftFrontWanted = leftFront * scale;
+        double rightFrontWanted = rightFront * scale;
+        double leftRearWanted = leftRear * scale;
+        double rightRearWanted = rightRear * scale;
+
+        // How long since the last call, so the limit is the same speed no matter how long a loop
+        // takes. The timer always runs, even when the limit is off.
+        double secondsSinceLastDrive = Math.min(accelerationTimer.seconds(), MAX_RAMP_STEP_SECONDS);
+        accelerationTimer.reset();
+
+        // Do not let any wheel's power jump up faster than the limit allows. The wheel powers we
+        // sent LAST loop (leftFrontPower and the others) are where each wheel starts from.
+        if (LIMIT_ACCELERATION) {
+            double biggestStep = MAX_POWER_CHANGE_PER_SECOND * secondsSinceLastDrive;
+            leftFrontWanted = rampToward(leftFrontPower, leftFrontWanted, biggestStep);
+            rightFrontWanted = rampToward(rightFrontPower, rightFrontWanted, biggestStep);
+            leftRearWanted = rampToward(leftRearPower, leftRearWanted, biggestStep);
+            rightRearWanted = rampToward(rightRearPower, rightRearWanted, biggestStep);
+        }
+
+        setWheelPowers(leftFrontWanted, rightFrontWanted, leftRearWanted, rightRearWanted);
+    }
+
+    /*
+     * One wheel's step of the acceleration limit. It answers: "the wheel is at currentPower and the
+     * driver wants wantedPower, so what power do we send now?"
+     *   - Slowing down, or stopping: allowed AT ONCE. (Stopping must never feel slow.)
+     *   - Speeding up: only biggestStep more than last time.
+     *   - Wanting to go the OTHER way: the wheel goes to zero first, then speeds up the other way,
+     *     so the motor is never asked to flip from forward to backward in one jump.
+     */
+    private double rampToward(double currentPower, double wantedPower, double biggestStep) {
+        double startingPower = currentPower;
+        // Stopped, or the wheel wants to reverse: start from zero.
+        if (startingPower * wantedPower <= 0.0) {
+            startingPower = 0.0;
+        }
+        // Slowing down (or the same speed): no limit.
+        if (Math.abs(wantedPower) <= Math.abs(startingPower)) {
+            return wantedPower;
+        }
+        // Speeding up: take a step, but never past what the driver wants.
+        double step = Math.min(Math.abs(wantedPower) - Math.abs(startingPower), biggestStep);
+        return startingPower + Math.signum(wantedPower) * step;
     }
 
     /*
@@ -247,14 +322,18 @@ public class DriveSubsystem {
     }
 
     /*
-     * How hard the robot is being told to spin right now, from -1.0 to 1.0. + is COUNTERCLOCKWISE
-     * (left), - is clockwise (right), the same as drive(). It is the driver's turn AFTER slow mode
-     * and MAX_DRIVE_POWER, so it follows how fast the robot really spins. (It does not include the
-     * small shrink when a wheel would pass 100%, which only happens when driving and turning hard
-     * at the same time.) The TeleOp uses it to tell the turret how fast to follow the spin.
+     * How hard the robot is really being told to spin right now, from -1.0 to 1.0. + is
+     * COUNTERCLOCKWISE (left), - is clockwise (right), the same as drive(). It is worked out from
+     * the wheel powers we actually sent, so it includes slow mode, MAX_DRIVE_POWER, the acceleration
+     * limit (the spin takes a moment to build up, and this number builds up with it), and the
+     * small shrink when a wheel would pass 100%. The TeleOp uses it to tell the turret how fast to
+     * follow the spin, so the turret should not start turning before the robot does.
+     *
+     * HOW: from the wheel math at the top, (rightFront - leftFront + rightRear - leftRear) adds up
+     * to 4 times the turn, and the forward and strafe parts cancel out.
      */
     public double getTurnPower() {
-        return turnInput * powerScale * MAX_DRIVE_POWER;
+        return (rightFrontPower - leftFrontPower + rightRearPower - leftRearPower) / 4.0;
     }
 
     /*
@@ -312,6 +391,11 @@ public class DriveSubsystem {
         telemetry.addData("Drive inputs", "forward %.2f   strafe %.2f   turn %.2f",
                 forwardInput, strafeInput, turnInput);
         telemetry.addData("Power scale", "%.0f%%", powerScale * 100);
+        if (LIMIT_ACCELERATION) {
+            telemetry.addData("Acceleration limit", "ON  (0 to full takes %.2f s)", 1.0 / MAX_POWER_CHANGE_PER_SECOND);
+        } else {
+            telemetry.addData("Acceleration limit", "off");
+        }
         telemetry.addData("Front left/right", "%.2f, %.2f", leftFrontPower, rightFrontPower);
         telemetry.addData("Rear  left/right", "%.2f, %.2f", leftRearPower, rightRearPower);
     }
