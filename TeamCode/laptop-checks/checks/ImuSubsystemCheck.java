@@ -1,5 +1,6 @@
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.IMU;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
@@ -10,6 +11,24 @@ public class ImuSubsystemCheck {
     static int resetCalls = 0, readCalls = 0;
     static int failures = 0;
     static void check(String what, boolean ok, String detail) { if (!ok) failures++; System.out.println((ok ? "PASS " : "FAIL ") + what + "   " + detail); }
+
+    // True if the SDK refuses this logo + USB pair as "physically impossible" (an IllegalArgumentException).
+    // On a laptop a VALID pair gets past that test and then hits an Android stub, which throws something
+    // else (a RuntimeException), so only the IllegalArgumentException means "refused".
+    static boolean refusedAsImpossible(RevHubOrientationOnRobot.LogoFacingDirection logo,
+                                       RevHubOrientationOnRobot.UsbFacingDirection usb) {
+        try {
+            new RevHubOrientationOnRobot(logo, usb);
+            return false;
+        } catch (IllegalArgumentException refused) {
+            return true;
+        } catch (RuntimeException gotPastTheTest) {
+            return false;
+        }
+    }
+    static Object constant(String name) throws Exception {
+        Field f = ImuSubsystem.class.getDeclaredField(name); f.setAccessible(true); return f.get(null);
+    }
 
     static ImuSubsystem make(IMU imu, boolean initialized) throws Exception {
         Field uf = sun.misc.Unsafe.class.getDeclaredField("theUnsafe"); uf.setAccessible(true);
@@ -45,6 +64,16 @@ public class ImuSubsystemCheck {
         ImuSubsystem notStarted = make(fake, false);
         notStarted.update();
         check("IMU found but did not start: not available, never read", !notStarted.isAvailable() && readCalls == readsBefore, "reads " + (readCalls - readsBefore));
+
+        // ---- the hub orientation we are configured with must be one the SDK accepts ----
+        RevHubOrientationOnRobot.LogoFacingDirection ourLogo = (RevHubOrientationOnRobot.LogoFacingDirection) constant("LOGO_FACING_DIRECTION");
+        RevHubOrientationOnRobot.UsbFacingDirection ourUsb = (RevHubOrientationOnRobot.UsbFacingDirection) constant("USB_FACING_DIRECTION");
+        check("our hub orientation (logo " + ourLogo + ", USB " + ourUsb + ") is physically possible",
+              !refusedAsImpossible(ourLogo, ourUsb), "");
+        check("USB is UP (the coach: the hub's USB ports point at the ceiling)",
+              ourUsb == RevHubOrientationOnRobot.UsbFacingDirection.UP, "USB is " + ourUsb);
+        check("the SDK really does refuse an impossible pair (logo UP + USB UP), so the check above means something",
+              refusedAsImpossible(RevHubOrientationOnRobot.LogoFacingDirection.UP, RevHubOrientationOnRobot.UsbFacingDirection.UP), "");
 
         System.out.println(failures == 0 ? "\nALL PASSED" : "\n" + failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);

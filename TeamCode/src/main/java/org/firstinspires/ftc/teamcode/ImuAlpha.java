@@ -36,7 +36,10 @@ import org.firstinspires.ftc.teamcode.subsystems.PowerMonitorSubsystem;
  *      settings are impossible (the logo and USB directions cannot be on the same axis).
  *   2. FLAT. Put the robot on the floor, flat, and press A. "pitch, roll" must both be about 0.
  *      If one of them reads about 90, or they are large, the hub's orientation is wrong: look at the
- *      hub, and fix LOGO_FACING_DIRECTION and USB_FACING_DIRECTION in ImuSubsystem.
+ *      hub, and fix LOGO_FACING_DIRECTION and USB_FACING_DIRECTION in ImuSubsystem. (Our hub stands
+ *      on its end with its USB ports at the ceiling and its logo facing the middle of the robot.
+ *      USB is UP. The logo direction depends on which wall the hub is on: see the table in
+ *      ImuSubsystem. If this step fails, that one word is the first thing to check.)
  *   3. TIPPING. Lift the FRONT of the robot a little and put it back. PITCH must change and ROLL
  *      must stay near 0. Lift the LEFT side a little: ROLL must change and PITCH stay near 0. If it
  *      is the other way round, the orientation settings are wrong (fix them, then repeat 2 and 3).

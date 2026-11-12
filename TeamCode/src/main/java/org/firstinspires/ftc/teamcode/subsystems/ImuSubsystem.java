@@ -27,8 +27,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
  *
  * THE HUB'S ORIENTATION (the one thing you must get right): the IMU has no idea how the hub is
  * bolted to the robot, so we tell it with two directions: which way the REV LOGO on the hub faces,
- * and which way the USB-C PORT faces. If they are wrong, the heading is wrong (it can even run
+ * and which way the USB PORTS face. If they are wrong, the heading is wrong (it can even run
  * backwards, or change when the robot tips). ImuAlpha checks them in a minute.
+ * The two directions must be on DIFFERENT axes (logo UP with USB UP is physically impossible). If
+ * they are not, the SDK refuses them. This class catches that, writes it in the log, and says so on
+ * the screen, and the TeleOp drives ROBOT-CENTRIC. It never crashes the OpMode over it.
  *
  * It does NOT need the robot to be still at INIT (the hub calibrates itself when it powers on).
  * Resetting the heading to zero is instant.
@@ -53,19 +56,30 @@ public class ImuSubsystem {
 
     // ------------------------------------------------------------------
     // How the Control Hub is mounted on the robot.
-    // [CONFIRM] These two are the SDK sample's defaults, NOT measured on our robot. Look at the hub:
     //   LOGO_FACING_DIRECTION: the way the REV logo (the printed word and cube on the lid) faces.
-    //   USB_FACING_DIRECTION:  the way the USB-C port (the one on the end) points.
+    //   USB_FACING_DIRECTION:  the way the hub's USB ports point.
     // The choices are UP, DOWN, FORWARD, BACKWARD, LEFT and RIGHT, seen from the robot's own point
-    // of view (FORWARD is the way the intake faces, UP is toward the ceiling). The two must not be
-    // the same axis (for example UP and DOWN together is impossible).
-    // The test is in ImuAlpha: with the robot flat, pitch and roll are about 0, and turning the
-    // robot LEFT makes the heading go UP.
+    // of view (FORWARD is the way the intake faces, UP is toward the ceiling). The two must be on
+    // different axes: for example UP with DOWN, or LEFT with RIGHT, is impossible.
+    //
+    // OUR ROBOT (the coach, 2026-11-12): the hub stands on its end with its USB ports pointing at
+    // the CEILING, and the REV logo faces the MIDDLE of the robot.
+    //   USB_FACING_DIRECTION = UP. That part is settled.
+    //   LOGO_FACING_DIRECTION depends on WHICH WALL of the robot the hub is bolted to, because
+    //   "toward the middle" is a different way from each wall:
+    //       hub on the LEFT side of the robot   -> the logo faces RIGHT
+    //       hub on the RIGHT side of the robot  -> the logo faces LEFT
+    //       hub at the BACK of the robot        -> the logo faces FORWARD
+    //       hub at the FRONT of the robot       -> the logo faces BACKWARD
+    //   [CONFIRM] WHICH WALL IS IT ON? Nobody has said yet, so this starts as the BACK (FORWARD),
+    //   which is a GUESS. If the hub is somewhere else, change the one word below. ImuAlpha will
+    //   tell you if it is wrong: with the robot flat, pitch and roll are about 0, and turning the
+    //   robot LEFT makes the heading go UP.
     // ------------------------------------------------------------------
     private static final RevHubOrientationOnRobot.LogoFacingDirection LOGO_FACING_DIRECTION =
-            RevHubOrientationOnRobot.LogoFacingDirection.UP;
+            RevHubOrientationOnRobot.LogoFacingDirection.FORWARD;
     private static final RevHubOrientationOnRobot.UsbFacingDirection USB_FACING_DIRECTION =
-            RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+            RevHubOrientationOnRobot.UsbFacingDirection.UP;
 
     // The heading must go UP when the robot turns LEFT (counterclockwise). If ImuAlpha shows it
     // going DOWN while the pitch and roll are right, set this to true. (The SDK documents the IMU's
@@ -80,6 +94,9 @@ public class ImuSubsystem {
 
     // true only if initialize() worked. Without it the readings mean nothing.
     private boolean initialized = false;
+
+    // If the hub orientation was refused, what the SDK said. Empty when all is well.
+    private String startupProblem = "";
 
     // The newest answers, saved by update(). They are zero when there is no IMU.
     private double headingDegrees = 0.0;
@@ -102,9 +119,18 @@ public class ImuSubsystem {
             return;
         }
 
-        RevHubOrientationOnRobot hubOrientation =
-                new RevHubOrientationOnRobot(LOGO_FACING_DIRECTION, USB_FACING_DIRECTION);
-        initialized = imu.initialize(new IMU.Parameters(hubOrientation));
+        // The SDK refuses a logo direction and a USB direction that cannot both be true (for example
+        // UP and UP). It does that by throwing an error. We catch it so that a wrong setting here
+        // turns field-centric off with a clear message, instead of crashing the whole OpMode at INIT.
+        try {
+            RevHubOrientationOnRobot hubOrientation =
+                    new RevHubOrientationOnRobot(LOGO_FACING_DIRECTION, USB_FACING_DIRECTION);
+            initialized = imu.initialize(new IMU.Parameters(hubOrientation));
+        } catch (IllegalArgumentException problem) {
+            startupProblem = problem.getMessage();
+            BiobuzzLog.warning("IMU NOT STARTED: the hub orientation (logo %s, USB %s) was refused: %s",
+                    LOGO_FACING_DIRECTION, USB_FACING_DIRECTION, startupProblem);
+        }
         if (initialized) {
             imu.resetYaw();
         }
@@ -183,7 +209,11 @@ public class ImuSubsystem {
             return;
         }
         if (!initialized) {
-            telemetry.addData("IMU", "found, but it did NOT start up. Check the hub orientation settings in ImuSubsystem");
+            if (startupProblem.isEmpty()) {
+                telemetry.addData("IMU", "found, but it did NOT start up. Check the hub orientation settings in ImuSubsystem");
+            } else {
+                telemetry.addData("IMU", "NOT STARTED: the hub orientation was refused (%s). Check LOGO_FACING_DIRECTION and USB_FACING_DIRECTION in ImuSubsystem", startupProblem);
+            }
             return;
         }
         telemetry.addData("IMU heading", "%.1f deg (+ left)", headingDegrees);
