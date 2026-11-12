@@ -72,6 +72,8 @@ public class ImuSubsystemCheck {
               !refusedAsImpossible(ourLogo, ourUsb), "");
         check("USB is UP (the coach: the hub's USB ports point at the ceiling)",
               ourUsb == RevHubOrientationOnRobot.UsbFacingDirection.UP, "USB is " + ourUsb);
+        check("logo is RIGHT (the coach: the hub is on the LEFT wall with its logo facing the middle of the robot)",
+              ourLogo == RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, "logo is " + ourLogo);
         check("the SDK really does refuse an impossible pair (logo UP + USB UP), so the check above means something",
               refusedAsImpossible(RevHubOrientationOnRobot.LogoFacingDirection.UP, RevHubOrientationOnRobot.UsbFacingDirection.UP), "");
 

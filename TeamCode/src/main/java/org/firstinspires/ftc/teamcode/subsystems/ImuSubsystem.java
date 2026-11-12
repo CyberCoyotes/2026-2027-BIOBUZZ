@@ -63,21 +63,23 @@ public class ImuSubsystem {
     // different axes: for example UP with DOWN, or LEFT with RIGHT, is impossible.
     //
     // OUR ROBOT (the coach, 2026-11-12): the hub stands on its end with its USB ports pointing at
-    // the CEILING, and the REV logo faces the MIDDLE of the robot.
-    //   USB_FACING_DIRECTION = UP. That part is settled.
-    //   LOGO_FACING_DIRECTION depends on WHICH WALL of the robot the hub is bolted to, because
-    //   "toward the middle" is a different way from each wall:
-    //       hub on the LEFT side of the robot   -> the logo faces RIGHT
+    // the CEILING, and the REV logo faces the MIDDLE of the robot. It is bolted to the LEFT wall of
+    // the robot (the coach: "left wall from a bird's eye view", which we read as the robot's own
+    // left, with the intake at the top of the picture).
+    //   USB_FACING_DIRECTION = UP.
+    //   LOGO_FACING_DIRECTION = RIGHT, because "toward the middle" from the LEFT wall is to the RIGHT.
+    // If the hub is ever moved, the logo direction changes with the wall it is on, because
+    // "toward the middle" is a different way from each wall:
+    //       hub on the LEFT side of the robot   -> the logo faces RIGHT   (ours)
     //       hub on the RIGHT side of the robot  -> the logo faces LEFT
     //       hub at the BACK of the robot        -> the logo faces FORWARD
     //       hub at the FRONT of the robot       -> the logo faces BACKWARD
-    //   [CONFIRM] WHICH WALL IS IT ON? Nobody has said yet, so this starts as the BACK (FORWARD),
-    //   which is a GUESS. If the hub is somewhere else, change the one word below. ImuAlpha will
-    //   tell you if it is wrong: with the robot flat, pitch and roll are about 0, and turning the
-    //   robot LEFT makes the heading go UP.
+    // [CONFIRM] Not yet run on the robot. ImuAlpha will tell you if it is wrong: with the robot
+    // flat, pitch and roll are about 0, and turning the robot LEFT makes the heading go UP. If
+    // "left wall" meant the VIEWER's left and not the robot's, the logo would be LEFT instead.
     // ------------------------------------------------------------------
     private static final RevHubOrientationOnRobot.LogoFacingDirection LOGO_FACING_DIRECTION =
-            RevHubOrientationOnRobot.LogoFacingDirection.FORWARD;
+            RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
     private static final RevHubOrientationOnRobot.UsbFacingDirection USB_FACING_DIRECTION =
             RevHubOrientationOnRobot.UsbFacingDirection.UP;
 

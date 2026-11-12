@@ -191,7 +191,7 @@ WHAT CHANGED
      checks still run in checkPinpointHealth(), but they only throw away the turret's hive memory.
      Field-centric now switches off only on BACK (either gamepad) or when there is no IMU.
      D-pad Left (re-aim) still only moves an offset. Test with ImuAlpha FIRST: the hub orientation
-     is USB UP (the coach), but the logo direction depends on which wall the hub is on and is still a guess.
+     is USB UP and logo RIGHT (the coach: the hub is on the robot's left wall, USB ports at the ceiling, logo facing the middle). Not yet run on the robot.
   2. A BATTERY BLACK BOX (PowerMonitorSubsystem) and a log (BiobuzzLog, tag BIOBUZZ): hub voltage and
      current on the screen, dips counted and logged, Pinpoint drops and glitches logged.
   3. BULK READS (USE_BULK_READS, AUTO): four hub trips per loop become about one per hub.
