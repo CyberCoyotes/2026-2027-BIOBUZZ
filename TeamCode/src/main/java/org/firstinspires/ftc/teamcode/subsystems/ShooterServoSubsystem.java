@@ -26,17 +26,16 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * The closest thing is isAtPosition(): it is true once SERVO_TRAVEL_SECONDS have passed
  * since the last command, which is our guess that the gate has finished moving.
  *
- * GENTLE CLOSE (issue #63): goToClosed() sends the servo straight to CLOSED, as fast as the servo
- * goes. If a ball is in the way (a single ball left when the feed ends), a fast close can slam it
- * or wedge it. goToClosedGently() instead walks the servo toward CLOSED slowly
- * (it takes GENTLE_CLOSE_SECONDS, the same from OPENED or from LIFTED), so the gate pushes the ball
- * out of the way instead of slamming into it. A servo pushes harder the further it is from the position it was told to
- * hold, so a slow walk is also a gentle push. goToOpened(), goToLifted() and goToClosed() are all
- * still instant, and any of them cancels a gentle close that is still going.
+ * CLOSING: every move, closing included, is instant. The servo goes to the new position as fast as
+ * it can (its top speed, set by the servo type and how far it turns). We tried a slow, "gentle" close
+ * (issue #63) and dropped it. It only helps if it is slower than the servo's own top speed, and the
+ * coach wanted a faster close, so there was nothing left for it to do.
  *
- * update() IS NEEDED ONLY FOR goToClosedGently(). The OpMode must call update() ONCE per loop(), or
- * a gentle close never moves. (Everything else does not need update(): a timer is all the gate
- * needs, and isAtPosition() reads that timer itself.)
+ * CLEARING THE CHUTE: when the gate closes from OPENED or from LIFTED, a ball may be sitting in its
+ * way. The OpMode runs the intake in REVERSE for a short time to push that ball back out.
+ * isClearingChute() is true for CLOSE_REVERSE_SECONDS after such a close is commanded. A servo
+ * cannot tell us when the gate is really shut, so this is a TIMER we tune on the robot, not a
+ * measurement. Nothing needs update(): the gate only needs timers.
  *
  * Robot configuration (on the Driver Station):
  *   Servo name: shooter_servo   (goBILDA dual mode servo, configured as a plain "Servo")
@@ -72,17 +71,15 @@ public class ShooterServoSubsystem {
     // Starting guess. Time the gate with a phone stopwatch, then change this number.
     private static final double SERVO_TRAVEL_SECONDS = 0.50;
 
-    // How many SECONDS a GENTLE close takes, from wherever the gate is now to CLOSED. It is the same
-    // from OPENED and from LIFTED: the walk's speed is worked out from the distance when the close
-    // starts (OPENED to CLOSED is 0.30 apart, LIFTED to CLOSED is 0.80, so a LIFTED close walks
-    // faster than an OPENED close). The TeleOp reverses the intake for exactly this long.
-    //   Bigger  = slower and gentler, and a longer intake reverse.
-    //   Smaller = quicker, and closer to the old instant close.
-    // This was a SPEED of 0.40 per second (0.75 s from OPENED, 2 s from LIFTED); the coach asked for
-    // 0.5 s from both. Tune on the robot with one ball left in the chute: it should be pushed out of
-    // the way, not slammed or wedged. [CONFIRM] A servo has its own top speed. If the real gate is
-    // still moving when the 0.5 s is up, raise this number (the gate cannot go faster than the servo).
-    private static final double GENTLE_CLOSE_SECONDS = 0.50;
+    // How many SECONDS the intake should run in REVERSE after the gate starts to close from OPENED or
+    // from LIFTED, to push a ball out of the gate's way (see CLEARING THE CHUTE at the top). The
+    // same time is used from both positions. The gate closes at the servo's top speed, so this is
+    // only our guess for "long enough to clear the chute", not how long the gate takes.
+    //   Bigger  = the intake reverses longer (more sure the chute is clear, slower to get going again).
+    //   Smaller = a shorter reverse.
+    // Starting guess (it was 0.75 s from OPENED and 2 s from LIFTED, which was too long). Play with it
+    // on the robot with a ball left in the chute.
+    private static final double CLOSE_REVERSE_SECONDS = 0.50;
 
     // ------------------------------------------------------------------
     // State
@@ -110,18 +107,10 @@ public class ShooterServoSubsystem {
     // Times how long ago we last gave the servo a new position.
     private ElapsedTime travelTimer = new ElapsedTime();
 
-    // The position we are really sending to the servo right now (0.0 to 1.0). It equals the
-    // state's position, except DURING a gentle close, when it is on its way there.
-    private double commandedPosition = CLOSED_POSITION;
-
-    // true while a gentle close is still walking toward CLOSED. update() moves it along.
-    private boolean closingGently = false;
-
-    // How fast THIS gentle close walks, in servo position units per second. Worked out in
-    // goToClosedGently() as (distance to CLOSED) / GENTLE_CLOSE_SECONDS, so every close takes the
-    // same time.
-    private double gentleCloseSpeed = 0.0;
-    private ElapsedTime gentleCloseTimer = new ElapsedTime();
+    // true from the moment the gate is commanded to close from OPENED or LIFTED. It is only a flag:
+    // isClearingChute() also checks the timer, so it goes false by itself.
+    private boolean chuteClearing = false;
+    private ElapsedTime chuteClearTimer = new ElapsedTime();
 
     // False until we send the servo its first position (in the constructor).
     private boolean servoHasBeenCommanded = false;
@@ -148,33 +137,6 @@ public class ShooterServoSubsystem {
      */
     public void goToClosed() {
         setState(GateState.CLOSED);
-    }
-
-    /*
-     * Move the gate to the CLOSED position SLOWLY, so a ball in the way is pushed aside instead of
-     * slammed (see GENTLE CLOSE at the top). Needs update() every loop. Safe to call every loop:
-     * a repeat call while the gate is closed, or already closing, does nothing. If the gate is
-     * already closed it stays put. goToClosed() (instant) cancels a gentle close.
-     */
-    public void goToClosedGently() {
-        if (!servoHasBeenCommanded) {
-            // The very first command has nothing to walk from. Go straight there.
-            goToClosed();
-            return;
-        }
-        if (state == GateState.CLOSED) {
-            // Already closed, or already closing gently. Do not restart anything.
-            return;
-        }
-        state = GateState.CLOSED;
-        closingGently = true;
-        // Speed = distance / time, so the walk lasts GENTLE_CLOSE_SECONDS whether it starts from
-        // OPENED (a short walk) or LIFTED (a long walk).
-        double distanceToClosed = Math.abs(closedPosition - commandedPosition);
-        gentleCloseSpeed = distanceToClosed / GENTLE_CLOSE_SECONDS;
-        gentleCloseTimer.reset();
-        travelTimer.reset();
-        // commandedPosition stays where the gate is now. update() walks it toward CLOSED.
     }
 
     /*
@@ -227,36 +189,6 @@ public class ShooterServoSubsystem {
         sendServoToCurrentState();
     }
 
-    /*
-     * Call this ONCE per loop() if the OpMode uses goToClosedGently(). It walks a gentle close along:
-     * each loop the servo is sent a little closer to CLOSED, at the speed goToClosedGently() worked
-     * out, so the whole walk takes GENTLE_CLOSE_SECONDS.
-     * It does nothing when no gentle close is going on, so it is always safe to call.
-     */
-    public void update() {
-        if (!closingGently) {
-            return;
-        }
-
-        // How far we may move this loop: speed x the time since the last loop.
-        double secondsSinceLastStep = gentleCloseTimer.seconds();
-        gentleCloseTimer.reset();
-        double maxStep = gentleCloseSpeed * secondsSinceLastStep;
-
-        double distanceLeft = closedPosition - commandedPosition;
-        if (Math.abs(distanceLeft) <= maxStep) {
-            // This step gets us all the way there.
-            commandedPosition = closedPosition;
-            closingGently = false;
-            travelTimer.reset();
-        } else if (distanceLeft > 0.0) {
-            commandedPosition = commandedPosition + maxStep;
-        } else {
-            commandedPosition = commandedPosition - maxStep;
-        }
-        shooterServo.setPosition(commandedPosition);
-    }
-
     // ==================================================================
     // QUESTIONS: the OpMode asks the gate what is happening
     // ==================================================================
@@ -283,12 +215,16 @@ public class ShooterServoSubsystem {
      * "OK to feed a ball" check, once we build that.
      */
     public boolean isAtPosition() {
-        return !closingGently && travelTimer.seconds() >= SERVO_TRAVEL_SECONDS;
+        return travelTimer.seconds() >= SERVO_TRAVEL_SECONDS;
     }
 
-    // true while a gentle close is still on its way to CLOSED.
-    public boolean isClosingGently() {
-        return closingGently;
+    /*
+     * True for CLOSE_REVERSE_SECONDS after the gate is commanded to close from OPENED or LIFTED.
+     * The OpMode reverses the intake while this is true. It is false when the gate was already
+     * closed, and it goes false at once if the gate is told to open or lift. A TIME GUESS.
+     */
+    public boolean isClearingChute() {
+        return chuteClearing && chuteClearTimer.seconds() < CLOSE_REVERSE_SECONDS;
     }
 
     // The position (0.0 to 1.0) we are currently sending to the servo.
@@ -310,9 +246,7 @@ public class ShooterServoSubsystem {
         telemetry.addLine("--- SHOOTER GATE ---");
         telemetry.addData("Gate State", state);
         telemetry.addData("Gate Position", "%.3f", getTargetPosition());
-        if (closingGently) {
-            telemetry.addData("Gate closing gently", "now at %.3f, going to %.3f", commandedPosition, closedPosition);
-        }
+        telemetry.addData("Clearing chute (intake reverse)?", isClearingChute());
         telemetry.addData("Gate At Position?", isAtPosition());
         telemetry.addData("Closed Position", "%.3f", closedPosition);
         telemetry.addData("Opened Position", "%.3f", openedPosition);
@@ -324,24 +258,25 @@ public class ShooterServoSubsystem {
     // ==================================================================
 
     // Change the state and send the servo there. If we are ALREADY in that state, do
-    // nothing, so a held button will not keep restarting the travel timer.
+    // nothing, so a held button will not keep restarting the travel timer (or the chute timer).
     private void setState(GateState newState) {
         // The very first call (from the constructor) must always go through, even though
         // the state already says CLOSED. servoHasBeenCommanded is false until then.
-        // A gentle close that is still going is NOT "already there": an instant command must
-        // finish the job, or the gate would stay half way.
-        if (servoHasBeenCommanded && newState == state && !closingGently) {
+        if (servoHasBeenCommanded && newState == state) {
             return;
+        }
+        // Closing from OPENED or LIFTED starts the intake-reverse window. Any other move ends it.
+        boolean startsClosing = servoHasBeenCommanded && newState == GateState.CLOSED;
+        chuteClearing = startsClosing;
+        if (startsClosing) {
+            chuteClearTimer.reset();
         }
         state = newState;
         sendServoToCurrentState();
     }
 
     private void sendServoToCurrentState() {
-        // An instant command always ends a gentle close.
-        closingGently = false;
-        commandedPosition = getTargetPosition();
-        shooterServo.setPosition(commandedPosition);
+        shooterServo.setPosition(getTargetPosition());
         servoHasBeenCommanded = true;
         travelTimer.reset();
     }

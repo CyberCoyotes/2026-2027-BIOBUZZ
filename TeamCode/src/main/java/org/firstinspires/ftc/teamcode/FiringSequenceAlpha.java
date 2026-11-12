@@ -34,7 +34,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *                           the gate and the intake by itself. The gate STAYS OPEN and the intake keeps
  *                           feeding for as long as you HOLD the trigger (no timer), pausing by itself
  *                           when the flywheel is not at speed or the turret is not aimed. Let go =
- *                           the volley ends: the gate closes (gently) and the intake stops.
+ *                           the volley ends: the gate closes and the intake stops.
  *   D-pad Up (tap)       -> PRE-REV on / off. The wheels spin without firing, so the spin-up wait is
  *                           over before you fire. It is shown big on the screen. Starts OFF.
  *   Right Bumper (hold)  -> INTAKE (pick up balls). The gate stays where it is. While a volley is
@@ -45,7 +45,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *                           the position between LIFTED and CLOSED).
  *                           X and B work ONLY while no volley is running. Y: while a volley FEEDS,
  *                           hold it to lift and let go to go back to OPENED. Between volleys, let go
- *                           and the gate CLOSES gently. While a volley WAITS, Y does nothing.
+ *                           and the gate CLOSES. While a volley WAITS, Y does nothing.
  *   Back                 -> switch the speed source TABLE <-> DIAL (one switch per press).
  *                           TABLE (starts here): the flywheel speed comes from the shot table while
  *                           the camera sees the hive. A volley will NOT start with no target.
@@ -63,7 +63,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      CLOSED. Nothing moves.
  *   2. No balls first (the chute empty). Hold Right Trigger. Watch the screen: "Sequence step"
  *      should go WAIT_FOR_READY -> FEED, and the gate CLOSED -> OPENED. It STAYS in FEED with the
- *      gate OPENED for as long as you hold. Then let go: the gate closes gently and the intake
+ *      gate OPENED for as long as you hold. Then let go: the gate closes and the intake
  *      reverses for that moment.
  *   3. Hold Right Trigger and let go in the middle of FEED. The gate must close and the intake stop
  *      at once ("Last volley: ABORTED during FEED").
@@ -82,8 +82,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   9. While feeding, turn the turret away by hand (or move the robot so the camera is off the hive by
  *      more than 2 degrees): the intake must PAUSE and the screen says "turret not aimed". Aim it
  *      back and the intake starts again.
- *  10. With no volley, hold Y: the gate LIFTS. Let go: it CLOSES gently, and the intake reverses for
- *      the length of the close (about 0.5 s).
+ *  10. With no volley, hold Y: the gate LIFTS. Let go: it CLOSES, and the intake reverses for
+ *      CLOSE_REVERSE_SECONDS (0.5 s to start with).
  *
  * SAFE USE: the wheels are fast. Keep hands, hair and loose clothing away from them, and from the
  * intake and the turret. Keep a hand near the Stop button.
@@ -484,14 +484,13 @@ public class FiringSequenceAlpha extends OpMode {
         boolean readyToStart = shooterSubsystem.isFlywheelAtSpeed() && turretReady;
         firingSequence.update(fireHeld, readyToStart, shooterSubsystem.isFlywheelAtSpeed(), turretReady);
 
-        // The gate. CLOSING is GENTLE (goToClosedGently), like the TeleOp, so a single ball left in the
-        // way is pushed aside instead of slammed or wedged. The sequence is in charge while a volley
+        // The gate. Every move is instant (at the servo's top speed), like the TeleOp. The sequence is in charge while a volley
         // runs. Otherwise the manual buttons work. If more than one is pressed on the same loop,
         // CLOSED wins, then OPENED, then LIFTED.
         FiringSequence.GateCommand gateCommand = firingSequence.getGateCommand();
         String gateControl;
         if (gateCommand == FiringSequence.GateCommand.CLOSE) {
-            shooterServoSubsystem.goToClosedGently();
+            shooterServoSubsystem.goToClosed();
             gateControl = "firing sequence";
         } else if (gateCommand == FiringSequence.GateCommand.OPEN) {
             // Feeding: the gate stays OPENED until the trigger is let go, except that holding Y LIFTS it
@@ -504,7 +503,7 @@ public class FiringSequenceAlpha extends OpMode {
                 gateControl = "firing sequence";
             }
         } else if (closedNewPress) {
-            shooterServoSubsystem.goToClosedGently();
+            shooterServoSubsystem.goToClosed();
             gateControl = "manual (X)";
         } else if (openedNewPress) {
             shooterServoSubsystem.goToOpened();
@@ -513,27 +512,25 @@ public class FiringSequenceAlpha extends OpMode {
             shooterServoSubsystem.goToLifted();
             gateControl = "manual (Y held: LIFTED)";
         } else if (liftedReleased && shooterServoSubsystem.isLifted()) {
-            // Y was let go while LIFTED and no volley is running: back to CLOSED, gently.
-            shooterServoSubsystem.goToClosedGently();
-            gateControl = "manual (Y let go: CLOSED, gently)";
+            // Y was let go while LIFTED and no volley is running: back to CLOSED.
+            shooterServoSubsystem.goToClosed();
+            gateControl = "manual (Y let go: CLOSED)";
         } else if (gateLiftedNow && shooterServoSubsystem.isLifted()) {
             gateControl = "manual (Y held: LIFTED)";
         } else {
             gateControl = "manual (no press)";
         }
-        // Walk a gentle close along. (Does nothing when no gentle close is going on.)
-        shooterServoSubsystem.update();
 
         // The intake. Reverse goes first, so clearing a jam always works. Then, any time the gate is
-        // walking toward CLOSED (from OPENED or from LIFTED), the intake runs in REVERSE for exactly that
-        // long, on its own (the same as the TeleOp), so a ball in the gate's way is pushed back out
+        // closing from OPENED or from LIFTED, the intake runs in REVERSE for CLOSE_REVERSE_SECONDS, on its own
+        // (the same as the TeleOp), so a ball in the gate's way is pushed back out
         // instead of pulled in against the closing gate. Then the sequence (while it is feeding). Then
         // the driver's own intake button.
         String intakeControl;
         if (reverseHeld) {
             intakeSubsystem.reverse();
             intakeControl = "Left Bumper (REVERSE)";
-        } else if (shooterServoSubsystem.isClosingGently()) {
+        } else if (shooterServoSubsystem.isClearingChute()) {
             intakeSubsystem.reverse();
             intakeControl = "gate closing: REVERSE (automatic)";
         } else if (firingSequence.ownsIntake()) {
