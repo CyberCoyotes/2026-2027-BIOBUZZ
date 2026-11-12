@@ -2,6 +2,26 @@
 
 *This text used to be the top of `BiobuzzTeleOp.java`. It was moved here, unchanged, so the file's header can describe how the TeleOp works **right now**. Each entry is what the code did when that Alpha was written: later Alphas may have replaced it (for example, the gentle gate close in Alpha 13 was removed later). When something here and the code disagree, the code wins. The current button map is in `biobuzz-teleop-controls.md`.*
 
+## ALPHA 14: THE IMU DRIVE, A BATTERY BLACK BOX AND A LOG
+
+*The screen name became "TeleOp - Alpha 14" (it was Alpha 13). The three Autos' `preselectTeleOp`, the comments and the docs that name it were changed to match, and the Alpha 13 entries in these notes stay as they were written.*
+
+```text
+WHAT CHANGED
+  1. THE DRIVE'S HEADING IS THE CONTROL HUB'S IMU, NOT THE PINPOINT (ImuSubsystem). A Pinpoint blink or
+     restart can no longer drop the drive out of field-centric. The safety rule, the glitch hold
+     (HOLD_LAST_HEADING_DURING_GLITCH) and the resume check were deleted for the drive. The same
+     checks still run in checkPinpointHealth(), but they only throw away the turret's hive memory.
+     Field-centric now switches off only on BACK (either gamepad) or when there is no IMU.
+     D-pad Left (re-aim) still only moves an offset. Test with ImuAlpha FIRST: the hub orientation
+     is USB UP and logo RIGHT (the coach: the hub is on the robot's left wall, USB ports at the ceiling, logo facing the middle). Not yet run on the robot.
+  2. A BATTERY BLACK BOX (PowerMonitorSubsystem) and a log (BiobuzzLog, tag BIOBUZZ): hub voltage and
+     current on the screen, dips counted and logged, Pinpoint drops and glitches logged.
+  3. BULK READS (USE_BULK_READS, AUTO): four hub trips per loop become about one per hub.
+  4. A DRIVE ACCELERATION LIMIT in DriveSubsystem (0 to full in 0.2 s, stopping is never limited).
+  5. This history moved out of the header into this file.
+```
+
 ## ALPHA 13: THE FIRING SEQUENCE (issue #63)
 
 ```text
@@ -176,25 +196,4 @@ From ALPHA 8: ODOMETRY ON THE SCREEN
   robot sits at INIT. As of Alpha 9 the turret uses the
   heading and position (see above). If the config has no device named "pinpoint", the screen
   says so and everything else still works.
-```
-
-
-## Newer than Alpha 13 (code-suggestions branch, not yet given its own Alpha number)
-
-*Written in the same style as the entries above. The screen name is still "TeleOp - Alpha 13" because the three Autos' `preselectTeleOp` and several docs use that name: if these changes are merged, bump it to Alpha 14 everywhere at once.*
-
-```text
-WHAT CHANGED
-  1. THE DRIVE'S HEADING IS THE CONTROL HUB'S IMU, NOT THE PINPOINT (ImuSubsystem). A Pinpoint blink or
-     restart can no longer drop the drive out of field-centric. The safety rule, the glitch hold
-     (HOLD_LAST_HEADING_DURING_GLITCH) and the resume check were deleted for the drive. The same
-     checks still run in checkPinpointHealth(), but they only throw away the turret's hive memory.
-     Field-centric now switches off only on BACK (either gamepad) or when there is no IMU.
-     D-pad Left (re-aim) still only moves an offset. Test with ImuAlpha FIRST: the hub orientation
-     is USB UP and logo RIGHT (the coach: the hub is on the robot's left wall, USB ports at the ceiling, logo facing the middle). Not yet run on the robot.
-  2. A BATTERY BLACK BOX (PowerMonitorSubsystem) and a log (BiobuzzLog, tag BIOBUZZ): hub voltage and
-     current on the screen, dips counted and logged, Pinpoint drops and glitches logged.
-  3. BULK READS (USE_BULK_READS, AUTO): four hub trips per loop become about one per hub.
-  4. A DRIVE ACCELERATION LIMIT in DriveSubsystem (0 to full in 0.2 s, stopping is never limited).
-  5. This history moved out of the header into this file.
 ```

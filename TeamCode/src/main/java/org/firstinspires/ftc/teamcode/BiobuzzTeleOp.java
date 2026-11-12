@@ -23,7 +23,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 import java.util.List;
 
 /*
- * TeleOp Alpha 13
+ * TeleOp Alpha 14
  * An iterative OpMode with TWO controllers:
  *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to FIRE a volley
  *              (the FIRING SEQUENCE, see the change log, Alpha 13).
@@ -34,7 +34,8 @@ import java.util.List;
  * PinpointAlpha put together, so each part has already been tested on its own. This OpMode owns
  * NO hardware. It only reads the gamepads and tells the subsystems what to do.
  *
- * HISTORY: what changed in each Alpha (13 back to 8: the firing sequence, the control changes,
+ * HISTORY: what changed in each Alpha (14 back to 8: the IMU drive and the battery black box, the
+ * firing sequence, the control changes,
  * field-centric drive, the safer Pinpoint heading follow, the Pinpoint helping the turret, odometry
  * on the screen) used to be written here, and it was longer than the code it described. It now
  * lives in TeamCode/docs/biobuzz-teleop-change-log.md, newest first, so THIS header only says how
@@ -189,7 +190,7 @@ import java.util.List;
  *   I2C Device name: pinpoint         (PinpointSubsystem, goBILDA Pinpoint Odometry Computer. If it
  *                                      is missing, the screen says so and the OpMode still runs.)
  */
-@TeleOp(name = "TeleOp - Alpha 13", group = "Testing")
+@TeleOp(name = "TeleOp - Alpha 14", group = "Testing")
 public class BiobuzzTeleOp extends OpMode {
 
     // ------------------------------------------------------------------
