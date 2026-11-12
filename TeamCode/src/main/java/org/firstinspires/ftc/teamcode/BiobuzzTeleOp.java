@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
@@ -17,6 +18,8 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShotTable;
 import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
+
+import java.util.List;
 
 /*
  * TeleOp Alpha 13
@@ -475,6 +478,16 @@ public class BiobuzzTeleOp extends OpMode {
     // Change it by about 0.05 at a time. Try slow mode too, it is scaled to match.
     private static final double TURRET_FEEDFORWARD_GAIN = 0.30;
 
+    // BULK READS. Every time the code asks a motor for its speed or position, the Robot Controller
+    // makes a separate trip to the hub. This TeleOp asks four times per loop (the intake, the
+    // flywheel, the hood wheel and the turret), so that is four trips. With bulk reads on, the hub
+    // sends EVERYTHING in one trip and the other three questions are answered from that copy. The
+    // loop gets shorter, so the turret, the shooter's READY check and the drive all update more
+    // often. AUTO is the safe kind: it can never hand back an old number by mistake.
+    // TO TEST IT: watch the "Loop time (ms)" line with this true, then set it false, redeploy and
+    // compare the average. Keep it true unless something looks wrong.
+    private static final boolean USE_BULK_READS = true;
+
     // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
     // bottom, under the live data). false = it is only shown before START, like it used to be.
     private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
@@ -600,6 +613,21 @@ public class BiobuzzTeleOp extends OpMode {
     private boolean wasOperatorDriveTogglePressed = false;
     private boolean wasDriverDriveTogglePressed = false;
     private boolean wasReAimPressed = false;
+
+    /*
+     * Turns on AUTO bulk reads for every REV hub (the Control Hub and the Expansion Hub), or makes
+     * sure they are off when USE_BULK_READS is false. See USE_BULK_READS for what that means.
+     */
+    private void enableBulkReads() {
+        List<LynxModule> hubs = hardwareMap.getAll(LynxModule.class);
+        for (int i = 0; i < hubs.size(); i = i + 1) {
+            if (USE_BULK_READS) {
+                hubs.get(i).setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+            } else {
+                hubs.get(i).setBulkCachingMode(LynxModule.BulkCachingMode.OFF);
+            }
+        }
+    }
 
     /*
      * True only on the loop where a button goes from "not pressed" to "pressed".
@@ -1165,6 +1193,8 @@ public class BiobuzzTeleOp extends OpMode {
      */
     @Override
     public void init() {
+        enableBulkReads();
+
         // Each subsystem gets its own motors from the hardware map.
         driveSubsystem = new DriveSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
@@ -1619,6 +1649,7 @@ public class BiobuzzTeleOp extends OpMode {
 
         // 4. Show what is happening on the Driver Station, one section at a time.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
+        telemetry.addData("Bulk reads", USE_BULK_READS ? "AUTO (on)" : "off");
         if (loopCount > 1) {
             double averageLoopMs = totalLoopMs / (loopCount - 1);
             telemetry.addData("Loop time (ms)", "%.1f now   %.1f average   %.1f worst   (%.0f loops/sec)",
