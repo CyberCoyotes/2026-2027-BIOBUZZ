@@ -41,7 +41,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     turret just has to be holding still.) Then the gate OPENS and STAYS OPEN, and the intake feeds
  *     the balls for as long as the trigger is HELD (there is no timer). The intake runs only while the
  *     flywheel is at speed AND the turret is aimed, and it pauses by itself when either is lost (the
- *     screen says which). Let go of the trigger to END the volley: the gate closes (gently) and the
+ *     screen says which). Let go of the trigger to END the volley: the gate closes and the
  *     intake stops (and reverses for the length of the close, see GATE CLOSING AUTO-REVERSE).
  *     There is no "one volley per press" limit: keep holding and whatever the intake brings in is
  *     shot. (There is no automatic LIFT step: its timing was off and it wedged the last ball. The
@@ -49,8 +49,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   WHO FIRES: the OPERATOR's Right Trigger (gamepad2). The driver's Right Trigger does NOT fire, unless
  *     SOLO MODE is ON. SOLO MODE is for a match with ONE person driving: the driver presses gamepad1
  *     LOGO (the center "guide" button) to switch it ON / OFF (it starts OFF, and it works in INIT too).
- *     While it is ON the driver's Right Trigger fires too, and the screen says SOLO MODE ON. In a
- *     solo match nobody can use the operator's buttons (the gate buttons, the dials, DIAL / TABLE),
+ *     While it is ON the driver's Right Trigger fires too and the driver's Y (HOLD) lifts the gate
+ *     (issue #78), and the screen says SOLO MODE ON. In a
+ *     solo match nobody can use the rest of the operator's buttons (gate CLOSED / OPENED, the dials, DIAL / TABLE),
  *     so set the speed source with gamepad 2 (LOGO) first if you can. (The driver CAN set the
  *     alliance with START and switch field / robot centric with BACK, see below.) The LOGO button is
  *     known to reach the Robot Controller on our Logitech controllers.
@@ -62,8 +63,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     OPENED, and holding Y LIFTS it (see LIFTED below); X and B do nothing.
  *   The intake is the DRIVER's only (gamepad1 bumpers; the operator's bumpers do nothing). REVERSE (Left
  *     Bumper) beats the volley, which beats INTAKE (Right Bumper).
- *   GATE CLOSING AUTO-REVERSE: any time the gate walks from OPENED to CLOSED, or from LIFTED to CLOSED,
- *     the intake runs in REVERSE for exactly that long (about 0.75 s from OPENED, about 2 s from LIFTED),
+ *   GATE CLOSING AUTO-REVERSE: any time the gate closes from OPENED or from LIFTED,
+ *     the intake runs in REVERSE for a short time (CLOSE_REVERSE_SECONDS in ShooterServoSubsystem, 0.5 s to start with, the same from both),
  *     so a ball in the gate's way is pushed back out instead of being pulled in against the closing
  *     gate. It happens after every volley, on an abort, and on the manual X button. It beats the
  *     driver's INTAKE button while the gate is closing. The screen says "gate closing: REVERSE
@@ -184,9 +185,11 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   B -> shooter GATE OPENED (lets the ball through)
  *   Y -> HOLD for shooter GATE LIFTED (pushes the very last ball up into the flywheel; with no ball
  *        behind it, nothing else would). OPENED is the position BETWEEN LIFTED and CLOSED.
+ *        (The driver's Y does the same, but ONLY in SOLO MODE. Everything below works the same
+ *        for either gamepad's Y.)
  *        - While a volley FEEDS (the trigger is held, the wheels are at speed): hold Y to LIFT, let
  *          go and the gate goes back to OPENED and the volley carries on.
- *        - Between volleys: hold Y to LIFT, let go and the gate CLOSES gently (with the intake
+ *        - Between volleys: hold Y to LIFT, let go and the gate CLOSES (with the intake
  *          reversing for that moment, see GATE CLOSING AUTO-REVERSE).
  *        - While a volley WAITS: ignored.
  *      X and B are ONE move per press. The gate positions are CLOSED_POSITION, OPENED_POSITION and
@@ -236,7 +239,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Right Trigger -> does NOT fire. The OPERATOR's Right Trigger fires. Only in SOLO MODE (LOGO) does
  *      the driver's Right Trigger fire too. At the start the shot is DIAL mode, flywheel 1300 RPM and
  *      hood wheel 2600 RPM (a ratio of 2.00).
- *   X / B / Y    -> not used. (The shooter gate moved to the operator's X / B / Y.)
+ *   Y (HOLD)     -> ONLY in SOLO MODE (LOGO): shooter GATE LIFTED, the same as the operator's Y (see
+ *      GAMEPAD 2 below, and issue #78). With SOLO MODE off, the driver's Y does nothing.
+ *   X / B        -> not used. (The shooter gate moved to the operator's X / B.)
  *
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (SPEED CONTROL in RPM, read from the wheel encoders)
  *   D-pad Up / Down    -> flywheel target RPM UP / DOWN by FLYWHEEL_RPM_STEP
@@ -608,6 +613,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE   (the intake is the driver's only)");
         telemetry.addLine("LOGO = SOLO MODE on / off (one-person match: then the driver's Right Trigger fires too)");
+        telemetry.addLine("Y (HOLD) = gate LIFTED, SOLO MODE only (to push the last ball in)");
         telemetry.addLine("D-pad Up = PRE-REV on / off (wheels spin without firing)");
         telemetry.addLine("START = alliance BLUE / RED   BACK = drive FIELD-CENTRIC / ROBOT-CENTRIC");
         telemetry.addLine("D-pad Left = RE-AIM (the way the robot faces now is away from me)");
@@ -1268,7 +1274,11 @@ public class BiobuzzTeleOp extends OpMode {
         // The operator's face buttons move the shooter gate. (A is the turret float button.)
         boolean gateClosedPressed = gamepad2.x;
         boolean gateOpenedPressed = gamepad2.b;
-        boolean gateLiftedPressed = gamepad2.y;
+        // LIFTED is the one gate button the DRIVER can use too, but ONLY in SOLO MODE (gamepad1 LOGO),
+        // the same way the driver's Right Trigger only fires in SOLO MODE. In a solo match nobody
+        // is on gamepad 2, so without this the last ball could not be lifted into the flywheel.
+        // The driver's X and B do NOT work the gate: solo only needs LIFTED (issue #78).
+        boolean gateLiftedPressed = gamepad2.y || (soloMode && gamepad1.y);
         boolean turretFloatPressed = gamepad2.a;
         boolean dpadUpPressed = gamepad2.dpad_up;
         boolean dpadDownPressed = gamepad2.dpad_down;
@@ -1481,18 +1491,19 @@ public class BiobuzzTeleOp extends OpMode {
         boolean readyToStart = flywheelAtSpeed && turretReady;
         firingSequence.update(fireHeld, readyToStart, flywheelAtSpeed, turretReady);
 
-        // Shooter gate. CLOSING is always GENTLE (goToClosedGently): the gate walks toward CLOSED slowly,
-        // so a single ball left in the way is pushed aside instead of slammed or wedged. OPENING and
-        // LIFTING are instant. (shooterServoSubsystem.update() below walks the gentle close along.)
+        // Shooter gate. Every move is instant, at the servo's top speed. When the gate closes from OPENED
+        // or LIFTED, the INTAKE runs in reverse for a short time to push a ball out of the way (see the
+        // intake block below).
         // The gate has three positions, and OPENED is BETWEEN the other two: LIFTED, OPENED, CLOSED.
         // While a volley runs the FIRING SEQUENCE is in charge:
         //   - WAITING: it holds the gate CLOSED, and the operator's buttons do nothing.
         //   - FEEDING: it holds the gate OPENED, until the trigger is let go. The one exception is
         //     the Y button: while Y is HELD the gate is LIFTED instead (to push the last ball up into
         //     the flywheel), and when Y is let go the gate goes back to OPENED and the volley carries on.
-        //   - The trigger is let go: it closes the gate gently (once).
-        // Between volleys the operator's buttons work: X = CLOSED, B = OPENED, and Y (HOLD) = LIFTED:
-        // let go of Y and the gate closes gently, because CLOSED is the gate's normal position.
+        //   - The trigger is let go: it closes the gate (once).
+        // Between volleys the operator's buttons work: X = CLOSED, B = OPENED, and Y (HOLD) = LIFTED
+        // (the driver's Y too, in SOLO MODE):
+        // let go of Y and the gate closes, because CLOSED is the gate's normal position.
         // X and B count as ONE press only on the loop where they go from "not pressed" to "pressed",
         // so holding them does not keep re-sending the move. We work the presses out every loop,
         // even during a volley, so an old press never waits around. If more than one is pressed on the
@@ -1504,8 +1515,8 @@ public class BiobuzzTeleOp extends OpMode {
         FiringSequence.GateCommand gateCommand = firingSequence.getGateCommand();
         String gateControl;
         if (gateCommand == FiringSequence.GateCommand.CLOSE) {
-            shooterServoSubsystem.goToClosedGently();
-            gateControl = "firing sequence (CLOSED, gently)";
+            shooterServoSubsystem.goToClosed();
+            gateControl = "firing sequence (CLOSED)";
         } else if (gateCommand == FiringSequence.GateCommand.OPEN) {
             if (gateLiftedPressed) {
                 shooterServoSubsystem.goToLifted();
@@ -1515,8 +1526,8 @@ public class BiobuzzTeleOp extends OpMode {
                 gateControl = "firing sequence (OPENED)";
             }
         } else if (closedNewPress) {
-            shooterServoSubsystem.goToClosedGently();
-            gateControl = "manual (X, gently)";
+            shooterServoSubsystem.goToClosed();
+            gateControl = "manual (X)";
         } else if (openedNewPress) {
             shooterServoSubsystem.goToOpened();
             gateControl = "manual (B)";
@@ -1526,32 +1537,29 @@ public class BiobuzzTeleOp extends OpMode {
         } else if (liftedReleased && shooterServoSubsystem.isLifted()) {
             // Y was let go while the gate was LIFTED, and no volley is running: back to CLOSED. (The
             // isLifted() check keeps this from closing a gate that X or B has already moved.)
-            shooterServoSubsystem.goToClosedGently();
-            gateControl = "manual (Y let go: CLOSED, gently)";
+            shooterServoSubsystem.goToClosed();
+            gateControl = "manual (Y let go: CLOSED)";
         } else if (gateLiftedPressed && shooterServoSubsystem.isLifted()) {
             gateControl = "manual (Y held: LIFTED)";
         } else {
             gateControl = "manual (no press)";
         }
-        // Walk a gentle close along. (Does nothing when no gentle close is going on.)
-        shooterServoSubsystem.update();
 
         // Intake. It is the DRIVER's only (gamepad1 bumpers: the operator's bumpers do nothing).
         //   1. REVERSE (Left Bumper) goes first, so clearing a jam always works.
-        //   2. GATE CLOSING: any time the gate is walking toward CLOSED (from OPENED, or from LIFTED),
-        //      the intake runs in REVERSE for exactly that long, on its own. A ball that is in the
-        //      gate's way is pushed back out of it instead of being pulled in against the closing
-        //      gate and wedged. This beats the driver's INTAKE button (pulling balls in while the gate
-        //      shuts is what wedges them), and it ends the loop the gate arrives at CLOSED.
-        //      (isClosingGently() was brought up to date by shooterServoSubsystem.update() just above.)
+        //   2. GATE CLOSING: for CLOSE_REVERSE_SECONDS after the gate closes from OPENED or from
+        //      LIFTED, the intake runs in REVERSE, on its own. A ball that is in the gate's way is
+        //      pushed back out of it instead of being pulled in against the closing gate and wedged.
+        //      This beats the driver's INTAKE button (pulling balls in while the gate shuts is what
+        //      wedges them). It is a timer we tune, not a measurement of the gate (isClearingChute()).
         //   3. Then the firing sequence, while it is feeding. (It cannot overlap with 2: the gate is
-        //      OPENED while it feeds, and opening ends a gentle close.)
+        //      OPENED while it feeds, and opening ends the reverse window.)
         //   4. Then INTAKE (Right Bumper).
         String intakeControl;
         if (gamepad1.left_bumper) {
             intakeSubsystem.reverse();
             intakeControl = "Left Bumper (REVERSE)";
-        } else if (shooterServoSubsystem.isClosingGently()) {
+        } else if (shooterServoSubsystem.isClearingChute()) {
             intakeSubsystem.reverse();
             intakeControl = "gate closing: REVERSE (automatic)";
         } else if (firingSequence.ownsIntake()) {
