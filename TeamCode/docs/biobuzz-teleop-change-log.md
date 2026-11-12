@@ -178,3 +178,23 @@ From ALPHA 8: ODOMETRY ON THE SCREEN
   says so and everything else still works.
 ```
 
+
+## Newer than Alpha 13 (code-suggestions branch, not yet given its own Alpha number)
+
+*Written in the same style as the entries above. The screen name is still "TeleOp - Alpha 13" because the three Autos' `preselectTeleOp` and several docs use that name: if these changes are merged, bump it to Alpha 14 everywhere at once.*
+
+```text
+WHAT CHANGED
+  1. THE DRIVE'S HEADING IS THE CONTROL HUB'S IMU, NOT THE PINPOINT (ImuSubsystem). A Pinpoint blink or
+     restart can no longer drop the drive out of field-centric. The safety rule, the glitch hold
+     (HOLD_LAST_HEADING_DURING_GLITCH) and the resume check were deleted for the drive. The same
+     checks still run in checkPinpointHealth(), but they only throw away the turret's hive memory.
+     Field-centric now switches off only on BACK (either gamepad) or when there is no IMU.
+     D-pad Left (re-aim) still only moves an offset. Test with ImuAlpha FIRST: the hub orientation
+     settings in ImuSubsystem are the SDK defaults, not measured.
+  2. A BATTERY BLACK BOX (PowerMonitorSubsystem) and a log (BiobuzzLog, tag BIOBUZZ): hub voltage and
+     current on the screen, dips counted and logged, Pinpoint drops and glitches logged.
+  3. BULK READS (USE_BULK_READS, AUTO): four hub trips per loop become about one per hub.
+  4. A DRIVE ACCELERATION LIMIT in DriveSubsystem (0 to full in 0.2 s, stopping is never limited).
+  5. This history moved out of the header into this file.
+```
