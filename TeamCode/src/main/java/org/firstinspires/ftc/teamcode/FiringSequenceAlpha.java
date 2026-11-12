@@ -83,7 +83,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      more than 2 degrees): the intake must PAUSE and the screen says "turret not aimed". Aim it
  *      back and the intake starts again.
  *  10. With no volley, hold Y: the gate LIFTS. Let go: it CLOSES gently, and the intake reverses for
- *      the length of the close (about 2 s from LIFTED).
+ *      the length of the close (about 0.5 s).
  *
  * SAFE USE: the wheels are fast. Keep hands, hair and loose clothing away from them, and from the
  * intake and the turret. Keep a hand near the Stop button.

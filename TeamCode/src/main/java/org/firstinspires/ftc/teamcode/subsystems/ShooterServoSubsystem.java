@@ -29,8 +29,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * GENTLE CLOSE (issue #63): goToClosed() sends the servo straight to CLOSED, as fast as the servo
  * goes. If a ball is in the way (a single ball left when the feed ends), a fast close can slam it
  * or wedge it. goToClosedGently() instead walks the servo toward CLOSED slowly
- * (GENTLE_CLOSE_SPEED_POSITION_PER_SECOND), so the gate pushes the ball out of the way instead of
- * slamming into it. A servo pushes harder the further it is from the position it was told to
+ * (it takes GENTLE_CLOSE_SECONDS, the same from OPENED or from LIFTED), so the gate pushes the ball
+ * out of the way instead of slamming into it. A servo pushes harder the further it is from the position it was told to
  * hold, so a slow walk is also a gentle push. goToOpened(), goToLifted() and goToClosed() are all
  * still instant, and any of them cancels a gentle close that is still going.
  *
@@ -72,14 +72,17 @@ public class ShooterServoSubsystem {
     // Starting guess. Time the gate with a phone stopwatch, then change this number.
     private static final double SERVO_TRAVEL_SECONDS = 0.50;
 
-    // How fast the gate walks toward CLOSED during a GENTLE close, in servo position units per
-    // second (the whole travel is 1.0, so 0.40 is 40% of the travel per second). OPENED to CLOSED
-    // is 0.30 apart, so at 0.40 it takes about 0.75 seconds.
-    //   Smaller = slower and gentler, but the gate takes longer to shut.
-    //   Bigger  = quicker, and closer to the old instant close (a very big number is the same).
-    // Starting guess. Tune on the robot with one ball left in the chute: it should be pushed out of
-    // the way, not slammed or wedged.
-    private static final double GENTLE_CLOSE_SPEED_POSITION_PER_SECOND = 0.40;
+    // How many SECONDS a GENTLE close takes, from wherever the gate is now to CLOSED. It is the same
+    // from OPENED and from LIFTED: the walk's speed is worked out from the distance when the close
+    // starts (OPENED to CLOSED is 0.30 apart, LIFTED to CLOSED is 0.80, so a LIFTED close walks
+    // faster than an OPENED close). The TeleOp reverses the intake for exactly this long.
+    //   Bigger  = slower and gentler, and a longer intake reverse.
+    //   Smaller = quicker, and closer to the old instant close.
+    // This was a SPEED of 0.40 per second (0.75 s from OPENED, 2 s from LIFTED); the coach asked for
+    // 0.5 s from both. Tune on the robot with one ball left in the chute: it should be pushed out of
+    // the way, not slammed or wedged. [CONFIRM] A servo has its own top speed. If the real gate is
+    // still moving when the 0.5 s is up, raise this number (the gate cannot go faster than the servo).
+    private static final double GENTLE_CLOSE_SECONDS = 0.50;
 
     // ------------------------------------------------------------------
     // State
@@ -113,6 +116,11 @@ public class ShooterServoSubsystem {
 
     // true while a gentle close is still walking toward CLOSED. update() moves it along.
     private boolean closingGently = false;
+
+    // How fast THIS gentle close walks, in servo position units per second. Worked out in
+    // goToClosedGently() as (distance to CLOSED) / GENTLE_CLOSE_SECONDS, so every close takes the
+    // same time.
+    private double gentleCloseSpeed = 0.0;
     private ElapsedTime gentleCloseTimer = new ElapsedTime();
 
     // False until we send the servo its first position (in the constructor).
@@ -160,6 +168,10 @@ public class ShooterServoSubsystem {
         }
         state = GateState.CLOSED;
         closingGently = true;
+        // Speed = distance / time, so the walk lasts GENTLE_CLOSE_SECONDS whether it starts from
+        // OPENED (a short walk) or LIFTED (a long walk).
+        double distanceToClosed = Math.abs(closedPosition - commandedPosition);
+        gentleCloseSpeed = distanceToClosed / GENTLE_CLOSE_SECONDS;
         gentleCloseTimer.reset();
         travelTimer.reset();
         // commandedPosition stays where the gate is now. update() walks it toward CLOSED.
@@ -217,7 +229,8 @@ public class ShooterServoSubsystem {
 
     /*
      * Call this ONCE per loop() if the OpMode uses goToClosedGently(). It walks a gentle close along:
-     * each loop the servo is sent a little closer to CLOSED, at GENTLE_CLOSE_SPEED_POSITION_PER_SECOND.
+     * each loop the servo is sent a little closer to CLOSED, at the speed goToClosedGently() worked
+     * out, so the whole walk takes GENTLE_CLOSE_SECONDS.
      * It does nothing when no gentle close is going on, so it is always safe to call.
      */
     public void update() {
@@ -228,7 +241,7 @@ public class ShooterServoSubsystem {
         // How far we may move this loop: speed x the time since the last loop.
         double secondsSinceLastStep = gentleCloseTimer.seconds();
         gentleCloseTimer.reset();
-        double maxStep = GENTLE_CLOSE_SPEED_POSITION_PER_SECOND * secondsSinceLastStep;
+        double maxStep = gentleCloseSpeed * secondsSinceLastStep;
 
         double distanceLeft = closedPosition - commandedPosition;
         if (Math.abs(distanceLeft) <= maxStep) {

@@ -64,7 +64,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   The intake is the DRIVER's only (gamepad1 bumpers; the operator's bumpers do nothing). REVERSE (Left
  *     Bumper) beats the volley, which beats INTAKE (Right Bumper).
  *   GATE CLOSING AUTO-REVERSE: any time the gate walks from OPENED to CLOSED, or from LIFTED to CLOSED,
- *     the intake runs in REVERSE for exactly that long (about 0.75 s from OPENED, about 2 s from LIFTED),
+ *     the intake runs in REVERSE for exactly that long (0.5 s from OPENED or from LIFTED, see GENTLE_CLOSE_SECONDS in ShooterServoSubsystem),
  *     so a ball in the gate's way is pushed back out instead of being pulled in against the closing
  *     gate. It happens after every volley, on an abort, and on the manual X button. It beats the
  *     driver's INTAKE button while the gate is closing. The screen says "gate closing: REVERSE

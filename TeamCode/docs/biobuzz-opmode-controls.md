@@ -25,7 +25,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **Right Stick** | Turn |
 | **LT** (hold) | **Slow mode** |
 | **RB** | **Intake** (pull balls in). **The intake is the driver's only.** It does nothing while the gate is closing (the intake reverses by itself then, see below) |
-| **LB** | **Reverse the intake** (push balls out). Beats RB and a volley's feed. **The intake also reverses BY ITSELF for as long as the gate takes to close** (OPEN to CLOSED about 0.75 s, LIFTED to CLOSED about 2 s), after every volley, abort and operator X. The screen's intake line says "gate closing: REVERSE (automatic)" |
+| **LB** | **Reverse the intake** (push balls out). Beats RB and a volley's feed. **The intake also reverses BY ITSELF for as long as the gate takes to close** (0.5 s, the same from OPEN or from LIFTED), after every volley, abort and operator X. The screen's intake line says "gate closing: REVERSE (automatic)" |
 | **RT** (hold) | **Does not fire.** The operator's RT fires. **Only in SOLO MODE** (LOGO) does the driver's RT fire a volley too |
 | **LOGO** (the center **guide** button) | **SOLO MODE** on / off, for a one-person match (starts OFF) |
 | **Y** (HOLD) | **Only in SOLO MODE:** gate **LIFTED**, the same as the operator's Y (pushes the last ball in). Does nothing with SOLO MODE off. Driver X and B do nothing |
