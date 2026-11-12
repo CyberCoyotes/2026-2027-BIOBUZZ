@@ -3,7 +3,7 @@
 *You asked four things: (1) why the drive drops from field-centric to robot-centric and how to protect against it, (2) what is unnecessarily complex, (3) what questions to ask about code to make it human-maintainable, and (4) code suggestions on a separate branch. This is the written answer. The code is on the branch `claude/stoic-pasteur-ggp2jy-code-suggestions`. Nothing here has been run on a robot.*
 
 > **Updates after your replies (same day), newest first:**
-> - **Latest:** you said the hub is on the **left wall** (bird's-eye view), so the logo faces `RIGHT`: set (`6ab0134`). You also asked for the TeleOp to be renamed **"TeleOp - Alpha 14"**: done (`6a9938c`), on the suggestions branch only, because that is where the changes that make it Alpha 14 live. All three Autos' `preselectTeleOp` were changed to match and a script checked the four names are identical. 43 laptop checks pass. I read "left" as the **robot's** left with the intake at the top of the picture; if you meant the viewer's left, the logo is `LEFT`.
+> - **Latest:** you said the hub is on the **left wall** (bird's-eye view), so the logo faces `RIGHT`: set (`6ab0134`). You also asked for the TeleOp to be renamed **"TeleOp - Alpha 14"**: done (`6a9938c`), and now in `main` (merged as `5c3e46d`) together with the changes that make it Alpha 14. All three Autos' `preselectTeleOp` were changed to match and a script checked the four names are identical. 43 laptop checks pass. I read "left" as the **robot's** left with the intake at the top of the picture; if you meant the viewer's left, the logo is `LEFT`.
 > - **Hub:** you said the Control Hub stands on its end with its **USB ports at the ceiling** and its **logo facing the middle of the robot**. USB is `UP` in the code. The logo direction depends on **which wall** the hub is bolted to (left wall: `RIGHT`, right wall: `LEFT`, back: `FORWARD`, front: `BACKWARD`). *(Superseded: you then said left wall, so it is `RIGHT`.)*
 > - **A trap this exposed (and fixed):** my first default (logo `UP`) is physically impossible with USB `UP`. The real SDK **throws** on that pair, which would have **crashed the TeleOp at INIT**. `ImuSubsystem` now catches it, logs it, shows why on the screen, and falls back to robot-centric. Laptop checks guard it, and a mutation test (the bad setting put back) turns one red.
 > - **Pollen:** the manual (section 9.8) says POLLEN are about 2.8 in **Gopher ResisDent polyethylene** balls, so my static-electricity hypothesis is **stronger** than I first rated it. I was also wrong to say the manual did not give the material, and to say "nectar": your robot only takes in pollen.
@@ -169,7 +169,7 @@ public void loop() {
 }
 ```
 
-Rules for the session that does it: **one OpMode only** (your protocol); a **laptop check first** for the volley and the gate (the harness exists on the suggestions branch, `TeamCode/laptop-checks/`; this branch does not have it); extract **without changing behavior** and diff the telemetry before and after; and do the gate method last, because it is the one with eight branches.
+Rules for the session that does it: **one OpMode only** (your protocol); a **laptop check first** for the volley and the gate (the harness is in `main`, in `TeamCode/laptop-checks/`); extract **without changing behavior** and diff the telemetry before and after; and do the gate method last, because it is the one with eight branches.
 
 ---
 
@@ -295,5 +295,5 @@ Branch: `claude/stoic-pasteur-ggp2jy-code-suggestions` (12 commits on top of the
 
 ### Docs worth updating when you merge
 
-- `biobuzz-troubleshooting.md` row 53 ("Drive keeps dropping from FIELD to ROBOT centric") and row 61 ("the TeleOp no longer shows hub voltages") describe the old behavior on the session branch. **If you merge the suggestions branch, they are already updated** (`ab34dea`). If you do **not** merge it, leave them alone: they are correct for the code you have.
+- `biobuzz-troubleshooting.md` row 53 ("Drive keeps dropping from FIELD to ROBOT centric") and row 61 ("the TeleOp no longer shows hub voltages") described the old behavior before the merge. **They are updated in `main`** (`ab34dea`, merged as part of `5c3e46d`) to match the IMU drive and the POWER lines.
 - `biobuzz-match-day-checklists.md`: the after-match line "Note the lowest hub voltages the screen showed" only works once the POWER lines exist. `ab34dea` extends it to the dip count and the log.
