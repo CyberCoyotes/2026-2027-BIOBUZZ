@@ -1,6 +1,6 @@
 # BIOBUZZ Game Strategy
 
-*DRAFT for the coach to review. Status as of 2026-11-03 (robot is at `TeleOp - Alpha 8`). Facts come from the Competition Manual (TU02) and `biobuzz-game-essentials.md`; if they disagree with this file, the manual wins. Numbers marked **(derived)** are arithmetic from the manual's point table, not measurements. `[CONFIRM]` marks something nobody has decided or measured yet. The Auto plan is in `biobuzz-auto-strategy.md`.*
+*DRAFT for the coach to review. Status as of 2026-11-03 (robot is at `TeleOp - Alpha 8`). Facts come from the Competition Manual (TU02) and `biobuzz-game-essentials.md`; if they disagree with this file, the manual wins. Numbers marked **(derived)** are arithmetic from the manual's point table, not measurements. A `[#nn]` marker (a GitHub Issue labeled `needs-decision`) or an old `[CONFIRM]` (being converted, issue #70) marks something nobody has decided or measured yet. The Auto plan is in `biobuzz-auto-strategy.md`.*
 
 ## 1. The one-sentence strategy
 

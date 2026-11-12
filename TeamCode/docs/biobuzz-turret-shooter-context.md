@@ -1,6 +1,6 @@
 # BIOBUZZ: Turret, Shooter, and Limelight Context
 
-*Cyber Coyotes FTC (Reed City). Handoff doc for Claude Code. Suggested repo location: `docs/biobuzz-turret-shooter-context.md`. If a Team Update changes anything, the Competition Manual wins. Items marked **[CONFIRM]** are unresolved: stop and ask the coach before proceeding past them. Values marked **derived** have not been measured on a real field.*
+*Cyber Coyotes FTC (Reed City). Handoff doc for Claude Code. Suggested repo location: `docs/biobuzz-turret-shooter-context.md`. If a Team Update changes anything, the Competition Manual wins. Items marked **[#nn]** (a GitHub Issue labeled `needs-decision`) or with an old **[CONFIRM]** (being converted, issue #70) are unresolved: stop and ask the coach before proceeding past them. Values marked **derived** have not been measured on a real field.*
 
 ## 1. How to work with the coach
 

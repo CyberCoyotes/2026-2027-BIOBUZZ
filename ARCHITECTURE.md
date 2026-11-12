@@ -1,6 +1,6 @@
 # Architecture — 2026-2027 BIOBUZZ
 
-*This is the source of truth for how team code is structured. Claude Code and students read it before starting any coding session. `[CONFIRM]` marks a decision the coach hasn't made yet: **stop and ask** before doing work that depends on one. When a decision is made, replace the marker with the answer and mention the change in the commit message.*
+*This is the source of truth for how team code is structured. Claude Code and students read it before starting any coding session. A marker like `[#70]` means a decision the coach hasn't made yet: the number is a GitHub Issue labeled `needs-decision`, and that issue is the only place the question and its answer live. **Stop and ask** before doing work that depends on one. When the decision is made and the issue is closed, replace the marker with the answer and put `Closes #nn` in the commit message. Old bare `[CONFIRM]` markers are still being converted to issues (issue #70); treat them the same way.*
 
 ## 1. Strategic context
 
@@ -386,14 +386,16 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 
 ## 7. Session protocol (for Claude Code)
 
-> Read `ARCHITECTURE.md` and `CLAUDE.md`. Read the reference code in section 4 and the closest SDK sample. Then do the task. Modify only the files the task lists. Propose before coding unless the task already says the design is approved. Ask before adding dependencies, changing hardware config names, or inventing new conventions. **If you hit a `[CONFIRM]` marker relevant to the task, stop and ask.**
+> Read `ARCHITECTURE.md` and `CLAUDE.md`. Read the reference code in section 4 and the closest SDK sample. Then do the task. Modify only the files the task lists. Propose before coding unless the task already says the design is approved. Ask before adding dependencies, changing hardware config names, or inventing new conventions. **Before starting, search the open `needs-decision` GitHub Issues for any that touch the task. If you hit a `[#nn]` marker (or an old `[CONFIRM]`) relevant to the task, stop and ask. If you can't reach GitHub, stop and ask.** The full rule, including "draft, don't create", is in `CLAUDE.md` (session protocol, item 4).
 
-## 8. Open decisions (`[CONFIRM]` checklist)
+## 8. Open decisions (GitHub Issues)
+
+Open decisions are tracked as GitHub Issues labeled `needs-decision`, not in this file. The list below is the **old checklist**, kept only until each open item has its own issue (issue #70 tracks the conversion). When an item gets an issue, replace its line with `[#nn]` and a short title. When the item is decided, delete the line and write the answer where the rule belongs.
 
 - [x] Package layout (section 2): a `subsystems/` folder, and subsystem class names end in `Subsystem`. (The `testing/` move below is still open.)
 - [ ] Move the Alpha test OpModes into `testing/`?
 - [ ] Gold-standard subsystem class (section 4)
-- [ ] goBILDA encoder counts per revolution: 28 or 112? Measure on the robot (see `CLAUDE.md`).
+- [x] goBILDA encoder counts per revolution: **28 per motor revolution** (settled; see "Known gotchas" in `CLAUDE.md`).
 - [ ] goBILDA motor series: all motors are believed to be 5203 (not 5202). Confirm on the motors' labels before writing `TurretSubsystem` constants.
 - [ ] Turret ring gear tooth count (believed 48T; both pinions are 16T). Count it in Onshape.
 - [ ] Evaluate a 360° turret (cables and slip ring, wrap-around logic). Finish the 270° version first.

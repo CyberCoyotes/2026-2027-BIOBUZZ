@@ -1,6 +1,6 @@
 # Pedro Pathing 3: Robot Setup and Auto Guide
 
-*How to get a robot ready for Pedro, and the rules for writing every Pedro Auto after this one. Status as of 2026-11-04: the code is in the repo and compiles against the real libraries, but **nothing has run on a robot yet**. `[CONFIRM]` marks things only a robot test can settle. If this doc and Pedro's own docs disagree, Pedro's docs win: https://pedropathing.com/ and https://github.com/Pedro-Pathing*
+*How to get a robot ready for Pedro, and the rules for writing every Pedro Auto after this one. Status as of 2026-11-04: the code is in the repo and compiles against the real libraries, but **nothing has run on a robot yet**. A `[#nn]` marker (a GitHub Issue labeled `needs-decision`) or an old `[CONFIRM]` (being converted, issue #70) marks things only a robot test can settle. If this doc and Pedro's own docs disagree, Pedro's docs win: https://pedropathing.com/ and https://github.com/Pedro-Pathing*
 
 ## 1. What is installed
 
