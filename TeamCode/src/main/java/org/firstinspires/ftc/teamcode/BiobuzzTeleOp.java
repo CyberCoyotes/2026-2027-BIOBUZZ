@@ -49,9 +49,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   WHO FIRES: the OPERATOR's Right Trigger (gamepad2). The driver's Right Trigger does NOT fire, unless
  *     SOLO MODE is ON. SOLO MODE is for a match with ONE person driving: the driver presses gamepad1
  *     LOGO (the center "guide" button) to switch it ON / OFF (it starts OFF, and it works in INIT too).
- *     While it is ON the driver's Right Trigger fires too and the driver's Y (HOLD) lifts the gate
- *     (issue #78), and the screen says SOLO MODE ON. In a
- *     solo match nobody can use the rest of the operator's buttons (gate CLOSED / OPENED, the dials, DIAL / TABLE),
+ *     While it is ON the driver's Right Trigger fires too, the driver's Y (HOLD) lifts the gate
+ *     (issue #78) and the driver's B (HOLD) is the FORCED SHOT (issue #80), and the screen says SOLO MODE ON. In a
+ *     solo match nobody can use the rest of the operator's buttons (gate CLOSED, the dials, DIAL / TABLE),
  *     so set the speed source with gamepad 2 (LOGO) first if you can. (The driver CAN set the
  *     alliance with START and switch field / robot centric with BACK, see below.) The LOGO button is
  *     known to reach the Robot Controller on our Logitech controllers.
@@ -68,9 +68,10 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     aimed. Let go of B and the gate CLOSES by itself, with the same short intake REVERSE as any other
  *     close (see GATE CLOSING AUTO-REVERSE). If the trigger is still held then, the volley starts over
  *     and waits for READY as normal. Y still lifts during a forced shot. The screen says FORCED SHOT.
- *     The driver has no forced shot (not even in SOLO MODE). It is for when the camera is dead or the
- *     READY check is stuck: if the flywheel is slow the shot will be weak. (Coach answer in issue #63:
- *     the gate buttons were "an override between volleys only". The forced shot is the one exception.)
+ *     The driver's B does the same, but ONLY in SOLO MODE (issue #80). It is for when the camera is
+ *     dead or the READY check is stuck: if the flywheel is slow the shot will be weak. (Coach answer
+ *     in issue #63: the gate buttons were "an override between volleys only". The forced shot is the
+ *     one exception.)
  *   The intake is the DRIVER's only (gamepad1 bumpers; the operator's bumpers do nothing). REVERSE (Left
  *     Bumper) beats the volley, which beats INTAKE (Right Bumper).
  *   GATE CLOSING AUTO-REVERSE: any time the gate closes from OPENED or from LIFTED,
@@ -253,7 +254,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      hood wheel 2600 RPM (a ratio of 2.00).
  *   Y (HOLD)     -> ONLY in SOLO MODE (LOGO): shooter GATE LIFTED, the same as the operator's Y (see
  *      GAMEPAD 2 below, and issue #78). With SOLO MODE off, the driver's Y does nothing.
- *   X / B        -> not used. (The shooter gate and the FORCED SHOT are the operator's X / B / Y.)
+ *   B (HOLD)     -> ONLY in SOLO MODE (LOGO): the FORCED SHOT, the same as the operator's B (see GAMEPAD 2
+ *      below, and issue #80). With SOLO MODE off, the driver's B does nothing.
+ *   X            -> not used. (The shooter gate is the operator's X / Y.)
  *
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (SPEED CONTROL in RPM, read from the wheel encoders)
  *   D-pad Up / Down    -> flywheel target RPM UP / DOWN by FLYWHEEL_RPM_STEP
@@ -1285,13 +1288,16 @@ public class BiobuzzTeleOp extends OpMode {
         // ---- Gamepad 2 (operator) ----
         // The operator's face buttons move the shooter gate. (A is the turret float button.)
         // B is the FORCED SHOT: HOLD it to shoot even when the READY checks say "not ready" (see the
-        // firing sequence below). The driver has no forced shot, not even in SOLO MODE.
+        // firing sequence below, issue #80). The DRIVER's B does the same, but ONLY in SOLO MODE.
         boolean gateClosedPressed = gamepad2.x;
-        boolean forcedShotHeld = gamepad2.b;
-        // LIFTED is the one gate button the DRIVER can use too, but ONLY in SOLO MODE (gamepad1 LOGO),
-        // the same way the driver's Right Trigger only fires in SOLO MODE. In a solo match nobody
-        // is on gamepad 2, so without this the last ball could not be lifted into the flywheel.
-        // The driver's X and B do NOT work the gate: solo only needs LIFTED (issue #78).
+        boolean operatorForcedShotHeld = gamepad2.b;
+        boolean driverForcedShotHeld = gamepad1.b;
+        boolean forcedShotHeld = operatorForcedShotHeld || (soloMode && driverForcedShotHeld);
+        // LIFTED and the FORCED SHOT are the gate buttons the DRIVER can use too, but ONLY in SOLO
+        // MODE (gamepad1 LOGO), the same way the driver's Right Trigger only fires in SOLO MODE. In a
+        // solo match nobody is on gamepad 2, so without this the last ball could not be lifted into
+        // the flywheel (issue #78), and a dead camera could not be overridden (issue #80).
+        // The driver's X does NOT work the gate: solo does not need it.
         boolean gateLiftedPressed = gamepad2.y || (soloMode && gamepad1.y);
         boolean turretFloatPressed = gamepad2.a;
         boolean dpadUpPressed = gamepad2.dpad_up;
@@ -1444,8 +1450,10 @@ public class BiobuzzTeleOp extends OpMode {
             // The shooter's speed control holds each wheel at its target, even when a ball slows it
             // down or the battery drains.
             shooterSubsystem.setTargetRpms(flywheelTargetRpm, hoodWheelTargetRpm);
-            if (forcedShotHeld) {
+            if (operatorForcedShotHeld) {
                 shooterControl = "Operator B (FORCED SHOT)";
+            } else if (forcedShotHeld) {
+                shooterControl = "Driver B (FORCED SHOT, SOLO MODE)";
             } else if (fireHeld && operatorFireHeld) {
                 shooterControl = "Operator Right Trigger (FIRE)";
             } else if (fireHeld) {
