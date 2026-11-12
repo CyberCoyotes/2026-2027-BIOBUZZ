@@ -1,6 +1,6 @@
 # Architecture — 2026-2027 BIOBUZZ
 
-*This is the source of truth for how team code is structured. Claude Code and students read it before starting any coding session. `[CONFIRM]` marks a decision the coach hasn't made yet: **stop and ask** before doing work that depends on one. When a decision is made, replace the marker with the answer and mention the change in the commit message.*
+*This is the source of truth for how team code is structured. Claude Code and students read it before starting any coding session. A marker like `[#70]` means a decision the coach hasn't made yet: the number is a GitHub Issue labeled `needs-decision`, and that issue is the only place the question and its answer live. **Stop and ask** before doing work that depends on one. When the decision is made and the issue is closed, replace the marker with the answer and put `Closes #nn` in the commit message. Old bare `[CONFIRM]` markers are still being converted to issues (issue #70); treat them the same way.*
 
 ## 1. Strategic context
 
@@ -29,13 +29,13 @@ We still organize the robot into **subsystems**, the same idea as in FRC: one cl
 ```
 org.firstinspires.ftc.teamcode
 ├── subsystems/     ShooterSubsystem, TurretSubsystem, IntakeSubsystem, DriveSubsystem, VisionSubsystem, PinpointSubsystem, ImuSubsystem, PowerMonitorSubsystem, BiobuzzLog, HiveBearingMemory, ShotTable, FiringSequence …
-├── testing/        test OpModes (the *Alpha files)   [CONFIRM]
+├── testing/        test OpModes (the *Alpha files). Decided, but the move is not done yet; see below
 ├── pedro/          Pedro Pathing 3 constants and tuning (per Pedro's setup guide; named `pedro/`, as in Pedro's Quickstart), plus `FieldConstants` (where our Autos start and park)
 │   └── procedures/ Pedro's own AutoTune code, copied unchanged from the Quickstart. Do not edit.
 └── (flavor dirs)   TeleOp and Auto OpModes for each robot
 ```
 
-The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`, `VisionAlpha`, `ShotTableAlpha`, `PinpointAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 14"; gamepad1 is the driver, gamepad2 is the operator, and every button always does the same thing, see its header). Moving them into `testing/` is a `[CONFIRM]`. Until that's decided, new test OpModes also go at the package root, next to the Alpha files.
+The `subsystems/` folder is decided. The existing test OpModes (`DriveAlpha`, `IntakeAlpha`, `ShooterPowerAlpha`, `ShooterRPMAlpha`, `ShooterRatioAlpha`, `TurretAlpha`, `VisionAlpha`, `ShotTableAlpha`, `PinpointAlpha`) sit at the package root, and so does `BiobuzzTeleOp`, the combined TeleOp being built up one tested piece at a time (screen name "TeleOp - Alpha 14"; gamepad1 is the driver, gamepad2 is the operator, and every button always does the same thing, see its header). **The coach decided (2026-11-12) that test OpModes belong in `testing/`.** The move has not been done: it changes every moved class's `package` line and every import that names it, so it is its own session. Until that session, new test OpModes still go at the package root, next to the Alpha files, so that they all move together.
 
 ### OpModes
 
@@ -180,7 +180,7 @@ Add new names here when you add hardware. Names in code must match the configura
 ## 4. Reference code
 
 - **Style models:** `IntakeAlpha.java` and `ShooterPowerAlpha.java`. They show the comment style, the constants-at-the-top pattern, and iterative OpMode structure.
-- **Gold-standard subsystem class:** `[CONFIRM]`. The first subsystem class written and approved becomes the template for the rest. `ShooterSubsystem` is the first one planned.
+- **Gold-standard subsystem class:** none at the moment (coach's decision, 2026-11-12). When you write a new subsystem, copy the structure of the existing subsystem closest to what you are building, and follow the rules in section 2.
 - **SDK samples most likely to be useful:** `BasicOpMode_Iterative`, `ConceptExternalHardwareClass` + `RobotHardware`, `ConceptAprilTag`, `SensorLimelight3A`, `SensorGoBildaPinpoint`, `RobotAutoDriveToAprilTagOmni`.
 
 ## 5. Setup still needed
@@ -188,7 +188,7 @@ Add new names here when you add hardware. Names in code must match the configura
 - [ ] Port the **build flavors** (`practiceBot`, `team11940`, `team22091`) from last season's `TeamCode/build.gradle`. They're not in this repo yet.
 - [ ] **Pedro Pathing 3:** the dependency, `pedro/Constants.java`, `pedro/Tuning.java` and `PedroForwardBackAlpha` are written and compile against the real libraries (checked on a laptop with `javac`). Still to do: do a Gradle sync in Android Studio and confirm the build is clean, then run the AutoTune steps on **each robot** (see "Pedro Pathing setup" in section 6), paste each robot's Foresight numbers into `Constants.java`, and only then set `FORESIGHT_TUNED = true`.
 - [ ] **Panels:** the dependency is in `build.dependencies.gradle` (`fullpanels:1.0.19`). Still to do: deploy and confirm the build is clean and the Panels page opens, check whether the `repo.dairy.foundation` repository is really needed, and write the usage (telemetry, graphs, tunable variables) from the Panels docs once we have them. Nothing in `TeamCode` uses Panels yet.
-- [ ] `[CONFIRM]` Which git branch is the main one: `main` or `master`? The repo has both, and the claude.ai Project syncs `master`.
+- [x] The main branch is **`main`** (coach's decision, 2026-11-12). If the claude.ai Project still syncs `master`, point it at `main`.
 
 ## 6. Hardware and behavior
 
@@ -266,7 +266,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
   - **For now the turret uses the motor's built-in encoder** (**384.5 counts per output-shaft revolution**, which is 28 × 13.7, per spec sheet `5203-2402-0014`), plugged into the port's encoder connector. **Later** the REV Through Bore Encoder (incremental/quadrature, **8192 counts per revolution**, on its own 16T pinion on the ring gear) can go in that same connector instead; change `ENCODER_TICKS_PER_REV` in `TurretSubsystem` when it does. There is **no separate `turret_encoder` config entry**: we have 8 motors and the two hubs have exactly 8 motor ports. The code reads it with `turretMotor.getCurrentPosition()`. The Control Hub cannot read the Through Bore's absolute pulse output.
   - **Direction coupling:** because they share a port, `setDirection()` reverses the motor and the encoder count together. `INVERT_ENCODER_READING` fixes the encoder's sign in software.
   - `turret_home_switch`: REV magnetic limit switch. It is **active-low**: it reads LOW when a magnet is near. Confirm on the robot with telemetry. **Configure it as a "Digital Device"** in the Driver Station, not "REV Touch Sensor": the SDK's touch-sensor class is not a `DigitalChannel`, which is what our code reads.
-- **Gearing:** both spur gears (motor pinion and encoder pinion) are 16T. The ring gear is believed to be 48T `[CONFIRM]`. So the encoder shaft turns 3 times per turret revolution, which is `ticks per rev × (ring teeth / 16) / 360`. With the motor's built-in encoder (384.5) that is about **3.2 ticks per turret degree** (0.31° per tick). With the Through Bore (8192) it would be about 68.3. Cross-check by turning the turret by hand through a marked 90°.
+- **Gearing:** both spur gears (motor pinion and encoder pinion) are 16T. The ring gear has **47 teeth** (coach's answer, 2026-11-12; `biobuzz-robot-design.md` says the same). So the encoder shaft turns 47/16 = 2.9375 times per turret revolution, which is `ticks per rev × (ring teeth / 16) / 360`. With the motor's built-in encoder (384.5) that is about **3.14 ticks per turret degree** (0.32° per tick). With the Through Bore (8192) it would be about 66.8. **`TurretSubsystem` still has 48 in `RING_GEAR_TEETH` until the coach approves the one-line change.** Cross-check by turning the turret by hand through a marked 90°.
 - **Angle convention:**
   - **0° is the home switch, and it points at the intake direction** (straight ahead).
   - Angles are **signed**, and the travel is about 270° (±135°). The 90° dead zone is directly behind, opposite the intake.
@@ -282,7 +282,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 - **Speeds (100%):** the manual stick power is 100% in `VisionAlpha` (and the `TurretAlpha` dial starts there; `BiobuzzTeleOp` has had no manual turret stick since issue #74). Position control (auto-align and the presets) is capped by `MAX_POWER = 1.0` in `TurretSubsystem`. Both were 50% for the first tests, then 75%. Stopping distance grows with the square of the speed, so at 100% the turret overshoots more and coasts further past a soft limit. **Not yet tested at 100%:** re-check the limit coasting (ease the stick into a limit first) and auto-align overshoot. The ±120° limits only tested safe at 50%.
 - **Tested on the robot:** the ±120° limits, and `VisionAlpha` auto-align (`tx` falls toward 0 when the turret turns toward the target).
 - **Test OpMode:** `TurretAlpha` (gamepad2: manual stick, hold-to-turn D-pad, power dial, Y/X/B presets, A to stop). Its header has the safe first-test order.
-- **Open:** exact ring tooth count, whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret.
+- **Open:** whether the switch triggers at a different angle depending on direction of travel, and whether we go to a 360° turret `[#12]`.
 
 ### VisionSubsystem (`subsystems/VisionSubsystem.java`): code written, not yet tested on the robot
 
@@ -402,18 +402,15 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 
 ## 7. Session protocol (for Claude Code)
 
-> Read `ARCHITECTURE.md` and `CLAUDE.md`. Read the reference code in section 4 and the closest SDK sample. Then do the task. Modify only the files the task lists. Propose before coding unless the task already says the design is approved. Ask before adding dependencies, changing hardware config names, or inventing new conventions. **If you hit a `[CONFIRM]` marker relevant to the task, stop and ask.**
+> Read `ARCHITECTURE.md` and `CLAUDE.md`. Read the reference code in section 4 and the closest SDK sample. Then do the task. Modify only the files the task lists. Propose before coding unless the task already says the design is approved. Ask before adding dependencies, changing hardware config names, or inventing new conventions. **Before starting, search the open `needs-decision` GitHub Issues for any that touch the task. If you hit a `[#nn]` marker (or an old `[CONFIRM]`) relevant to the task, stop and ask. If you can't reach GitHub, stop and ask.** The full rule, including "draft, don't create", is in `CLAUDE.md` (session protocol, item 4).
 
-## 8. Open decisions (`[CONFIRM]` checklist)
+## 8. Open decisions (GitHub Issues)
 
-- [x] Package layout (section 2): a `subsystems/` folder, and subsystem class names end in `Subsystem`. (The `testing/` move below is still open.)
-- [ ] Move the Alpha test OpModes into `testing/`?
-- [ ] Gold-standard subsystem class (section 4)
-- [ ] goBILDA encoder counts per revolution: 28 or 112? Measure on the robot (see `CLAUDE.md`).
-- [ ] goBILDA motor series: all motors are believed to be 5203 (not 5202). Confirm on the motors' labels before writing `TurretSubsystem` constants.
-- [ ] Turret ring gear tooth count (believed 48T; both pinions are 16T). Count it in Onshape.
-- [ ] Evaluate a 360° turret (cables and slip ring, wrap-around logic). Finish the 270° version first.
-- [ ] Main branch: `main` or `master`?
+Open decisions are tracked as GitHub Issues labeled `needs-decision`, not in this file. The list below is the **old checklist**, kept only until each open item has its own issue (issue #70 tracks the conversion). When an item gets an issue, replace its line with `[#nn]` and a short title. When the item is decided, delete the line and write the answer where the rule belongs.
+
+- [x] Package layout (section 2): a `subsystems/` folder, and subsystem class names end in `Subsystem`. Test OpModes go in `testing/` (decided 2026-11-12; the move itself is not done yet, see section 2).
+- [x] goBILDA encoder counts per revolution: **28 per motor revolution** (settled; see "Known gotchas" in `CLAUDE.md`).
+- [ ] `[#12]` Evaluate a 360° turret (cables and slip ring, wrap-around logic). Finish the 270° version first.
 - [x] Vision source: **Limelight 3A** (final, no webcam or `VisionPortal`). It plugs into the Control Hub's USB 3.0 port with a USB-C to USB-A cable (one cable for power and data).
 
 ## 9. Mentor checklist (anti-drift)

@@ -16,7 +16,12 @@ Claude Code loads this file automatically at the start of every session. It hold
 1. **Read `ARCHITECTURE.md` first.** It is the source of truth for structure and conventions.
 2. **Propose before coding.** Show the design (classes, states, methods, how it wires into TeleOp/Auto) and **wait for approval** before writing code unless prior authorization is already written.
 3. **One subsystem class (plus its test OpMode) or one OpMode per session.**
-4. **`[CONFIRM]` markers** in `ARCHITECTURE.md` or `TeamCode/docs/` mark unresolved decisions. **Stop and ask** before doing any work that depends on one.
+4. **Open decisions live in GitHub Issues, not in the docs.** An open issue labeled `needs-decision` is an unresolved decision. Docs and code point to it with a `[#nn]` marker (the issue number). The issue holds the question, the options, who decides, a due date, and later the answer. The file holds only the number.
+   - **Before starting work,** search the open `needs-decision` issues for any that touch the task, and look for `[#nn]` markers in the files you will change. If one blocks the work, **stop and ask**. If you can't reach GitHub, stop and ask too. Don't assume the answer.
+   - **Old bare `[CONFIRM]` markers** are still being converted (issue #70). Treat each one as an open decision: stop and ask, and draft an issue for it.
+   - **Draft, don't create.** When you find a decision with no issue, show the coach the draft (title, question, options, who decides, due date). Create the issue only after the coach approves.
+   - **When the coach answers and closes the issue,** replace the marker with the answer (leave no marker behind) and put `Closes #nn` in the commit message.
+   - GitHub may not be reachable at events (no internet in the pits), which is why the `[#nn]` pointer stays in the file.
 5. When a game fact matters, check `TeamCode/docs/` first. If the docs and the Competition Manual disagree, the manual wins. Say so.
 
 ## The approach this season: standard FTC SDK style

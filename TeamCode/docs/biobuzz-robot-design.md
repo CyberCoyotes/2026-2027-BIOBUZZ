@@ -1,6 +1,6 @@
 # BIOBUZZ Robot Design (2026-2027)
 
-*The current robot concept and the decisions behind it. Update this file when a decision changes, and mark anything still open with `[CONFIRM]`.*
+*The current robot concept and the decisions behind it. Update this file when a decision changes. Anything still open is a GitHub Issue labeled `needs-decision`, and this file points to it with a `[#nn]` marker (old `[CONFIRM]` markers are being converted, issue #70).*
 
 ## Concept
 
