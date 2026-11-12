@@ -11,6 +11,7 @@ import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.FiringSequence;
 import org.firstinspires.ftc.teamcode.subsystems.HiveBearingMemory;
+import org.firstinspires.ftc.teamcode.subsystems.ImuSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PowerMonitorSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
@@ -75,8 +76,7 @@ import java.util.List;
  *                       floats the turret, so then a volley waits (the screen says it is floating).
  *   Start            -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
  *                       (Gamepad1's START does the same.)
- *   Back             -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC). If
- *                       field-centric was switched off by the safety rule, it turns it back ON.
+ *   Back             -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC).
  *                       (Gamepad1's BACK does the same.)
  *   LOGO             -> switch the flywheel speed source DIAL <-> TABLE (starts as TABLE, the camera)
  *   Both sticks, both bumpers, Left Trigger: not used. (The intake is the driver's only.)
@@ -87,13 +87,18 @@ import java.util.List;
  *
  * It starts FIELD-CENTRIC: "forward" means AWAY FROM THE DRIVER (see the change log, Alpha 11). ROBOT-CENTRIC
  * ("forward" means the way the robot is facing) is one press of the drive toggle away.
+ * WHICH GYRO THE DRIVE USES: the Control Hub's built-in IMU (ImuSubsystem), NOT the Pinpoint. The
+ * IMU is inside the hub with no cable to wiggle, so a Pinpoint blink can no longer drop the drive
+ * out of field-centric, and there is no "safety rule" that switches it off by itself any more (the
+ * Alpha 11 notes in the change log describe the old one). The Pinpoint still feeds the turret's
+ * hive memory. If the config has no IMU, the drive is ROBOT-CENTRIC and the screen says so.
  *
  * GAMEPAD 1 - DRIVER
  *   Left Stick   -> drive forward / backward and slide (strafe) left / right
  *   Right Stick  -> turn (push right to turn right)
  *   HOLD the Left Trigger -> SLOW MODE for careful lining up
  *   D-pad Left   -> RE-AIM: "the way the robot faces right now is away from me" (field-centric).
- *      It does not touch the Pinpoint. It also turns field-centric back on after the safety rule.
+ *      It only changes which way "forward" means. It does not reset the IMU or the Pinpoint.
  *   D-pad Up     -> PRE-REV on / off: the wheels spin without firing (see the change log, Alpha 13).
  *   START        -> switch alliance BLUE <-> RED, the same as gamepad2's START.
  *   BACK         -> switch the drive FIELD-CENTRIC <-> ROBOT-CENTRIC, the same as gamepad2's BACK.
@@ -262,6 +267,13 @@ public class BiobuzzTeleOp extends OpMode {
     // or more, so there is no need to chase every fraction of a degree.
     private static final double ALIGN_REAIM_THRESHOLD_DEGREES = 1.0;
 
+    // THE THREE NUMBERS BELOW ONLY PROTECT THE TURRET'S HIVE MEMORY. The DRIVE does not use the
+    // Pinpoint's heading any more (it uses the Control Hub's IMU), so none of this can switch
+    // field-centric off. A Pinpoint that restarts forgets where it is (its heading is back at a new
+    // zero), and a hive direction remembered against the OLD zero would aim the turret the wrong
+    // way, so in these cases the memory is thrown away and the turret just holds until the camera
+    // sees the hive again.
+
     // The Pinpoint's heading should never change by more than this many degrees from one loop to
     // the next (a loop is about 20 milliseconds, and 45 degrees in that time would be over 2000
     // degrees per second, far faster than the robot can turn). A bigger jump means the Pinpoint
@@ -269,30 +281,18 @@ public class BiobuzzTeleOp extends OpMode {
     private static final double MAX_PINPOINT_HEADING_JUMP_DEGREES = 45.0;
 
     // A Pinpoint that is "not READY" for LESS than this many seconds is treated as a GLITCH (one
-    // bad I2C read, or a brief voltage dip), not a restart. During a glitch field-centric is NOT
-    // switched off, and the hive memory is kept. If it is still not READY after this long, we
-    // treat it as a restart: field-centric switches off and the hive memory is thrown away.
-    // WHY: a Pinpoint that restarts forgets where it is (its heading is back at a new zero), so
-    // a long gap must switch field-centric off. But a low battery can make it blink for a
-    // moment, and we used to switch field-centric off for good every time it did.
+    // bad I2C read, or a brief voltage dip), not a restart, and the hive memory is kept. If it is
+    // still not READY after this long, we treat it as a restart and throw the memory away.
     // Bigger = forgives longer gaps, but a real restart takes longer to be noticed.
     private static final double PINPOINT_GLITCH_TOLERANCE_SECONDS = 0.25;
 
     // When the Pinpoint comes back from a glitch, its heading must be within this many degrees of
     // the last heading we trusted. If it is further off, it probably RESTARTED and its heading is
-    // back at a new zero, so field-centric switches off (the same as a long gap). A restart that
-    // happens while the robot already faces about its INIT direction changes nothing, so it is
-    // fine to miss. A driver spinning fast during a glitch can trip this too: that only means
-    // field-centric switches off safely, and the driver's D-pad Left turns it back on.
+    // back at a new zero, so the hive memory is thrown away (the same as a long gap). A driver
+    // spinning fast during a glitch can trip this too: that only costs the turret its memory until
+    // the camera sees the hive again.
     // Smaller = catches smaller restarts but trips more often. Bigger = the opposite.
     private static final double RESUME_MAX_HEADING_CHANGE_DEGREES = 20.0;
-
-    // During a glitch (see PINPOINT_GLITCH_TOLERANCE_SECONDS), true = keep driving FIELD-CENTRIC
-    // using the LAST good heading, so the sticks do not suddenly change meaning for a moment.
-    // false = drive ROBOT-CENTRIC until the Pinpoint is READY again. The last heading can be a
-    // little old if the robot is turning during the glitch, but that is only a fraction of a
-    // second.
-    private static final boolean HOLD_LAST_HEADING_DURING_GLITCH = true;
 
     // The target counts as "aimed at" when tx is within this many degrees of zero.
     private static final double AIMED_TOLERANCE_DEGREES = 2.0;
@@ -373,6 +373,8 @@ public class BiobuzzTeleOp extends OpMode {
     private TurretSubsystem turretSubsystem;
     private VisionSubsystem visionSubsystem;
     private PinpointSubsystem pinpointSubsystem;
+    // The Control Hub's built-in gyro. The field-centric DRIVE takes its heading from here.
+    private ImuSubsystem imuSubsystem;
     // The battery black box (see PowerMonitorSubsystem). It only reads and writes the log.
     private PowerMonitorSubsystem powerMonitorSubsystem;
     private HiveBearingMemory hiveMemory;
@@ -456,12 +458,7 @@ public class BiobuzzTeleOp extends OpMode {
     // Does the driver team WANT field-centric? (The drive toggle switches it.) It starts ON.
     private boolean fieldCentricWanted = true;
 
-    // true = the safety rule switched field-centric off. It stays off until the drive toggle
-    // button or the driver's D-pad Left. The reason is shown on the screen.
-    private boolean fieldCentricBlocked = false;
-    private String fieldCentricBlockedReason = "";
-
-    // Added to the Pinpoint's heading to get the heading the drive uses. It comes from the alliance
+    // Added to the IMU's heading to get the heading the drive uses. It comes from the alliance
     // (see updateDriveFrameFromAlliance) until the driver re-aims with D-pad Left.
     private double fieldHeadingOffsetDegrees = 0.0;
 
@@ -753,26 +750,9 @@ public class BiobuzzTeleOp extends OpMode {
     }
 
     /*
-     * Switches field-centric off (the drive goes ROBOT-CENTRIC) and remembers WHY, for the screen.
-     * It also writes the reason AND the battery's state to the Robot Controller log, because the
-     * screen only shows the reason until the next one, and the battery is the first thing to check.
-     * (Only the FIRST reason counts: while it is already off, a second reason changes nothing.)
-     */
-    private void blockFieldCentric(String reason) {
-        if (!fieldCentricBlocked) {
-            BiobuzzLog.warning("FIELD-CENTRIC SWITCHED OFF because %s; %s",
-                    reason, powerMonitorSubsystem.getSummaryText());
-        }
-        fieldCentricBlocked = true;
-        fieldCentricBlockedReason = reason;
-    }
-
-    /*
-     * Throws away the remembered hive direction when the Pinpoint cannot be trusted, and switches
-     * FIELD-CENTRIC drive off for the same reason (a bad heading would make the robot drive the
-     * wrong way). Call it once per loop, right after pinpointSubsystem.update(). It only ever
-     * switches field-centric OFF. Turning it back on is up to the drive toggle or the
-     * driver's D-pad Left.
+     * Throws away the remembered hive direction when the Pinpoint cannot be trusted. Call it once
+     * per loop, right after pinpointSubsystem.update(). It only protects the TURRET: the drive does
+     * not use the Pinpoint's heading (see ImuSubsystem), so nothing here touches field-centric.
      *   - Pinpoint not READY for LONGER than PINPOINT_GLITCH_TOLERANCE_SECONDS: it is missing, still
      *     calibrating, faulted, or it restarted. A shorter gap is a GLITCH (see below).
      *   - Heading jumped: it changed by more than a robot can turn in one loop, so the Pinpoint
@@ -780,13 +760,11 @@ public class BiobuzzTeleOp extends OpMode {
      *     so the remembered direction, which was measured against the OLD zero, is now wrong.
      *
      * GLITCH DEBOUNCE: a Pinpoint that is not READY for a moment (one bad read, a brief voltage
-     * dip) used to switch field-centric off for good. Now a gap shorter than
-     * PINPOINT_GLITCH_TOLERANCE_SECONDS changes nothing: the drive keeps the last good heading
-     * (HOLD_LAST_HEADING_DURING_GLITCH), the hive memory is kept (the turret just holds until the
-     * Pinpoint is back, see aimWithoutCamera), and when the Pinpoint is READY again its heading
-     * must be within RESUME_MAX_HEADING_CHANGE_DEGREES of the last good one. If it is, the glitch
-     * is counted on the screen and everything carries on. If not, it probably restarted, so we
-     * switch field-centric off like before.
+     * dip) changes nothing. The hive memory is kept (the turret just holds until the Pinpoint is
+     * back, see aimWithoutCamera), and when the Pinpoint is READY again its heading must be within
+     * RESUME_MAX_HEADING_CHANGE_DEGREES of the last good one. If it is, the glitch is counted on the
+     * screen and written to the log. If not, it probably restarted, so the memory is thrown away.
+     * Every case writes a line to the Robot Controller log with the battery's state.
      */
     private void checkPinpointHealth() {
         if (!pinpointSubsystem.isReady()) {
@@ -796,11 +774,10 @@ public class BiobuzzTeleOp extends OpMode {
                 pinpointWasReadyLastLoop = false;
             }
             if (pinpointNotReadyTimer.seconds() > PINPOINT_GLITCH_TOLERANCE_SECONDS) {
-                // Too long to be a glitch, so treat it as a restart.
+                // Too long to be a glitch, so treat it as a restart. (PinpointSubsystem's drop log
+                // already wrote the details to the Robot Controller log.)
                 hiveMemory.clear();
                 haveLastPinpointHeading = false;
-                blockFieldCentric(String.format("the Pinpoint was not READY for more than %.2f seconds",
-                        PINPOINT_GLITCH_TOLERANCE_SECONDS));
             }
             return;
         }
@@ -818,9 +795,8 @@ public class BiobuzzTeleOp extends OpMode {
                 // little. Check against the (smaller) resume limit.
                 if (change > RESUME_MAX_HEADING_CHANGE_DEGREES) {
                     hiveMemory.clear();
-                    blockFieldCentric(String.format(
-                            "the Pinpoint came back from a glitch with its heading %.0f degrees off (it probably restarted)",
-                            change));
+                    BiobuzzLog.warning("Pinpoint came back from a %.2f s glitch with its heading %.0f deg off (it probably restarted); hive memory cleared; %s",
+                            gapSeconds, change, powerMonitorSubsystem.getSummaryText());
                 } else {
                     pinpointGlitchCount = pinpointGlitchCount + 1;
                     if (gapSeconds > pinpointLongestGlitchSeconds) {
@@ -832,7 +808,8 @@ public class BiobuzzTeleOp extends OpMode {
                 }
             } else if (change > MAX_PINPOINT_HEADING_JUMP_DEGREES) {
                 hiveMemory.clear();
-                blockFieldCentric(String.format("the Pinpoint heading jumped %.0f degrees", change));
+                BiobuzzLog.warning("Pinpoint heading JUMPED %.0f deg in one loop; hive memory cleared; %s",
+                        change, powerMonitorSubsystem.getSummaryText());
             }
         }
         lastPinpointHeadingDegrees = heading;
@@ -840,29 +817,8 @@ public class BiobuzzTeleOp extends OpMode {
     }
 
     /*
-     * True while the Pinpoint is not READY but the gap is still short enough to be a glitch, and
-     * we have a good heading to hold. (Only used when HOLD_LAST_HEADING_DURING_GLITCH is true.)
-     */
-    private boolean isPinpointInGlitch() {
-        return HOLD_LAST_HEADING_DURING_GLITCH
-                && !pinpointSubsystem.isReady()
-                && haveLastPinpointHeading;
-    }
-
-    /*
-     * The Pinpoint heading the field-centric drive uses. Normally the live one. During a glitch
-     * it is the last good one.
-     */
-    private double getPinpointHeadingForDrive() {
-        if (pinpointSubsystem.isReady()) {
-            return pinpointSubsystem.getHeadingDegrees();
-        }
-        return lastPinpointHeadingDegrees;
-    }
-
-    /*
      * The offset for the field-centric drive, worked out from the alliance. The heading the drive
-     * uses is the Pinpoint's heading plus this: (which way the robot faces on the field at INIT) -
+     * uses is the IMU's heading plus this: (which way the robot faces on the field at INIT) -
      * (which way the driver faces). Blue: -90 - 180 = -270, which wraps to +90. Red: +90 - 0 = +90.
      */
     private double getAllianceHeadingOffsetDegrees(VisionSubsystem.Alliance alliance) {
@@ -911,11 +867,10 @@ public class BiobuzzTeleOp extends OpMode {
     /*
      * The drive toggle (BACK on either gamepad) and the driver's D-pad Left. Call it once
      * per loop.
-     *   TOGGLE: if the safety rule switched field-centric off, turn it back ON. Otherwise switch
-     *         between FIELD-CENTRIC and ROBOT-CENTRIC.
+     *   TOGGLE: switch between FIELD-CENTRIC and ROBOT-CENTRIC.
      *   D-pad Left (RE-AIM): "the way the robot faces right now is away from me". It only works
-     *         while the Pinpoint is READY (it needs the heading). The Pinpoint is NOT reset. It also
-     *         turns field-centric back on if the safety rule had switched it off.
+     *         while the IMU is available (it needs the heading). The IMU is NOT reset: only the
+     *         offset changes, so the hive memory (which uses the Pinpoint) is never disturbed.
      */
     private void checkDriveModeButtons() {
         boolean operatorTogglePressed = isDriveToggleButtonPressedOnOperatorPad();
@@ -925,21 +880,13 @@ public class BiobuzzTeleOp extends OpMode {
         // Each gamepad is watched on its own, so holding one down never hides a press on the other.
         if (isNewPress(operatorTogglePressed, wasOperatorDriveTogglePressed)
                 || isNewPress(driverTogglePressed, wasDriverDriveTogglePressed)) {
-            if (fieldCentricBlocked) {
-                // Resume. (If the Pinpoint is still not READY, the safety rule switches it off
-                // again on the next loop, and the screen says so.)
-                fieldCentricBlocked = false;
-                fieldCentricWanted = true;
-            } else {
-                fieldCentricWanted = !fieldCentricWanted;
-            }
+            fieldCentricWanted = !fieldCentricWanted;
         }
 
-        if (isNewPress(reAimPressed, wasReAimPressed) && pinpointSubsystem.isReady()) {
+        if (isNewPress(reAimPressed, wasReAimPressed) && imuSubsystem.isAvailable()) {
             // Make the heading the drive uses ZERO right now: the robot faces away from the driver.
-            fieldHeadingOffsetDegrees = -pinpointSubsystem.getHeadingDegrees();
+            fieldHeadingOffsetDegrees = -imuSubsystem.getHeadingDegrees();
             driverReAimed = true;
-            fieldCentricBlocked = false;
         }
 
         wasOperatorDriveTogglePressed = operatorTogglePressed;
@@ -948,13 +895,11 @@ public class BiobuzzTeleOp extends OpMode {
     }
 
     /*
-     * Is field-centric being used right now? The operator wants it, the safety rule has not
-     * switched it off, and the Pinpoint is READY (or only in a short glitch, see
-     * isPinpointInGlitch, with the last good heading to hold).
+     * Is field-centric being used right now? The drivers want it, and the IMU is there to give the
+     * heading. (Nothing else can switch it off: a Pinpoint blink does not matter to the drive.)
      */
     private boolean isFieldCentricActive() {
-        return fieldCentricWanted && !fieldCentricBlocked
-                && (pinpointSubsystem.isReady() || isPinpointInGlitch());
+        return fieldCentricWanted && imuSubsystem.isAvailable();
     }
 
     /*
@@ -964,16 +909,8 @@ public class BiobuzzTeleOp extends OpMode {
         if (!fieldCentricWanted) {
             return "ROBOT-CENTRIC (BACK on either gamepad switches to FIELD-CENTRIC)";
         }
-        if (fieldCentricBlocked) {
-            return "ROBOT-CENTRIC: field-centric was switched off because " + fieldCentricBlockedReason
-                    + ". BACK on either gamepad or the driver's D-pad Left turns it on again.";
-        }
-        if (isPinpointInGlitch()) {
-            return String.format("FIELD-CENTRIC (the Pinpoint is not READY: holding the last heading, %.2f of %.2f s)",
-                    pinpointNotReadyTimer.seconds(), PINPOINT_GLITCH_TOLERANCE_SECONDS);
-        }
-        if (!pinpointSubsystem.isReady()) {
-            return "ROBOT-CENTRIC for now (the Pinpoint is not READY yet)";
+        if (!imuSubsystem.isAvailable()) {
+            return "ROBOT-CENTRIC: there is no gyro (the IMU is missing or did not start). See the GYRO lines.";
         }
         if (driverReAimed) {
             return "FIELD-CENTRIC (re-aimed: forward = the way the robot faced when D-pad Left was pressed)";
@@ -1070,6 +1007,9 @@ public class BiobuzzTeleOp extends OpMode {
         // The Pinpoint zeros its position and calibrates its gyro here, so the robot must be
         // STILL during INIT. If the config has no "pinpoint", this does not stop the OpMode.
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
+        // The Control Hub's own gyro. The drive's heading comes from here. Heading zero is the way
+        // the robot faces now, at INIT. If the config has no "imu", this does not stop the OpMode.
+        imuSubsystem = new ImuSubsystem(hardwareMap);
         // The battery black box. It only reads the hubs, so it is safe at INIT.
         powerMonitorSubsystem = new PowerMonitorSubsystem(hardwareMap);
         hiveMemory = new HiveBearingMemory();
@@ -1089,6 +1029,7 @@ public class BiobuzzTeleOp extends OpMode {
         // source can be set (and checked) before START.
         visionSubsystem.update();
         pinpointSubsystem.update();
+        imuSubsystem.update();
         powerMonitorSubsystem.update();
         checkModeButtons();
 
@@ -1107,6 +1048,8 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addData("Flywheel speed source (gamepad2 LOGO)", getModeText());
         // The battery: a fresh one reads about 13 V here. Swap it if it is much lower.
         powerMonitorSubsystem.addTelemetry(telemetry);
+        // Check the gyro says a number before START (it gives the drive its heading).
+        imuSubsystem.addTelemetry(telemetry);
         visionSubsystem.addTelemetry(telemetry);
         // Check that the Pinpoint says READY before START. (The robot must be still until then.)
         pinpointSubsystem.addTelemetry(telemetry);
@@ -1133,11 +1076,8 @@ public class BiobuzzTeleOp extends OpMode {
         loopTimer.reset();
 
         // Fix the drive's offset from the alliance as it is NOW. From here on, switching the alliance
-        // only changes the camera's hive, not which way the stick drives. The safety rule only
-        // counts from START (the Pinpoint may still have been calibrating in INIT).
+        // only changes the camera's hive, not which way the stick drives.
         updateDriveFrameFromAlliance();
-        fieldCentricBlocked = false;
-        fieldCentricBlockedReason = "";
 
         // The battery numbers on the screen should be about THIS match, not about INIT.
         powerMonitorSubsystem.resetStatistics();
@@ -1167,6 +1107,7 @@ public class BiobuzzTeleOp extends OpMode {
         intakeSubsystem.update();
         visionSubsystem.update();
         pinpointSubsystem.update();
+        imuSubsystem.update();
         powerMonitorSubsystem.update();
         checkPinpointHealth();
 
@@ -1325,13 +1266,12 @@ public class BiobuzzTeleOp extends OpMode {
         }
 
         // FIELD-CENTRIC: the stick means "away from the driver", so the drive needs to know how far
-        // the robot is turned from that: the Pinpoint's heading plus the offset. ROBOT-CENTRIC: the
+        // the robot is turned from that: the IMU's heading plus the offset. ROBOT-CENTRIC: the
         // stick means "the way the robot faces". (The turn stick is the same in both.)
         boolean fieldCentricActive = isFieldCentricActive();
         double drivingHeadingDegrees = 0.0;
         if (fieldCentricActive) {
-            // (During a short Pinpoint glitch this is the last good heading, not the live one.)
-            drivingHeadingDegrees = getPinpointHeadingForDrive() + fieldHeadingOffsetDegrees;
+            drivingHeadingDegrees = imuSubsystem.getHeadingDegrees() + fieldHeadingOffsetDegrees;
             driveSubsystem.driveFieldCentric(forward, strafe, turn, drivingHeadingDegrees);
             driveControl = driveControl + ", FIELD-CENTRIC";
         } else {
@@ -1537,12 +1477,18 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("--- DRIVE ---");
         telemetry.addData("Drive Control", driveControl);
         if (fieldCentricActive) {
-            telemetry.addData("Heading the drive uses (deg)", "%.1f   (Pinpoint %.1f + offset %.1f)",
-                    drivingHeadingDegrees, getPinpointHeadingForDrive(), fieldHeadingOffsetDegrees);
+            telemetry.addData("Heading the drive uses (deg)", "%.1f   (IMU %.1f + offset %.1f)",
+                    drivingHeadingDegrees, imuSubsystem.getHeadingDegrees(), fieldHeadingOffsetDegrees);
+        }
+        // How far apart the two gyros are. They both start at zero at INIT and should stay within a
+        // few degrees. A sudden jump here means one of them blinked (the Pinpoint is the usual one,
+        // and it only affects the turret now). ImuAlpha logs these jumps.
+        if (imuSubsystem.isAvailable() && pinpointSubsystem.isReady()) {
+            telemetry.addData("Pinpoint minus IMU heading", "%+.1f deg",
+                    HiveBearingMemory.wrapDegrees(pinpointSubsystem.getHeadingDegrees() - imuSubsystem.getHeadingDegrees()));
         }
         // How often the Pinpoint blinked and came back by itself. Many of these with a weak battery
-        // means voltage dips. If the drive keeps going ROBOT-CENTRIC, this and the reason in the
-        // DRIVE MODE line say whether the Pinpoint restarted.
+        // means voltage dips. (A Pinpoint blink only costs the turret its hive memory now.)
         telemetry.addData("Pinpoint glitches (came back by themselves)", "%d   longest %.2f s",
                 pinpointGlitchCount, pinpointLongestGlitchSeconds);
         telemetry.addData("Camera pipeline fixes", "%d   (above 0 = the camera restarted or lost its pipeline)",

@@ -15,7 +15,7 @@ Print this and keep it at the driver station. It lists **what every button does 
 
 ## 1. TeleOp - Alpha 13 (the real TeleOp)
 
-Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, always ON, no switch). The drive starts **FIELD-centric**: the left stick's "forward" is **away from the driver** (the screen shows **DRIVE MODE** under the alliance). Details and the safety rule are on the printable sheet, `biobuzz-teleop-controls.md`.
+Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, always ON, no switch). The drive starts **FIELD-centric**: the left stick's "forward" is **away from the driver** (the screen shows **DRIVE MODE** under the alliance). Details are on the printable sheet, `biobuzz-teleop-controls.md`.
 
 ### Gamepad 1: DRIVER
 
@@ -47,7 +47,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **D-pad Right / Left** | Hood / flywheel **ratio + / - 0.05** (range 1.00 to 3.00, starts 2.00) |
 | **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the camera says the turret is aimed (within 2 degrees for 0.15 s), then opens the gate and **keeps feeding for as long as you hold** (no timer: the intake pauses by itself when the flywheel is not at speed or the turret is not aimed). **Let go to END it** (gate closes, intake stops). No one-volley limit. Unless PRE-REV is on, both wheels go to 0 power |
 | **Start** | **Alliance** BLUE / RED (starts **BLUE**, check it on the screen). The driver's Start does the same |
-| **Back** | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). Turns field-centric back on after the safety rule. The driver's **BACK** does the same. (The physical **MODE** button cannot be read by the code: see the controls sheet. The INIT screen has a **BUTTON TEST** to check your controller.) |
+| **Back** | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). The driver's **BACK** does the same. (The physical **MODE** button cannot be read by the code: see the controls sheet. The INIT screen has a **BUTTON TEST** to check your controller.) |
 | **LOGO** (the center **guide** button) | Flywheel speed source **TABLE / DIAL** (starts **TABLE**, the camera). (On the driver's controller the same button is the SOLO MODE toggle.) |
 | **Sticks, LT, bumpers** | Not used. The turret has no manual control, the intake is the driver's, and the shooter wheels cannot be reversed from this OpMode |
 
@@ -193,7 +193,7 @@ Letting go of RB or the stick holds the turret.
 
 | Control | What it does |
 |---|---|
-| **Back** | Switch **FIELD-centric / ROBOT-centric**. If the safety rule switched field-centric off (Pinpoint not READY, or its heading jumped), Back turns it back ON |
+| **Back** | Switch **FIELD-centric / ROBOT-centric** |
 | **D-pad Left** | **Re-aim**: the way the robot faces right now is "away from me". Does not touch the Pinpoint |
 | **Left Stick** | Drive and strafe |
 | **Right Stick** | Turn |
