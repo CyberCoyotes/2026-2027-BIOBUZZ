@@ -25,7 +25,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **Right Stick** | Turn |
 | **LT** (hold) | **Slow mode** |
 | **RB** | **Intake** (pull balls in). **The intake is the driver's only.** It does nothing while the gate is closing (the intake reverses by itself then, see below) |
-| **LB** | **Reverse the intake** (push balls out). Beats RB and a volley's feed. **The intake also reverses BY ITSELF for as long as the gate takes to close** (OPEN to CLOSED about 0.75 s, LIFTED to CLOSED about 2 s), after every volley, abort and operator X. The screen's intake line says "gate closing: REVERSE (automatic)" |
+| **LB** | **Reverse the intake** (push balls out). Beats RB and a volley's feed. **The intake also reverses BY ITSELF for as long as the gate takes to close** (0.5 s, the same from OPEN or from LIFTED), after every volley, abort and operator X. The screen's intake line says "gate closing: REVERSE (automatic)" |
 | **RT** (hold) | **Does not fire.** The operator's RT fires. **Only in SOLO MODE** (LOGO) does the driver's RT fire a volley too |
 | **LOGO** (the center **guide** button) | **SOLO MODE** on / off, for a one-person match (starts OFF) |
 | **Y** (HOLD) | **Only in SOLO MODE:** gate **LIFTED**, the same as the operator's Y (pushes the last ball in). Does nothing with SOLO MODE off. Driver X and B do nothing |
@@ -41,11 +41,11 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 |---|---|
 | **X** | Gate **CLOSED** (holds the ball back). **Between volleys only** |
 | **B** | Gate **OPENED** (lets the ball through). **Between volleys only** |
-| **Y** (HOLD) | Gate **LIFTED**, to push the very last ball into the flywheel (OPENED is between LIFTED and CLOSED). **While a volley feeds:** hold to lift, let go and the gate goes back to OPENED. **Between volleys:** let go and the gate closes gently (with the auto-reverse). Ignored while a volley waits. The firing sequence never lifts by itself. If several buttons are pressed at once, CLOSED wins, then OPENED, then LIFTED. X and B do nothing during a volley |
+| **Y** (HOLD) | Gate **LIFTED**, to push the very last ball into the flywheel (OPENED is between LIFTED and CLOSED). **While a volley feeds:** hold to lift, let go and the gate goes back to OPENED. **Between volleys:** let go and the gate closes (with the auto-reverse). Ignored while a volley waits. The firing sequence never lifts by itself. If several buttons are pressed at once, CLOSED wins, then OPENED, then LIFTED. X and B do nothing during a volley |
 | **A** (hold) | **Float** the turret so you can turn it by hand. Let go and it tracks the hive again |
 | **D-pad Up / Down** | Flywheel target RPM **+ / - 100** (range 500 to 1450) |
 | **D-pad Right / Left** | Hood / flywheel **ratio + / - 0.05** (range 1.00 to 3.00, starts 2.00) |
-| **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the camera says the turret is aimed (within 2 degrees for 0.15 s), then opens the gate and **keeps feeding for as long as you hold** (no timer: the intake pauses by itself when the flywheel is not at speed or the turret is not aimed). **Let go to END it** (gate closes gently, intake stops). No one-volley limit. Unless PRE-REV is on, both wheels go to 0 power |
+| **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the camera says the turret is aimed (within 2 degrees for 0.15 s), then opens the gate and **keeps feeding for as long as you hold** (no timer: the intake pauses by itself when the flywheel is not at speed or the turret is not aimed). **Let go to END it** (gate closes, intake stops). No one-volley limit. Unless PRE-REV is on, both wheels go to 0 power |
 | **Start** | **Alliance** BLUE / RED (starts **BLUE**, check it on the screen). The driver's Start does the same |
 | **Back** | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). Turns field-centric back on after the safety rule. The driver's **BACK** does the same. (The physical **MODE** button cannot be read by the code: see the controls sheet. The INIT screen has a **BUTTON TEST** to check your controller.) |
 | **LOGO** (the center **guide** button) | Flywheel speed source **TABLE / DIAL** (starts **TABLE**, the camera). (On the driver's controller the same button is the SOLO MODE toggle.) |
