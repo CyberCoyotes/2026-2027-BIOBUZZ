@@ -59,7 +59,7 @@
 ## G. After the match
 
 - [ ] Fill in a row in `biobuzz-test-and-match-log.md`: score, what worked, what broke, and anything strange on the screen.
-- [ ] Note the lowest hub voltages the screen showed.
+- [ ] Note the **lowest voltage** of each hub and the **dip count** from the **POWER** lines on the screen. If anything blinked (the camera, the Pinpoint, the turret), or a dip count is above 0, read the log from a laptop on the robot's wifi: `adb logcat -d | grep BIOBUZZ`. Each line has the time and what the battery was doing. Write what you find in `biobuzz-test-and-match-log.md`.
 - [ ] Look for loose cables, a bent mechanism, and a dented ball path.
 - [ ] Swap the battery if it fell low.
 - [ ] If something got changed in code at the event, commit it, so the robot and the repo agree.
