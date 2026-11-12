@@ -2,15 +2,21 @@
 
 *You asked four things: (1) why the drive drops from field-centric to robot-centric and how to protect against it, (2) what is unnecessarily complex, (3) what questions to ask about code to make it human-maintainable, and (4) code suggestions on a separate branch. This is the written answer. The code is on the branch `claude/stoic-pasteur-ggp2jy-code-suggestions`. Nothing here has been run on a robot.*
 
+> **Update after your reply (same day):**
+> - **Hub:** you said the Control Hub stands on its end with its **USB ports at the ceiling** and its **logo facing the middle of the robot**. USB is now `UP` in the code. The logo direction depends on **which wall** the hub is bolted to (left wall: `RIGHT`, right wall: `LEFT`, back: `FORWARD`, front: `BACKWARD`). Nobody has said which, so it starts as `FORWARD` (the back), **a guess**. **Tell me the wall, or change that one word.**
+> - **A trap this exposed (and fixed):** my first default (logo `UP`) is physically impossible with USB `UP`. The real SDK **throws** on that pair, which would have **crashed the TeleOp at INIT**. `ImuSubsystem` now catches it, logs it, shows why on the screen, and falls back to robot-centric. Three new laptop checks guard it (42 checks pass in total).
+> - **Pollen:** the manual (section 9.8) says POLLEN are about 2.8 in **Gopher ResisDent polyethylene** balls, so my static-electricity hypothesis is **stronger** than I first rated it. I was also wrong to say the manual did not give the material, and to say "nectar": your robot only takes in pollen.
+> - These changes are on the suggestions branch (`50f877b`). This review branch has only this document.
+
 ## 0. The 60-second version
 
 1. **I would not assume "micro-brown-out" yet.** Your own troubleshooting table already says a fresh battery did not stop the drops. Nothing in the code recorded the battery voltage, so nobody can say whether it dipped. That is fixed on the branch (section 4).
 2. **The drive was one bad sample away from giving up for good.** Any single Pinpoint blink, restart, garbled reading, or a long loop during a fast spin latched the drive to robot-centric until a driver pressed a button (section 1.2). Whatever the root cause, that design turns a one-loop event into a lasting failure.
-3. **The fix that works whatever the cause: take the drive's heading from the Control Hub's built-in IMU, not the Pinpoint.** The IMU is inside the hub with no cable to wiggle. It also let me delete about 120 lines of "what if the Pinpoint blinked" logic from the TeleOp (about 70 lines were added back for the IMU wiring and logging). **It needs a 5-minute test (`ImuAlpha`) before it goes near a match,** because the hub orientation settings are the SDK defaults, not measured.
+3. **The fix that works whatever the cause: take the drive's heading from the Control Hub's built-in IMU, not the Pinpoint.** The IMU is inside the hub with no cable to wiggle. It also let me delete about 120 lines of "what if the Pinpoint blinked" logic from the TeleOp (about 70 lines were added back for the IMU wiring and logging). **It needs a 5-minute test (`ImuAlpha`) before it goes near a match,** because the hub's logo direction is still a guess (USB is `UP`, from you; which wall the hub is on is not known).
 4. **One hub's power wire is already a suspect in your own notes** (the "Battery too low" message from Expansion Hub 2 while the Control Hub was fine). The new battery readout shows both hubs side by side, so a bad wire or crimp shows up as one hub always reading lower.
 5. **`BiobuzzTeleOp.loop()` is 512 lines; the next longest method in the repo is 208.** Half of every file is comments. The same logic is copy-pasted between the TeleOp and two test OpModes. Section 2 has the full list, ranked.
 6. **The "checked on a laptop (41 scenarios)" tests in your notes were never saved,** so nobody can re-run them. The branch adds a `laptop-checks/` folder that can be re-run in about 7 seconds.
-7. **Nine small commits on the suggestions branch; most can be taken or dropped on their own** (table in section 4). Several have simple on/off switches.
+7. **Ten small commits on the suggestions branch; most can be taken or dropped on their own** (table in section 4). Several have simple on/off switches.
 
 **What is verified and what is not**
 
@@ -67,7 +73,7 @@ A brown-out fits some of what you saw (a weak battery made the Pinpoint blink in
 | Hypothesis | Why plausible | How the branch / a practice session tests it |
 |---|---|---|
 | A loose or intermittent connector (Pinpoint I2C or a pod cable; a hub power wire) | Vibration and flywheel shock; row 61; `FAULT_` statuses would show | **Last drop** story and the log; wiggle test (1.5) |
-| Static electricity (a flywheel throwing balls is a classic generator) | Random, brief, no pattern with battery | Blinks that happen right after shots, with normal voltage. *I could not find the nectar's material in your docs; if it is plastic this is more likely.* |
+| Static electricity (a flywheel throwing balls is a classic generator) | Random, brief, no pattern with battery | Blinks that happen right after shots, with normal voltage. *The manual (9.8) says POLLEN are 2.8 in **polyethylene** balls, a plastic that builds static easily, thrown by a flywheel at over a thousand RPM: a stronger suspect than I first rated it.* |
 | Real voltage sag from motors starting together (4 drive motors, flywheel spin-up, Limelight on the hub's USB) | Row 62; and your tall robot is also at risk of tipping | **POWER** lines and `BATTERY DIP` log lines; hub-versus-hub readings |
 | Software false alarm (a long loop during a spin trips the 45-degree test) | Section 1.2 | **Loop time worst** on the screen next to the drop; `ImuAlpha`'s disagreement log |
 | An accidental BACK press | BACK is on both gamepads | The "no because" wording in 1.1 |
@@ -227,7 +233,7 @@ The goal is "a student who did not write this can change it safely". Ask these i
 
 ## 4. The code-suggestions branch
 
-Branch: `claude/stoic-pasteur-ggp2jy-code-suggestions` (9 commits on top of the session branch). **Nothing is merged and no pull request was opened.**
+Branch: `claude/stoic-pasteur-ggp2jy-code-suggestions` (10 commits on top of the session branch). **Nothing is merged and no pull request was opened.**
 
 | Commit | What | Risk | Depends on | On/off | How to test on the robot |
 |---|---|---|---|---|---|
@@ -240,6 +246,7 @@ Branch: `claude/stoic-pasteur-ggp2jy-code-suggestions` (9 commits on top of the 
 | `a6780b4` | `TeamCode/laptop-checks/`: a script and 39 re-runnable checks | None (Gradle ignores the folder) | none | n/a | `cd TeamCode/laptop-checks && ./run-laptop-checks.sh` |
 | `ab34dea` | Troubleshooting table and match-day checklist match the IMU drive and the POWER lines | None (docs) | `5061fa2` | n/a | n/a |
 | `861e0c0` | `laptop-checks`: the download retries and says what to do on a rate limit (HTTP 429) | None | `a6780b4` | n/a | n/a |
+| `50f877b` | `ImuSubsystem`: USB `UP` (your answer); logo `FORWARD` (guess); a bad orientation pair is caught instead of crashing INIT; 3 new laptop checks | Low (it only affects the IMU) | `5061fa2` | n/a | `ImuAlpha` steps 2 and 3 |
 
 *Two commit messages quote check counts that are slightly off from memory (the drive commit says 21 and the laptop-checks commit says 22 and 8). The script reports 39 passing: 9 + 23 + 7.*
 
@@ -262,7 +269,7 @@ Branch: `claude/stoic-pasteur-ggp2jy-code-suggestions` (9 commits on top of the 
 
 | Decision | My default | Why |
 |---|---|---|
-| Hub orientation for the IMU | **Logo UP, USB FORWARD** (the SDK sample's defaults) | A guess. **This is the one to fix first.** |
+| Hub orientation for the IMU | **USB UP** (from you) and **logo FORWARD** (a guess: it assumes the hub is on the back wall) | The logo direction depends on which wall the hub is on. **This is the one to fix first.** |
 | Which gyro the drive uses | The Control Hub IMU; the Pinpoint stays for the turret | Removes the failure for the drive whatever the cause |
 | Dip threshold | 10.0 V | A guess. Set it just below the lowest voltage a **normal** match shows. |
 | Battery sample rate | 10 times a second, current included | Cheap; a dip shorter than 0.1 s can be missed, so try 0.05 if a blink happens with no dip logged |
@@ -274,9 +281,9 @@ Branch: `claude/stoic-pasteur-ggp2jy-code-suggestions` (9 commits on top of the 
 
 ### Questions only you can answer
 
-1. **How is the Control Hub mounted?** Which way does the REV logo face, and which way does the USB-C port point (relative to the robot's front)? `ImuAlpha` step 2 and 3 will tell you if the guess is wrong.
+1. **Which wall of the robot is the Control Hub on: left, right, back or front?** *(Answered in part: USB ports up, logo facing the middle.)* That decides the logo direction. `ImuAlpha` steps 2 and 3 will tell you if the guess is wrong. Also: I took "ports" to mean the **USB ports**; if you meant the motor and sensor ports, tell me, because that changes the USB direction.
 2. **When it dropped, what did the DRIVE MODE line say, and what did "Last drop" say?** (1.1) Does it happen only after shots, only when spinning, or after hitting something?
-3. **What are the nectar balls made of?** (Static is a stronger suspect if they are plastic.)
+3. ~~What are the balls made of?~~ **Answered:** the robot only takes in **pollen**, which the manual says is polyethylene (see the update at the top).
 4. **Is the Pinpoint's firmware current?** (See goBILDA's page.)
 5. **Which gamepad should own START, BACK and LOGO?** (finding 7)
 6. **Is flywheel-only "close enough" (#62)?** If yes, I can delete the second ready check next session.
