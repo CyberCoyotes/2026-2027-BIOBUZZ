@@ -27,6 +27,15 @@ WHAT CHANGED
      the same, but only in SOLO MODE. FiringSequence has a new FORCED step and a 5-argument update().
      The Start + B pairing combo now holds a forced shot if it happens while the TeleOp runs. Not yet
      run on the robot.
+  7. WALL SHOT (issue #9): the operator HOLDS the Left Trigger for a dumb shot from a known spot (up against
+     the wall). The turret goes straight ahead (WALL_SHOT_TURRET_DEGREES, 0) and both wheels run at fixed
+     speeds (WALL_SHOT_FLYWHEEL_RPM 1300, WALL_SHOT_HOOD_WHEEL_RPM 2600) from the moment of the press. After
+     WALL_SHOT_GATE_DELAY_SECONDS (1.5) the gate OPENS and the intake runs, through the same forced-shot
+     path as B (no camera, no READY checks, no flywheel-speed check). Let go and the gate CLOSES (with
+     the usual intake reverse) and the wheels go to 0 power (unless PRE-REV is on). While it is held, B and
+     the Right Trigger are ignored, and A still floats the turret. Operator only: the driver's Left Trigger
+     is SLOW MODE. All four numbers are guesses with a TODO to verify on the robot. Nothing in
+     FiringSequence or the subsystems changed. Not yet run on the robot.
 ```
 
 ## ALPHA 13: THE FIRING SEQUENCE (issue #63)

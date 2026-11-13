@@ -81,7 +81,7 @@ The operator **fires** (Right Trigger), sets the shooter speeds (RPM), moves the
 | **Y** (HOLD) | Shooter gate **LIFTED**, to push the very last ball into the flywheel. **Hold it while the volley is feeding** (RT still held): let go and the gate goes back to OPENED. **Between volleys:** let go and the gate closes. Ignored while the volley is only waiting. The firing sequence never lifts by itself |
 | **Left Bumper (LB)** | — (the intake is the driver's only) |
 | **Right Bumper (RB)** | — (the intake is the driver's only) |
-| **Left Trigger (LT)** | — |
+| **Left Trigger (LT)** (HOLD) | **WALL SHOT** (issue #9): a dumb shot from a known spot, up against the wall. The **turret goes straight ahead (0)** and the wheels run at **fixed speeds** (flywheel 1300, hood wheel 2600 RPM, both still to be verified on the robot), with no camera and no READY checks. After a **1.5 s delay** (to be verified) the gate **OPENS** and the intake runs. **Let go and the gate CLOSES** (with the 0.5 s intake reverse) and the wheels go to 0 power (unless PRE-REV is on). While LT is held, B and RT do nothing. A still floats the turret. The driver has no copy of it (the driver's LT is SLOW MODE) |
 | **Right Trigger (RT)** (hold) | **FIRE a volley** (see *The firing sequence* on the driver page). The turret is already tracking the hive. The wheels use the flywheel speed from the **TABLE** (the camera; **the default**) or the **DIAL** (starts at flywheel 1300 RPM, hood wheel 2600 RPM), whichever you picked. **It keeps feeding while you hold**; let go to END it: the gate closes and the intake stops. Unless PRE-REV is on, both wheels go to 0 power (they coast down). **No one-volley limit** |
 | **D-pad Up** | Flywheel target **UP** 100 RPM |
 | **D-pad Down** | Flywheel target **DOWN** 100 RPM |
@@ -119,4 +119,4 @@ The shooter wheels **cannot be reversed** from the controllers any more (the old
 ### Operator tips
 - The intake is the **driver's only**. Your bumpers do nothing.
 - The gate positions are tuned in `ShooterServoSubsystem` (`CLOSED_POSITION`, `OPENED_POSITION`, `LIFTED_POSITION`). The screen shows the position we **commanded**: a servo cannot report where it really is.
-- **Right now free (blank) on gamepad 2:** both sticks, both bumpers, Left Trigger. **Free on gamepad 1:** A, X, D-pad Down, D-pad Right. (Gamepad 1's Right Trigger, Y and B only do something in SOLO MODE, its D-pad Up is PRE-REV, Start is the alliance, Back is the drive toggle and LOGO is the SOLO MODE toggle.)
+- **Right now free (blank) on gamepad 2:** both sticks, both bumpers. **Free on gamepad 1:** A, X, D-pad Down, D-pad Right. (Gamepad 1's Right Trigger, Y and B only do something in SOLO MODE, its D-pad Up is PRE-REV, Start is the alliance, Back is the drive toggle and LOGO is the SOLO MODE toggle.)
