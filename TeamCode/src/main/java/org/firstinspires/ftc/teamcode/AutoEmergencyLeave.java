@@ -45,9 +45,9 @@ import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
  * Nothing moves during INIT (rule G403). The robot only moves after START. Stop it any time with
  * the Driver Station STOP button.
  */
-@Autonomous(name = "Auto - Emergency Leave (A-0) - Alpha 1", group = "Testing",
+@Autonomous(name = "Drive Forward - Mark 1", group = "Auto",
         preselectTeleOp = "TeleOp - Alpha 14")
-public class EmergencyLeaveAuto extends OpMode {
+public class AutoEmergencyLeave extends OpMode {
 
     // ------------------------------------------------------------------
     // Settings (change these to change the Auto)
