@@ -82,7 +82,15 @@ import java.util.List;
  *   Back             -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC).
  *                       (Gamepad1's BACK does the same.)
  *   LOGO             -> switch the flywheel speed source DIAL <-> TABLE (starts as TABLE, the camera)
- *   Both sticks, both bumpers, Left Trigger: not used. (The intake is the driver's only.)
+ *   Left Trigger     -> HOLD for a WALL SHOT (issue #9): a dumb shot from a known spot, up against the wall.
+ *                       The turret goes straight ahead (WALL_SHOT_TURRET_DEGREES) and both wheels run at
+ *                       fixed speeds (WALL_SHOT_FLYWHEEL_RPM, WALL_SHOT_HOOD_WHEEL_RPM) right away. After
+ *                       WALL_SHOT_GATE_DELAY_SECONDS the gate OPENS and the intake runs, the same as the
+ *                       FORCED SHOT (B): no camera, no READY checks. Let go and the gate CLOSES (with the
+ *                       intake reversing for that moment) and the wheels go to 0 power (unless PRE-REV is
+ *                       on). While it is held, B and the Right Trigger do nothing. A still floats the
+ *                       turret. There is no SOLO MODE copy: the driver's Left Trigger is SLOW MODE.
+ *   Both sticks, both bumpers: not used. (The intake is the driver's only.)
  *   The turret has no other operator control. It tracks the hive all the time (see ALWAYS-TRACK
  *   below). It will not go past +/-120 degrees (see TurretSubsystem). 0 degrees is where
  *   the turret pointed when the Control Hub powered on, because the home switch is not
@@ -345,6 +353,30 @@ public class BiobuzzTeleOp extends OpMode {
     // Change it by about 0.05 at a time. Try slow mode too, it is scaled to match.
     private static final double TURRET_FEEDFORWARD_GAIN = 0.30;
 
+    // ------------------------------------------------------------------
+    // WALL SHOT (operator HOLDS the Left Trigger, issue #9). A "dumb" shot from a known spot: the robot
+    // is pushed up against the wall, facing the hive. It does not use the camera, the shot table,
+    // the dials or any READY check, so it still works when something else is broken.
+    // ------------------------------------------------------------------
+    // The flywheel and hood wheel speeds for the wall shot. Both are our best guess, not measured.
+    // The hood wheel is 2 x the flywheel, the same ratio the dial starts at (see RATIO_HUNDREDTHS_START).
+    // TODO: verify WALL_SHOT_FLYWHEEL_RPM on the robot. Shoot from the wall spot and change it until
+    // the balls land in the hive. Then check WALL_SHOT_HOOD_WHEEL_RPM the same way.
+    private static final double WALL_SHOT_FLYWHEEL_RPM = 1300.0;
+    private static final double WALL_SHOT_HOOD_WHEEL_RPM = 2600.0;
+
+    // The turret angle for the wall shot. 0 is straight ahead.
+    // TODO: verify that 0 really points at the hive from the wall spot. There is no home switch yet,
+    // so 0 is wherever the turret pointed when the Control Hub powered on (see TurretSubsystem).
+    private static final double WALL_SHOT_TURRET_DEGREES = 0.0;
+
+    // How long the gate stays CLOSED after the trigger is pressed, so the wheels can spin up before
+    // the first ball goes. The wall shot does NOT check the wheel speed, so this is only a time guess.
+    // TODO: verify this delay on the robot. Time how long the flywheel takes to get from stopped to
+    // WALL_SHOT_FLYWHEEL_RPM (the screen shows the real RPM). A normal volley's "Last volley: seconds
+    // to ready" is a starting point. Too short = a weak first ball. Too long = we wait for nothing.
+    private static final double WALL_SHOT_GATE_DELAY_SECONDS = 1.5;
+
     // BULK READS. Every time the code asks a motor for its speed or position, the Robot Controller
     // makes a separate trip to the hub. This TeleOp asks four times per loop (the intake, the
     // flywheel, the hood wheel and the turret), so that is four trips. With bulk reads on, the hub
@@ -394,6 +426,11 @@ public class BiobuzzTeleOp extends OpMode {
     // Right Trigger fires. true = the driver's Right Trigger fires too.
     private boolean soloMode = false;
     private boolean wasSoloTogglePressed = false;
+
+    // WALL SHOT (the operator's Left Trigger). wallShotTimer counts the seconds since the trigger was
+    // pressed, so the gate can wait WALL_SHOT_GATE_DELAY_SECONDS before it opens.
+    private ElapsedTime wallShotTimer = new ElapsedTime();
+    private boolean wasWallShotHeld = false;
 
     // The flywheel RPM we are really using (the dial or the table, with the dead band applied).
     // While a volley feeds and ends, shotFrozen is true and the RPM and the ratio are held at
@@ -520,6 +557,7 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("X = gate CLOSED   Y (HOLD) = gate LIFTED, to push the last ball in");
         telemetry.addLine("B (HOLD) = FORCED SHOT: wheels on, gate OPEN, intake runs, even if not ready (let go = gate closes)");
         telemetry.addLine("Right Trigger (hold) = FIRE a volley (let go = abort)");
+        telemetry.addLine("Left Trigger (hold) = WALL SHOT: turret straight ahead, fixed RPM, gate opens after a delay (let go = gate closes, wheels stop)");
         telemetry.addLine("A (hold) = float the turret by hand (it tracks again when you let go)");
     }
 
@@ -1131,11 +1169,23 @@ public class BiobuzzTeleOp extends OpMode {
         double turn = applyDeadband(-gamepad1.right_stick_x);
 
         boolean slowMode = gamepad1.left_trigger > TRIGGER_PRESSED_THRESHOLD;
+        // WALL SHOT (issue #9): the OPERATOR holds the Left Trigger. Right away the turret goes to
+        // WALL_SHOT_TURRET_DEGREES and the wheels spin at the fixed WALL_SHOT_ RPMs. Only after
+        // WALL_SHOT_GATE_DELAY_SECONDS does the gate open and the intake run (wallShotGateOpen). It is
+        // only the operator's: the driver's Left Trigger is SLOW MODE, so there is no SOLO MODE copy.
+        boolean wallShotHeld = gamepad2.left_trigger > TRIGGER_PRESSED_THRESHOLD;
+        if (isNewPress(wallShotHeld, wasWallShotHeld)) {
+            wallShotTimer.reset();
+        }
+        boolean wallShotGateOpen = wallShotHeld && wallShotTimer.seconds() >= WALL_SHOT_GATE_DELAY_SECONDS;
+
         // WHO FIRES (see the change log, Alpha 13): the OPERATOR's Right Trigger (gamepad2), held, fires a
         // volley. The driver's Right Trigger fires too ONLY in SOLO MODE (gamepad1 LOGO).
+        // While the WALL SHOT is held, nobody fires a normal volley: the wall shot is in charge, so the
+        // volley cannot open the gate early when its own READY checks pass.
         boolean operatorFireHeld = gamepad2.right_trigger > TRIGGER_PRESSED_THRESHOLD;
         boolean driverFireHeld = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
-        boolean fireHeld = operatorFireHeld || (soloMode && driverFireHeld);
+        boolean fireHeld = !wallShotHeld && (operatorFireHeld || (soloMode && driverFireHeld));
 
         // ---- Gamepad 2 (operator) ----
         // The operator's face buttons move the shooter gate. (A is the turret float button.)
@@ -1144,7 +1194,11 @@ public class BiobuzzTeleOp extends OpMode {
         boolean gateClosedPressed = gamepad2.x;
         boolean operatorForcedShotHeld = gamepad2.b;
         boolean driverForcedShotHeld = gamepad1.b;
-        boolean forcedShotHeld = operatorForcedShotHeld || (soloMode && driverForcedShotHeld);
+        boolean buttonForcedShotHeld = operatorForcedShotHeld || (soloMode && driverForcedShotHeld);
+        // The WALL SHOT uses the same forced-shot path (gate OPENED, intake runs, no READY checks), but
+        // only AFTER its gate delay. While the Left Trigger is held it is in charge, so B is ignored:
+        // otherwise B would open the gate at once and skip the delay.
+        boolean forcedShotHeld = wallShotHeld ? wallShotGateOpen : buttonForcedShotHeld;
         // LIFTED and the FORCED SHOT are the gate buttons the DRIVER can use too, but ONLY in SOLO
         // MODE (gamepad1 LOGO), the same way the driver's Right Trigger only fires in SOLO MODE. In a
         // solo match nobody is on gamepad 2, so without this the last ball could not be lifted into
@@ -1257,6 +1311,14 @@ public class BiobuzzTeleOp extends OpMode {
             flywheelTargetRpm = commandedFlywheelRpm;
         }
 
+        // The WALL SHOT beats the dial, the table and the freeze above: fixed speeds, no camera.
+        // Changing the two numbers here (not later) keeps the CAPPED check and the screen honest.
+        if (wallShotHeld) {
+            flywheelTargetRpm = WALL_SHOT_FLYWHEEL_RPM;
+            shotRatio = WALL_SHOT_HOOD_WHEEL_RPM / WALL_SHOT_FLYWHEEL_RPM;
+            rpmSource = "WALL SHOT (fixed, Left Trigger)";
+        }
+
         double wantedHoodWheelRpm = flywheelTargetRpm * shotRatio;
         double maxFlywheelRpm = shooterSubsystem.getMaxFlywheelTargetRpm();
         double maxHoodWheelRpm = shooterSubsystem.getMaxHoodWheelTargetRpm();
@@ -1295,13 +1357,17 @@ public class BiobuzzTeleOp extends OpMode {
         // above). (There is no wheel reverse in this OpMode any more.)
         // The FORCED SHOT (operator B, held) spins them too, so a forced shot is a real shot even with
         // the trigger let go and PRE-REV off.
-        boolean wheelsWanted = fireHeld || forcedShotHeld || preRevOn;
+        // The WALL SHOT (operator Left Trigger, held) spins them from the moment it is pressed, at the
+        // fixed wall shot speeds (set above). Let go and, with PRE-REV off, they go to 0 power.
+        boolean wheelsWanted = fireHeld || forcedShotHeld || preRevOn || wallShotHeld;
         String shooterControl;
         if (wheelsWanted) {
             // The shooter's speed control holds each wheel at its target, even when a ball slows it
             // down or the battery drains.
             shooterSubsystem.setTargetRpms(flywheelTargetRpm, hoodWheelTargetRpm);
-            if (operatorForcedShotHeld) {
+            if (wallShotHeld) {
+                shooterControl = "Operator Left Trigger (WALL SHOT)";
+            } else if (operatorForcedShotHeld) {
                 shooterControl = "Operator B (FORCED SHOT)";
             } else if (forcedShotHeld) {
                 shooterControl = "Driver B (FORCED SHOT, SOLO MODE)";
@@ -1331,6 +1397,11 @@ public class BiobuzzTeleOp extends OpMode {
         if (turretFloatPressed) {
             turretSubsystem.stop();
             turretControl = "A (FLOATING - let go to track again)";
+        } else if (wallShotHeld) {
+            // WALL SHOT: point straight ahead and hold there, ignoring the camera. A beats this
+            // (floating the turret is the safety button). Let go and auto-align takes over again.
+            turretSubsystem.setTargetAngle(WALL_SHOT_TURRET_DEGREES);
+            turretControl = String.format("Left Trigger (WALL SHOT: holding %.0f degrees)", WALL_SHOT_TURRET_DEGREES);
         } else {
             turretControl = autoAlignTurret();
         }
@@ -1405,7 +1476,9 @@ public class BiobuzzTeleOp extends OpMode {
                 gateControl = "firing sequence feeding, Y HELD: LIFTED (pushing the last ball in)";
             } else {
                 shooterServoSubsystem.goToOpened();
-                if (forcedShotHeld) {
+                if (wallShotHeld) {
+                    gateControl = "WALL SHOT (Left Trigger held): OPENED after the delay, checks skipped";
+                } else if (forcedShotHeld) {
                     gateControl = "FORCED SHOT (B held): OPENED, checks skipped";
                 } else {
                     gateControl = "firing sequence (OPENED)";
@@ -1469,6 +1542,7 @@ public class BiobuzzTeleOp extends OpMode {
         wasGateLiftedPressed = gateLiftedPressed;
         wasDpadLeftPressed = dpadLeftPressed;
         wasDpadRightPressed = dpadRightPressed;
+        wasWallShotHeld = wallShotHeld;
 
         // 4. Show what is happening on the Driver Station, one section at a time.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
