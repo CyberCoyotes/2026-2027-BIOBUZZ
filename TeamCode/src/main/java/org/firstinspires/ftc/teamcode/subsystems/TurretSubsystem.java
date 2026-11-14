@@ -111,7 +111,9 @@ public class TurretSubsystem {
     // The gear on the encoder's shaft and the ring gear mesh, so the encoder turns more than
     // the turret does. Here that gear is the MOTOR'S 16T pinion, because the motor's encoder
     // is on the motor shaft: 3 motor turns make 1 turret turn.
-    // [CONFIRM] The ring gear is believed to be 48 teeth. Count it in Onshape. Both pinions are 16.
+    // TODO (issue #6): The coach counted 47 teeth on the ring gear (2026-11-12), but this still
+    // says 48. Changing it moves every turret angle by about 2%, so re-check the soft limits
+    // on the robot after the change. Both pinions are 16.
     private static final double RING_GEAR_TEETH = 48.0;
     private static final double ENCODER_PINION_TEETH = 16.0;
 
