@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 /*
  * Field Constants
  * Where our robot STARTS and PARKS in Autonomous, written in Pedro's coordinates.
- * Two Autos need these numbers (LeaveAndParkAuto and ShootAndParkAuto), so they live here once.
+ * Two Autos need these numbers (AutoLeaveAndPark and ShootAndParkAuto), so they live here once.
  * (ARCHITECTURE.md: a shared constants class is made when a second class needs the value.)
  *
  * PEDRO'S MAP OF THE BIOBUZZ FIELD
