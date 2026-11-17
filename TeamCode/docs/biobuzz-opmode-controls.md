@@ -1,6 +1,6 @@
 # BIOBUZZ OpMode Controls: Every TeleOp and Test OpMode
 
-Print this and keep it at the driver station. It lists **what every button does in every OpMode**, using the Logitech controller names. The full TeleOp sheets (driver page and operator page) are in `biobuzz-teleop-controls.md`.
+Print this and keep it at the driver station. It lists **what every button does in every OpMode**, using the Logitech controller names. The two-page TeleOp print (driver page, then operator page) is the top of `biobuzz-teleop-controls.md`.
 
 **Controller:** Logitech F310 / F710, switch on the back set to **X** (XInput), not D.
 - Face buttons: **A, B, X, Y**. Bumpers: **LB / RB**. Triggers: **LT / RT**. Stick buttons: **LS / RS** (press the stick in).
@@ -33,7 +33,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **START** | **Alliance** BLUE / RED, the same as the operator's Start (starts **BLUE**, check it on the screen) |
 | **BACK** | Drive **FIELD-centric / ROBOT-centric** toggle, the same as the operator's BACK |
 | **D-pad Up** | **PRE-REV** on / off: the wheels spin without firing (starts OFF) |
-| **A / B / X / Y** | Not used (the gate moved to the operator's X / B / Y) |
+| **A / X** | Not used (the gate is the operator's X / B / Y). **D-pad Down / Right** are not used either |
 | **D-pad Left** | **Re-aim** (field-centric): the way the robot faces right now is "away from me". Does not touch the Pinpoint |
 
 ### Gamepad 2: OPERATOR
@@ -52,7 +52,8 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **LOGO** (the center **guide** button) | Flywheel speed source **TABLE / DIAL** (starts **TABLE**, the camera). (On the driver's controller the same button is the SOLO MODE toggle.) |
 | **RB** | **Flower picker UP** (issue #75): lifts the flower bar. One move per press. If both bumpers go down on the same loop, UP wins |
 | **LB** | **Flower picker DOWN**: lowers the flower bar, ready to pick a flower. One move per press. Works at any time, also during a volley |
-| **Sticks, LT** | Not used. The turret has no manual control, the intake is the driver's, and the shooter wheels cannot be reversed from this OpMode |
+| **LT** (HOLD) | **WALL SHOT** (issue #9): a dumb shot from a known spot, up against the wall. The turret goes straight ahead (0) and the wheels run at fixed speeds (flywheel 1300, hood wheel 2600 RPM) with no camera and no READY checks. After 1.5 s the gate **OPENS** and the intake runs. Let go and the gate **CLOSES** (with the auto-reverse) and the wheels go to 0 power (unless PRE-REV is on). While LT is held, B and RT do nothing. A still floats the turret. The driver's LT is SLOW MODE, so there is no SOLO MODE copy |
+| **Sticks** | Not used. The turret has no manual control, the intake is the driver's, and the shooter wheels cannot be reversed from this OpMode |
 
 **Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen shows loop time, the alliance, **PRE-REV**, the firing sequence step and what it is **Waiting for**, and **OK to shoot?** (both wheels, for information: the volley itself checks the flywheel only).
 
@@ -260,7 +261,7 @@ A nudge only lasts while the OpMode runs. When a position is right, type the fou
 | Job | TeleOp Alpha 15 | The test OpModes |
 |---|---|---|
 | Shoot | Operator **RT** (hold) = a whole volley (the driver's RT only in SOLO MODE) | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
-| Gate | Automatic during a volley. Between volleys, operator **X** closed / **B** (hold) forced shot / **Y** (hold) lifted. During a feed or while a volley waits, hold **Y** to lift | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
+| Gate | Automatic during a volley. Between volleys, operator **X** closed / **B** (hold) forced shot / **Y** (hold) lifted. During a feed or while a volley waits, hold **Y** to lift. Operator **LT** (hold) = wall shot | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
 | Flywheel speed | Operator **D-pad Up / Down** | **B / A** (Ratio Alpha), **D-pad Up / Down** (Shot Table) |
 | Alliance | **Start** on either gamepad | **Start** (Vision, Shot Table) |
 | Slow mode | Driver **LT** | Driver **RT** (Drive Alpha) |
