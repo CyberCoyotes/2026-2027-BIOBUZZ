@@ -154,8 +154,9 @@ public class TurretSubsystem {
     // To turn the limits off for a test, set SOFT_LIMITS_ON to false. Then nothing stops the
     // turret at an angle, so keep a hand on the Stop button.
     private static final boolean SOFT_LIMITS_ON = true;
-    private static final double MIN_ANGLE_DEGREES = -120.0;
-    private static final double MAX_ANGLE_DEGREES = 120.0;
+    // Adjust the max turret range to be slightly less on the right, a lot more on the left
+    private static final double MIN_ANGLE_DEGREES = -110.0; // CLOCKWISE or turn right
+    private static final double MAX_ANGLE_DEGREES = 180.0; // COUNTERCLOCKWISE or turn left
 
     // ------------------------------------------------------------------
     // Position control settings. All of these are starting guesses to tune on the robot.
@@ -181,7 +182,7 @@ public class TurretSubsystem {
 
     // The most power MANUAL mode can use. setManualPower(1.0) means this much. It is 1.0 now
     // because the test OpMode (TurretAlpha) lets the operator pick the speed with a dial.
-    private static final double MAX_MANUAL_POWER = 1.0;
+    private static final double MAX_MANUAL_POWER = 0.75;
 
     // The turret counts as "on target" when it is within this many degrees of the target...
     // The hive window forgives about +/-5 to 13 degrees, so this can be fairly loose.
