@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -95,7 +96,13 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Motor name:           turret_motor   (TurretSubsystem)
  *   Servo name:           shooter_servo  (ShooterServoSubsystem)
  *   Ethernet Device name: limelight      (VisionSubsystem, Limelight 3A)
+ *
+ * HIDDEN FROM THE DRIVER STATION LIST
+ *   Nobody is using this OpMode right now, so it is @Disabled to keep the list short (issue #103).
+ *   The code is all still here. To bring it back, put // in front of the @Disabled line below
+ *   and redeploy.
  */
+@Disabled
 @TeleOp(name = "Firing Sequence - Alpha", group = "Testing")
 public class FiringSequenceAlpha extends OpMode {
 

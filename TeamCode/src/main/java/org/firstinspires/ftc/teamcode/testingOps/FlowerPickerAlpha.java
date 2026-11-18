@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -45,7 +46,13 @@ import org.firstinspires.ftc.teamcode.subsystems.FlowerPickerSubsystem;
  *   Servo name: left_flower_servo
  *   Servo name: right_flower_servo
  *   Both are plain "Servo" devices in POSITIONAL mode.
+ *
+ * HIDDEN FROM THE DRIVER STATION LIST
+ *   Nobody is using this OpMode right now, so it is @Disabled to keep the list short (issue #103).
+ *   The code is all still here. To bring it back (for example to re-tune the four positions),
+ *   put // in front of the @Disabled line below and redeploy.
  */
+@Disabled
 @TeleOp(name = "Flower Picker Testing - Alpha", group = "Testing")
 public class FlowerPickerAlpha extends OpMode {
 
