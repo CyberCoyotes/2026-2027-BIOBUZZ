@@ -7,7 +7,7 @@ Print this and keep it at the driver station. It lists **what every button does 
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
 - **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In the TeleOp, **Start on either gamepad** switches the alliance, and gamepad 2's B starts a FORCED SHOT (wheels, gate and intake), so pair before START.)
 
-**Names on the Driver Station:** `TeleOp - Alpha 15`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Drive Alpha` (shown for now, for the field-centric test), `Flower Picker Testing - Alpha` (shown for now). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
+**Names on the Driver Station:** `TeleOp - Alpha 15`. **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Flower Picker Testing - Alpha`, `IMU - Alpha` (these five were hidden in issue #103), `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
@@ -193,7 +193,7 @@ Letting go of RB or the stick holds the turret.
 
 ## 8. Hidden OpModes (`@Disabled`)
 
-**Drive Alpha** (gamepad 1). **Currently SHOWN on the Driver Station** for the field-centric drive test (issue #54); it goes back to hidden when the testing is done. It starts **FIELD-centric**: "forward" is away from you. **Put the robot on the floor facing away from you before INIT**, and keep it still. The 7-step test order is in the OpMode's header.
+**Drive Alpha** (gamepad 1). **Hidden since issue #103** (put `//` in front of its `@Disabled` line and redeploy to use it). It starts **FIELD-centric**: "forward" is away from you. **Put the robot on the floor facing away from you before INIT**, and keep it still. The 7-step test order is in the OpMode's header.
 
 | Control | What it does |
 |---|---|
@@ -216,7 +216,7 @@ Letting go of RB or the stick holds the turret.
 
 ## 9. Pinpoint - Alpha (gamepad 1 only)
 
-The robot does **not** drive. Push it around **by hand** and watch the odometry numbers. The test order is in the OpMode's header and in `pinpoint-setup-guide.md`.
+**Hidden since issue #103** (put `//` in front of the `@Disabled` line in `PinpointAlpha` and redeploy to use it). The robot does **not** drive. Push it around **by hand** and watch the odometry numbers. The test order is in the OpMode's header and in `pinpoint-setup-guide.md`.
 
 | Control | What it does |
 |---|---|
@@ -227,7 +227,7 @@ The robot does **not** drive. Push it around **by hand** and watch the odometry 
 
 ## 10. Firing Sequence - Alpha (gamepad 1 only)
 
-The robot does **not** drive. Move it **by hand** to a spot where the camera sees the hive's tags, and load the balls. The turret tracks the hive by itself. The 8-step test order is in the OpMode's header.
+**Hidden since issue #103** (put `//` in front of the `@Disabled` line in `FiringSequenceAlpha` and redeploy to use it). The robot does **not** drive. Move it **by hand** to a spot where the camera sees the hive's tags, and load the balls. The turret tracks the hive by itself. The 8-step test order is in the OpMode's header.
 
 | Control | What it does |
 |---|---|
@@ -243,7 +243,7 @@ The robot does **not** drive. Move it **by hand** to a spot where the camera see
 
 ## 11. Flower Picker Testing - Alpha (gamepad 1 only)
 
-Moves the flower bar with `FlowerPickerSubsystem`, to check both servos and to find the UP and DOWN positions (issue #75). **Robot on blocks, hands and cables clear:** at INIT both servos jump to UP.
+**Hidden since issue #103** (put `//` in front of the `@Disabled` line in `FlowerPickerAlpha` and redeploy to use it). Moves the flower bar with `FlowerPickerSubsystem`, to check both servos and to find the UP and DOWN positions (issue #75). **Robot on blocks, hands and cables clear:** at INIT both servos jump to UP.
 
 | Control | What it does |
 |---|---|

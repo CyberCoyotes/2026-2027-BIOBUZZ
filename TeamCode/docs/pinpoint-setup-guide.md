@@ -1,6 +1,6 @@
 # Pinpoint Odometry: Setup and Test Guide
 
-For the Reed City Cyber Coyotes (teams 11940 and 22091, and the practice bot). The code is `PinpointSubsystem`. The test OpMode is **Pinpoint - Alpha**. The same steps work on every robot, because we use the same chassis. Do them once on each robot.
+For the Reed City Cyber Coyotes (teams 11940 and 22091, and the practice bot). The code is `PinpointSubsystem`. The test OpMode is **Pinpoint - Alpha**. The same steps work on every robot, because we use the same chassis. Do them once on each robot. **Pinpoint - Alpha has been hidden from the Driver Station list since issue #103.** Before Step 2, put `//` in front of the `@Disabled` line in `PinpointAlpha.java` and redeploy. Take the `//` off again when you are done.
 
 **What it is:** the goBILDA Pinpoint is a small computer that reads our two spring-loaded (swingarm) odometry pods and its own gyro, and reports where the robot is: **X** (inches forward), **Y** (inches left), and **heading** (degrees, turning left is positive).
 

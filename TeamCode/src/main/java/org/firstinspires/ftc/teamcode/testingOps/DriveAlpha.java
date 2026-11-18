@@ -95,12 +95,12 @@ import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
  *   only ROBOT-CENTRIC.
  *
  * HIDDEN FROM THE DRIVER STATION LIST
- *   The drive wheels are well tested, so this OpMode is normally @Disabled to keep the list short.
- *   The code is all still here. It is SHOWN right now (the @Disabled line below has // in front
- *   of it) so the field-centric drive can be tested. When the testing is done, take the // off
- *   and redeploy to hide it again.
+ *   Nobody is using this OpMode right now, so it is @Disabled to keep the list short (issue #103).
+ *   The code is all still here. To bring it back (for example to check the wheel directions or
+ *   to test the field-centric drive again), put // in front of the @Disabled line below and
+ *   redeploy.
  */
-// @Disabled   (turned off for the field-centric test, issue #54. Remove the // to hide it again.)
+@Disabled
 @TeleOp(name = "Drive Alpha", group = "Testing")
 public class DriveAlpha extends OpMode {
 
