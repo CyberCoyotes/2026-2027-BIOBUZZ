@@ -1,13 +1,13 @@
 # BIOBUZZ OpMode Controls: Every TeleOp and Test OpMode
 
-Print this and keep it at the driver station. It lists **what every button does in every OpMode**, using the Logitech controller names. The full TeleOp sheets (driver page and operator page) are in `biobuzz-teleop-controls.md`.
+Print this and keep it at the driver station. It lists **what every button does in every OpMode**, using the Logitech controller names. The two-page TeleOp print (driver page, then operator page) is the top of `biobuzz-teleop-controls.md`.
 
 **Controller:** Logitech F310 / F710, switch on the back set to **X** (XInput), not D.
 - Face buttons: **A, B, X, Y**. Bumpers: **LB / RB**. Triggers: **LT / RT**. Stick buttons: **LS / RS** (press the stick in).
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
 - **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In the TeleOp, **Start on either gamepad** switches the alliance, and gamepad 2's B starts a FORCED SHOT (wheels, gate and intake), so pair before START.)
 
-**Names on the Driver Station:** `TeleOp - Alpha 15`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Drive Alpha` (shown for now, for the field-centric test), `Flower Picker Testing - Alpha` (shown for now). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
+**Names on the Driver Station:** `TeleOp - Alpha 15`. **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Flower Picker Testing - Alpha`, `IMU - Alpha` (these five were hidden in issue #103), `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
@@ -33,7 +33,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **START** | **Alliance** BLUE / RED, the same as the operator's Start (starts **BLUE**, check it on the screen) |
 | **BACK** | Drive **FIELD-centric / ROBOT-centric** toggle, the same as the operator's BACK |
 | **D-pad Up** | **PRE-REV** on / off: the wheels spin without firing (starts OFF) |
-| **A / B / X / Y** | Not used (the gate moved to the operator's X / B / Y) |
+| **A / X** | Not used (the gate is the operator's X / B / Y). **D-pad Down / Right** are not used either |
 | **D-pad Left** | **Re-aim** (field-centric): the way the robot faces right now is "away from me". Does not touch the Pinpoint |
 
 ### Gamepad 2: OPERATOR
@@ -52,7 +52,8 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **LOGO** (the center **guide** button) | Flywheel speed source **TABLE / DIAL** (starts **TABLE**, the camera). (On the driver's controller the same button is the SOLO MODE toggle.) |
 | **RB** | **Flower picker UP** (issue #75): lifts the flower bar. One move per press. If both bumpers go down on the same loop, UP wins |
 | **LB** | **Flower picker DOWN**: lowers the flower bar, ready to pick a flower. One move per press. Works at any time, also during a volley |
-| **Sticks, LT** | Not used. The turret has no manual control, the intake is the driver's, and the shooter wheels cannot be reversed from this OpMode |
+| **LT** (HOLD) | **WALL SHOT** (issue #9): a dumb shot from a known spot, up against the wall. The turret goes straight ahead (0) and the wheels run at fixed speeds (flywheel 1300, hood wheel 2600 RPM) with no camera and no READY checks. After 1.5 s the gate **OPENS** and the intake runs. Let go and the gate **CLOSES** (with the auto-reverse) and the wheels go to 0 power (unless PRE-REV is on). While LT is held, B and RT do nothing. A still floats the turret. The driver's LT is SLOW MODE, so there is no SOLO MODE copy |
+| **Sticks** | Not used. The turret has no manual control, the intake is the driver's, and the shooter wheels cannot be reversed from this OpMode |
 
 **Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen shows loop time, the alliance, **PRE-REV**, the firing sequence step and what it is **Waiting for**, and **OK to shoot?** (both wheels, for information: the volley itself checks the flywheel only).
 
@@ -192,7 +193,7 @@ Letting go of RB or the stick holds the turret.
 
 ## 8. Hidden OpModes (`@Disabled`)
 
-**Drive Alpha** (gamepad 1). **Currently SHOWN on the Driver Station** for the field-centric drive test (issue #54); it goes back to hidden when the testing is done. It starts **FIELD-centric**: "forward" is away from you. **Put the robot on the floor facing away from you before INIT**, and keep it still. The 7-step test order is in the OpMode's header.
+**Drive Alpha** (gamepad 1). **Hidden since issue #103** (put `//` in front of its `@Disabled` line and redeploy to use it). It starts **FIELD-centric**: "forward" is away from you. **Put the robot on the floor facing away from you before INIT**, and keep it still. The 7-step test order is in the OpMode's header.
 
 | Control | What it does |
 |---|---|
@@ -215,7 +216,7 @@ Letting go of RB or the stick holds the turret.
 
 ## 9. Pinpoint - Alpha (gamepad 1 only)
 
-The robot does **not** drive. Push it around **by hand** and watch the odometry numbers. The test order is in the OpMode's header and in `pinpoint-setup-guide.md`.
+**Hidden since issue #103** (put `//` in front of the `@Disabled` line in `PinpointAlpha` and redeploy to use it). The robot does **not** drive. Push it around **by hand** and watch the odometry numbers. The test order is in the OpMode's header and in `pinpoint-setup-guide.md`.
 
 | Control | What it does |
 |---|---|
@@ -226,7 +227,7 @@ The robot does **not** drive. Push it around **by hand** and watch the odometry 
 
 ## 10. Firing Sequence - Alpha (gamepad 1 only)
 
-The robot does **not** drive. Move it **by hand** to a spot where the camera sees the hive's tags, and load the balls. The turret tracks the hive by itself. The 8-step test order is in the OpMode's header.
+**Hidden since issue #103** (put `//` in front of the `@Disabled` line in `FiringSequenceAlpha` and redeploy to use it). The robot does **not** drive. Move it **by hand** to a spot where the camera sees the hive's tags, and load the balls. The turret tracks the hive by itself. The 8-step test order is in the OpMode's header.
 
 | Control | What it does |
 |---|---|
@@ -242,7 +243,7 @@ The robot does **not** drive. Move it **by hand** to a spot where the camera see
 
 ## 11. Flower Picker Testing - Alpha (gamepad 1 only)
 
-Moves the flower bar with `FlowerPickerSubsystem`, to check both servos and to find the UP and DOWN positions (issue #75). **Robot on blocks, hands and cables clear:** at INIT both servos jump to UP.
+**Hidden since issue #103** (put `//` in front of the `@Disabled` line in `FlowerPickerAlpha` and redeploy to use it). Moves the flower bar with `FlowerPickerSubsystem`, to check both servos and to find the UP and DOWN positions (issue #75). **Robot on blocks, hands and cables clear:** at INIT both servos jump to UP.
 
 | Control | What it does |
 |---|---|
@@ -260,7 +261,7 @@ A nudge only lasts while the OpMode runs. When a position is right, type the fou
 | Job | TeleOp Alpha 15 | The test OpModes |
 |---|---|---|
 | Shoot | Operator **RT** (hold) = a whole volley (the driver's RT only in SOLO MODE) | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
-| Gate | Automatic during a volley. Between volleys, operator **X** closed / **B** (hold) forced shot / **Y** (hold) lifted. During a feed or while a volley waits, hold **Y** to lift | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
+| Gate | Automatic during a volley. Between volleys, operator **X** closed / **B** (hold) forced shot / **Y** (hold) lifted. During a feed or while a volley waits, hold **Y** to lift. Operator **LT** (hold) = wall shot | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
 | Flywheel speed | Operator **D-pad Up / Down** | **B / A** (Ratio Alpha), **D-pad Up / Down** (Shot Table) |
 | Alliance | **Start** on either gamepad | **Start** (Vision, Shot Table) |
 | Slow mode | Driver **LT** | Driver **RT** (Drive Alpha) |

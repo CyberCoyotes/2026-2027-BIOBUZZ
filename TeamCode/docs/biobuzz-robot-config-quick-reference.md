@@ -63,7 +63,7 @@ Without it, turret 0° is wherever the turret pointed when the hub powered on, s
 - [ ] (Later, once installed) Home switch is a **Digital Device**, not a Touch Sensor
 - [ ] Servo is in positional mode (not continuous rotation)
 - [ ] Limelight appears as an Ethernet device named `limelight`
-- [ ] Pinpoint appears as an I2C device named `pinpoint` (it was `odo` last season), and `Pinpoint - Alpha` shows **READY**
+- [ ] Pinpoint appears as an I2C device named `pinpoint` (it was `odo` last season), and `Pinpoint - Alpha` (hidden since issue #103: take its `@Disabled` off first) shows **READY**
 - [ ] Wheels off the ground for the first direction test
 
 ## Not wired in code yet

@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -61,7 +62,13 @@ import org.firstinspires.ftc.teamcode.subsystems.PowerMonitorSubsystem;
  * Robot configuration (on the Driver Station):
  *   IMU name: imu           (ImuSubsystem, the Control Hub's built-in IMU, I2C Bus 0)
  *   I2C Device name: pinpoint   (PinpointSubsystem; if it is missing, only the IMU half works)
+ *
+ * HIDDEN FROM THE DRIVER STATION LIST
+ *   Nobody is using this OpMode right now, so it is @Disabled to keep the list short (issue #103).
+ *   The code is all still here. To bring it back (for example to check the hub's orientation or to
+ *   look for Pinpoint blinks), put // in front of the @Disabled line below and redeploy.
  */
+@Disabled
 @TeleOp(name = "IMU - Alpha", group = "Testing")
 public class ImuAlpha extends OpMode {
 

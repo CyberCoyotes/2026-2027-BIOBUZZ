@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -47,7 +48,13 @@ import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
  * Robot configuration (on the Driver Station):
  *   I2C Device name: pinpoint   (PinpointSubsystem, "goBILDA Pinpoint Odometry Computer", Control Hub
  *                                I2C port 1, 2 or 3). See TeamCode/docs/pinpoint-setup-guide.md.
+ *
+ * HIDDEN FROM THE DRIVER STATION LIST
+ *   Nobody is using this OpMode right now, so it is @Disabled to keep the list short (issue #103).
+ *   The code is all still here. To bring it back (for example to check the pods on a robot),
+ *   put // in front of the @Disabled line below and redeploy.
  */
+@Disabled
 @TeleOp(name = "Pinpoint - Alpha", group = "Testing")
 public class PinpointAlpha extends OpMode {
 
