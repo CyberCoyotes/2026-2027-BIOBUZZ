@@ -53,8 +53,10 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *                               (tile D|E 1), facing the audience wall. The bar drops on the way in.
  *     3. FLOWER A             : bar down, creep FLOWER_A_CREEP_INCHES in, pick.
  *     4. DRIVE_TO_SHOT_2      : back straight up SHOT_2_BACK_UP_INCHES, no turn.
- *     5. SHOT 2               : the hive is behind the robot. The turret swings to its +/-120 limit
- *                               and the camera's view covers the rest (checked on the robot).
+ *     5. SHOT 2               : the hive is behind the robot. The turret swings LEFT and stops at
+ *                               its +180 limit, about 11 degrees short of the hive. It can't turn
+ *                               farther, so the camera never locks: after LOCK_TIMEOUT_SECONDS it
+ *                               fires from there, 11 degrees off. NOT checked on the robot yet.
  *     6. DRIVE_TO_FLOWER_B    : curve up to the BLUE-wall flower (right wall, row 4|5), turning to
  *                               face the right wall.
  *     7. FLOWER B             : the bar drops only once the robot has stopped (it hit the flower when
@@ -765,12 +767,49 @@ public class BiobuzzAuto extends OpMode {
     }
 
     // The turret angle that points at the hive from where the robot is now (0 straight ahead,
-    // positive to the LEFT). TurretSubsystem clips it to +/-120.
+    // positive to the LEFT). It is always an angle the turret can actually reach (see below).
     private double turretAngleToHiveDegrees() {
         Pose pose = follower.pose();
         double toHiveDegrees = Math.toDegrees(
                 Math.atan2(hivePose.y() - pose.y(), hivePose.x() - pose.x()));
-        return wrapDegrees(toHiveDegrees - Math.toDegrees(pose.heading()));
+        double wantedDegrees = wrapDegrees(toHiveDegrees - Math.toDegrees(pose.heading()));
+        return closestReachableTurretAngle(wantedDegrees);
+    }
+
+    // The turret can't spin all the way around. Its soft limits (in TurretSubsystem) are not the
+    // same on both sides: it turns farther LEFT than RIGHT. One direction can be written three ways:
+    // wanted, wanted + 360 (the same direction, turning left the long way) and wanted - 360 (turning
+    // right the long way). Example, blue shot 2: the hive is at -169 (right). That is past the right
+    // limit, but +191 (left) is the same direction and is only 11 degrees past the left limit.
+    //   1. If one of the three is inside the limits, use it.
+    //   2. If none is, stop AT the limit that gets the turret closest to the hive. The turret never
+    //      goes past a limit, so the camera can't finish the aim from there: the shot is fired from
+    //      the limit (after LOCK_TIMEOUT_SECONDS) and is off by however far the hive is past it.
+    // The limits come from TurretSubsystem, so if they change there, this follows.
+    private double closestReachableTurretAngle(double wantedDegrees) {
+        double minDegrees = turretSubsystem.getMinAngleDegrees();
+        double maxDegrees = turretSubsystem.getMaxAngleDegrees();
+        double[] sameDirection = {wantedDegrees, wantedDegrees + 360.0, wantedDegrees - 360.0};
+
+        // 1. Is one of them inside the limits?
+        for (int i = 0; i < sameDirection.length; i++) {
+            if (sameDirection[i] >= minDegrees && sameDirection[i] <= maxDegrees) {
+                return sameDirection[i];
+            }
+        }
+
+        // 2. None is. Clip each one to the limits and keep the one that misses by the least.
+        double bestDegrees = Math.max(minDegrees, Math.min(maxDegrees, wantedDegrees));
+        double bestMissDegrees = Math.abs(bestDegrees - wantedDegrees);
+        for (int i = 1; i < sameDirection.length; i++) {
+            double clippedDegrees = Math.max(minDegrees, Math.min(maxDegrees, sameDirection[i]));
+            double missDegrees = Math.abs(clippedDegrees - sameDirection[i]);
+            if (missDegrees < bestMissDegrees) {
+                bestDegrees = clippedDegrees;
+                bestMissDegrees = missDegrees;
+            }
+        }
+        return bestDegrees;
     }
 
     // ==================================================================
