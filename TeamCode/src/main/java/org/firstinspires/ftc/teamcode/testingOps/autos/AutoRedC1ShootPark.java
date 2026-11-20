@@ -13,6 +13,6 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 @Autonomous(name = "Red C1 - Shoot Park", group = "Auto", preselectTeleOp = "TeleOp - Alpha 15")
 public class AutoRedC1ShootPark extends BiobuzzAuto {
     public AutoRedC1ShootPark() {
-        super(VisionSubsystem.Alliance.RED, StartSpot.CENTER, Routine.SHOOT_PARK);
+        super(VisionSubsystem.Alliance.RED, StartSpot.MAIN, Routine.SHOOT_PARK);
     }
 }

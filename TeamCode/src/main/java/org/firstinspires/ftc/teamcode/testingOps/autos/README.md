@@ -17,16 +17,16 @@ From Joel. I won't be at the event, so this is what you need to run these Autos,
 |---|---|---|---|
 | **Move Park** | Start → our loading zone. LEAVE + PARK. | ~4 s | Yes, once checked on the field |
 | **Shoot Park** | Shoot the 4 preloaded POLLEN, then park. | ~8–10 s | Yes, once checked. **Default choice.** |
-| **3 Volley** | Shoot, flower A, shoot, flower B, shoot, park. | **~35 s** | **No.** Runs past 30 s (see below). |
+| **3 Volley** | Shoot, flower A, shoot, flower B, shoot, park. | **~35 s** from D6/C1, less from D1/C6 | **No.** Runs past 30 s (see below). |
 
 | Start spot | Tile / wall | Robot faces |
 |---|---|---|
 | **Blue D6** | D6, rear wall (our usual blue start, from `FieldConstants`) | down, at the hive |
-| **Blue E6** | E6, rear wall (one tile to the robot's left of D6) | down, at the hive |
+| **Blue D1** | D1, audience wall, straight across from D6, about ½ in from the blue flower | up, at the hive |
 | **Red C1** | C1, audience wall (our usual red start, from `FieldConstants`) | up, at the hive |
-| **Red B1** | B1, audience wall (one tile to the robot's left of C1) | up, at the hive |
+| **Red C6** | C6, rear wall, straight across from C1, about ½ in from the red flower | down, at the hive |
 
-Driver Hub names follow the pattern **`<Spot> - <Routine>`**, for example `Blue D6 - Shoot Park`, listed under the **Auto** group. Blue parks in the blue loading zone (F2), red in the red loading zone (A5). Both come from `FieldConstants.parkPose()`, the same as `AutoLeaveAndPark`.
+Driver Hub names follow the pattern **`<Spot> - <Routine>`**, for example `Blue D6 - Shoot Park` or `Red C6 - 3 Volley`, listed under the **Auto** group. Blue parks in the blue loading zone (F2), red in the red loading zone (A5). Both come from `FieldConstants.parkPose()`, the same as `AutoLeaveAndPark`.
 
 **Fallbacks** (in the main teamcode folder, not this one): `AutoLeaveAndPark` (LEAVE + PARK from D6/C1), and `Drive Forward - Mark 1` (`AutoEmergencyLeave`, a timed drive with no Pedro, LEAVE only) if Pedro or the Pinpoint is down.
 
@@ -61,7 +61,7 @@ Driver Hub names follow the pattern **`<Spot> - <Routine>`**, for example `Blue 
 1. **3 Volley is too long.** Estimated ~35 s. A built-in cutoff skips or cuts short any shot or flower after **24 s** so it can still park, which means shot 3 will usually be skipped, and it may still miss the park. Don't run it in a match until a nonstop run on a real field comes in under ~28 s.
 2. **Flower bar.** If the robot drives straight instead of curving or drifts off its path, the flower bar's UP position is wrong and it's dragging. Quick fix: set `USE_FLOWER_BAR = false` in `BiobuzzAuto.java` (only affects 3 Volley picks). Proper fix: tune the bar with `FlowerPickerAlpha`.
 3. **Shaking at stops.** Pedro actively holding a stop made the robot shake on our practice field, so holding is off (`HOLD_AT_STOPS = false`): the drive motors just stop at each stop. If shaking shows up anyway, Foresight needs re-tuning on a fresh battery.
-4. **Untested start tiles.** E6 and B1 are my reading of "one tile to the left" (the robot's left, which keeps them on our half). If that's wrong it's a one-number change (`START_LEFT_X_INCHES`).
+4. **The flower start spots (D1 / C6) are tight.** The robot starts about ½ in from the flower. Every path from there drives straight off the wall first, and the geometry check shows it never gets closer than where it started, but it has to be placed carefully: centered in the tile, square to the wall. From these spots the robot parks facing the way it started, and shot 3 in the 3 Volley is taken from a spot a little way out (not jammed against the flower).
 5. **Field estimates.** Field size (141.5 in), loading-zone size and hive position come from Pedro's field image and the manual, not a tape measure (issue #55 in `FieldConstants`).
 
 ## Quick fixes in the pits
@@ -85,7 +85,8 @@ Change one thing at a time, redeploy, and re-check in STEP mode.
 
 - `BiobuzzAuto.java`: the complete Auto (an iterative OpMode state machine): Pedro paths, the shot sequence (same as `ShootAndParkAuto`), flower picking, the 24 s cutoff, step mode, telemetry. Not listed on the Driver Hub by itself.
 - 12 thin subclasses, e.g. `AutoBlueD6ThreeVolley`:
-  `super(VisionSubsystem.Alliance.BLUE, StartSpot.CENTER, Routine.THREE_VOLLEY);`
+  `super(VisionSubsystem.Alliance.BLUE, StartSpot.MAIN, Routine.THREE_VOLLEY);`
+  `StartSpot.MAIN` = D6 (blue) / C1 (red). `StartSpot.FLOWER` = D1 (blue) / C6 (red), across the field in the same column, next to our flower.
   This is one level of `extends`. I know `CLAUDE.md` says no base classes. I did it this way because 12 copies of a ~1000-line file couldn't be kept in sync.
 - **Field positions are written once, in blue coordinates.** Red is the 180° rotation about the field center (`x → 141.5−x`, `y → 141.5−y`, heading + 180°), the same rule as `FieldConstants.makePose()`. Not a mirror.
 - Pedro's Follower owns the drive motors and the Pinpoint. `DriveSubsystem` and `PinpointSubsystem` aren't used.

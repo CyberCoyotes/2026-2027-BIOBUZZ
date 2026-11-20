@@ -13,6 +13,6 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 @Autonomous(name = "Blue D6 - Move Park", group = "Auto", preselectTeleOp = "TeleOp - Alpha 15")
 public class AutoBlueD6MovePark extends BiobuzzAuto {
     public AutoBlueD6MovePark() {
-        super(VisionSubsystem.Alliance.BLUE, StartSpot.CENTER, Routine.MOVE_PARK);
+        super(VisionSubsystem.Alliance.BLUE, StartSpot.MAIN, Routine.MOVE_PARK);
     }
 }
