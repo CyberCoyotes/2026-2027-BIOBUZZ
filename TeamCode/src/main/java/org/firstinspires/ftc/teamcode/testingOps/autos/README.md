@@ -28,7 +28,7 @@ From Joel. I won't be at the event, so this is what you need to run these Autos,
 
 Driver Hub names follow the pattern **`<Spot> - <Routine>`**, for example `Blue D6 - Shoot Park` or `Red C6 - 3 Volley`, listed under the **Auto** group. Blue parks in the blue loading zone (F2), red in the red loading zone (A5). Both come from `FieldConstants.parkPose()`, the same as `AutoLeaveAndPark`.
 
-**Fallbacks** (in the main teamcode folder, not this one): `AutoLeaveAndPark` (LEAVE + PARK from D6/C1), and `Drive Forward - Mark 1` (`AutoEmergencyLeave`, a timed drive with no Pedro, LEAVE only) if Pedro or the Pinpoint is down.
+**Fallbacks** (in the main teamcode folder, not this one): `AutoLeaveAndPark` (LEAVE + PARK from D6/C1; currently `@Disabled`), and `Drive Forward` (`AutoEmergencyLeave`, drives 24 inches measured by the Pinpoint, with a timed backup; no Pedro, LEAVE only) if Pedro or the Pinpoint is down.
 
 ## Running one at the event
 

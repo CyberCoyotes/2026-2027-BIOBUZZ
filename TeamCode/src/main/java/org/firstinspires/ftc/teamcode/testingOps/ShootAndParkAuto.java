@@ -5,6 +5,7 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -114,7 +115,13 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * Run it 5 times in a row before you trust it, and write each run in
  * TeamCode/docs/biobuzz-test-and-match-log.md. Once it is solid, change group = "Testing" to
  * "Competition" below.
+ *
+ * HIDDEN FROM THE DRIVER STATION
+ *   Nobody is using this OpMode right now, so it is @Disabled to keep the list short.
+ *   The code is all still here. To bring it back, put // in front of the @Disabled line
+ *   below and redeploy.
  */
+@Disabled
 @Autonomous(name = "Auto - Shoot and Park - Alpha 1", group = "Testing",
         preselectTeleOp = "TeleOp - Alpha 15")
 public class ShootAndParkAuto extends OpMode {
