@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.subsystems.AllianceHandoff;
+import org.firstinspires.ftc.teamcode.subsystems.AutoHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.BiobuzzLog;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
@@ -181,7 +181,7 @@ import java.util.List;
  *   - The operator's A (hold) floats the turret so it can be turned by hand. Let go of A and it
  *     goes back to tracking.
  *   - The ALLIANCE (START on either gamepad) must be right, or the turret tracks the OTHER team's hive.
- *     It starts as BLUE, or as the alliance of the Auto that just ran (see AllianceHandoff).
+ *     It starts as BLUE, or as the alliance of the Auto that just ran (see AutoHandoff).
  *     Check the alliance on the screen before you press START.
  *
  * THE INTAKE ALSO RUNS THE TRANSFER. One motor spins the front intake AND a hex shaft with
@@ -244,7 +244,7 @@ public class BiobuzzTeleOp extends OpMode {
 
     // Which way the robot faces on the field at INIT, which is when the Pinpoint's heading is
     // zeroed. These two numbers are only the FALLBACK, used when no Auto handed over its ending
-    // heading (see AllianceHandoff): they assume the robot still faces the way it started, blue
+    // heading (see AutoHandoff): they assume the robot still faces the way it started, blue
     // facing DOWN the field (-90), red facing UP (+90). (See FieldConstants in pedro/.) That is
     // true for the Autos that never turn the robot, but not for the ones that do (3 Volley).
     private static final double ROBOT_FIELD_HEADING_AT_INIT_BLUE_DEGREES = -90.0;
@@ -532,7 +532,7 @@ public class BiobuzzTeleOp extends OpMode {
     // true once the driver pressed D-pad Left: the offset is then the driver's, not the alliance's.
     private boolean driverReAimed = false;
 
-    // The heading the Auto ended on (degrees, Pedro's field), handed over by AllianceHandoff. It is
+    // The heading the Auto ended on (degrees, Pedro's field), handed over by AutoHandoff. It is
     // read once at INIT. When haveHandedOffHeading is true, the offset uses it instead of the fixed
     // ROBOT_FIELD_HEADING_AT_INIT_* numbers. It is spent at START (see start()).
     private double handedOffFieldHeadingDegrees = 0.0;
@@ -1115,15 +1115,15 @@ public class BiobuzzTeleOp extends OpMode {
         // drive direction (INIT works it out from the alliance), so after a RED Auto the drive is
         // already RED field-centric. The operator can still change it with START on either gamepad.
         // If no Auto ran lately (or the app was restarted), this does nothing and we start on BLUE.
-        if (AllianceHandoff.hasFreshAlliance()) {
-            visionSubsystem.setAlliance(AllianceHandoff.getAlliance());
+        if (AutoHandoff.hasFreshAlliance()) {
+            visionSubsystem.setAlliance(AutoHandoff.getAlliance());
         }
         // Also take the heading the Auto ended on, so the field-centric drive knows which way the
         // robot really faces (even after an Auto that turned it). It is saved in our own variables
         // so it stays the same for this whole TeleOp run. It is spent at START.
-        haveHandedOffHeading = AllianceHandoff.hasFreshHeading();
+        haveHandedOffHeading = AutoHandoff.hasFreshHeading();
         if (haveHandedOffHeading) {
-            handedOffFieldHeadingDegrees = AllianceHandoff.getHeadingDegrees();
+            handedOffFieldHeadingDegrees = AutoHandoff.getHeadingDegrees();
         }
         // The Pinpoint zeros its position and calibrates its gyro here, so the robot must be
         // STILL during INIT. If the config has no "pinpoint", this does not stop the OpMode.
@@ -1203,7 +1203,7 @@ public class BiobuzzTeleOp extends OpMode {
         // The heading from the Auto is only true until the robot moves. We have used it (the offset
         // above is now fixed), so spend it: if this TeleOp is stopped and started again after
         // driving, it must not use an old heading.
-        AllianceHandoff.clearHeading();
+        AutoHandoff.clearHeading();
 
         // The battery numbers on the screen should be about THIS match, not about INIT.
         powerMonitorSubsystem.resetStatistics();

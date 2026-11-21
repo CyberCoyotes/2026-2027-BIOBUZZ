@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.subsystems.AllianceHandoff;
+import org.firstinspires.ftc.teamcode.subsystems.AutoHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
 
@@ -149,7 +149,7 @@ public class AutoEmergencyLeave extends OpMode {
         // This Auto does not know which alliance we are, so forget any alliance an earlier Auto
         // saved. The TeleOp then starts on BLUE, like before, and the operator presses START to
         // switch it. (Better than starting on the WRONG alliance from an old Auto.)
-        AllianceHandoff.clear();
+        AutoHandoff.clear();
 
         // Decide how we will measure this drive. Check READY here, once, so the answer cannot
         // change halfway through the drive.

@@ -1,14 +1,13 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 /*
- * Alliance Handoff
+ * Auto Handoff
  * A plain class with NO hardware, no update(), and no gamepad code. It is not a mechanism, so its
  * name does not end in "Subsystem" (the same as ShotTable and HiveBearingMemory). It does one
  * job: let an Auto TELL the TeleOp two things, so the TeleOp starts with the right field-centric
  * drive direction without anyone pressing a button:
  *   1. which ALLIANCE it just played (so the TeleOp starts on the same alliance), and
  *   2. which way the robot FACES at the end of the Auto (its heading on the field).
- * (The name says "Alliance" because that came first. It now carries both.)
  *
  * WHY THE HEADING MATTERS
  *   The field-centric drive needs to know which way the robot faces on the field when the TeleOp
@@ -34,11 +33,11 @@ package org.firstinspires.ftc.teamcode.subsystems;
  *   - Too much time has passed. See MAX_AGE_SECONDS.
  *
  * HOW THE OPMODES USE IT
- *   An Auto, at START:    AllianceHandoff.save(alliance);
- *   An Auto, at STOP:     AllianceHandoff.saveHeading(final heading in degrees)   (only if it started)
- *   The TeleOp, at INIT:  if (AllianceHandoff.hasFreshAlliance()) { use AllianceHandoff.getAlliance(); }
- *                         if (AllianceHandoff.hasFreshHeading())  { use AllianceHandoff.getHeadingDegrees(); }
- *   The TeleOp, at START: AllianceHandoff.clearHeading();   (see below)
+ *   An Auto, at START:    AutoHandoff.save(alliance);
+ *   An Auto, at STOP:     AutoHandoff.saveHeading(final heading in degrees)   (only if it started)
+ *   The TeleOp, at INIT:  if (AutoHandoff.hasFreshAlliance()) { use AutoHandoff.getAlliance(); }
+ *                         if (AutoHandoff.hasFreshHeading())  { use AutoHandoff.getHeadingDegrees(); }
+ *   The TeleOp, at START: AutoHandoff.clearHeading();   (see below)
  *   The operator can still switch the alliance with START on either gamepad, as always. The
  *   driver can still re-aim with D-pad Left, as always.
  *
@@ -47,7 +46,7 @@ package org.firstinspires.ftc.teamcode.subsystems;
  *   from the Auto is out of date. If the TeleOp is stopped and started again, it must NOT use it.
  *   (Pressing INIT again BEFORE START is fine: the robot has not moved, so it is still true.)
  */
-public class AllianceHandoff {
+public class AutoHandoff {
 
     // How long a saved alliance stays good, in seconds. A match is an Auto (30 s) and then the
     // TeleOp starts right away, so 300 s (5 minutes) is plenty. The limit is there so a red Auto
@@ -67,9 +66,9 @@ public class AllianceHandoff {
     // When it was saved, from System.nanoTime() (a clock that only counts forward).
     private static long savedAtNanos = 0;
 
-    // Nobody makes an AllianceHandoff object. Everything here is static, so you just write
-    // AllianceHandoff.save(...) and so on.
-    private AllianceHandoff() {
+    // Nobody makes an AutoHandoff object. Everything here is static, so you just write
+    // AutoHandoff.save(...) and so on.
+    private AutoHandoff() {
     }
 
     /*

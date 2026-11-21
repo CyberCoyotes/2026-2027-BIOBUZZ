@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.pedro.FieldConstants;
-import org.firstinspires.ftc.teamcode.subsystems.AllianceHandoff;
+import org.firstinspires.ftc.teamcode.subsystems.AutoHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.FlowerPickerSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
@@ -438,7 +438,7 @@ public class BiobuzzAuto extends OpMode {
         follower.update();
 
         // Tell the TeleOp which alliance this Auto played, so it starts on the same one.
-        AllianceHandoff.save(alliance);
+        AutoHandoff.save(alliance);
         autoStarted = true;
         aWasPressed = gamepad1.a;
         runTimer.reset();
@@ -685,7 +685,7 @@ public class BiobuzzAuto extends OpMode {
         // Hand the robot's ending heading to the TeleOp (only if this Auto really ran), so the
         // field-centric drive knows which way the robot faces. Pedro's heading is in radians.
         if (autoStarted) {
-            AllianceHandoff.saveHeading(Math.toDegrees(follower.pose().heading()));
+            AutoHandoff.saveHeading(Math.toDegrees(follower.pose().heading()));
         }
         follower.stop();
         follower.drivetrain.stop();
