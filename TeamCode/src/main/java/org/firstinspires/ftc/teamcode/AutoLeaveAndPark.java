@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.pedro.FieldConstants;
+import org.firstinspires.ftc.teamcode.subsystems.AutoHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
@@ -78,6 +79,10 @@ public class AutoLeaveAndPark extends OpMode {
     // ------------------------------------------------------------------
     // The steps of this Auto. The robot is always in exactly one of these.
     // ------------------------------------------------------------------
+    // true once START was pressed. stop() only saves the ending heading for the TeleOp if the Auto
+    // really ran (an Auto that was only INIT'd and then stopped must not hand anything over).
+    private boolean autoStarted = false;
+
     private enum AutoState {
         DRIVE_TO_WAYPOINT,
         DRIVE_TO_PARK,
@@ -155,6 +160,10 @@ public class AutoLeaveAndPark extends OpMode {
         follower.setPose(startPose);
         follower.update();
 
+        // Tell the TeleOp which alliance this Auto played, so it starts on the same one.
+        AutoHandoff.save(alliance);
+        autoStarted = true;
+
         autoState = AutoState.DRIVE_TO_WAYPOINT;
         legTimer.reset();
         follower.follow(waypointPath);
@@ -203,6 +212,12 @@ public class AutoLeaveAndPark extends OpMode {
      */
     @Override
     public void stop() {
+        // Hand the robot's ending heading to the TeleOp (only if this Auto really ran), so the
+        // field-centric drive knows which way the robot faces. Pedro's heading is in radians.
+        if (autoStarted) {
+            AutoHandoff.saveHeading(Math.toDegrees(follower.pose().heading()));
+        }
+
         // Put the Follower in IDLE and tell the drivetrain to stop right now. (follower.stop()
         // only changes the mode. The wheels are zeroed by the next update(), and there is none.)
         follower.stop();

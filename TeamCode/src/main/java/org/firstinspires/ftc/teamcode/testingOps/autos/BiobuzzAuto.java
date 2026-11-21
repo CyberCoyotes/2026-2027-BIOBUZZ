@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.pedro.FieldConstants;
+import org.firstinspires.ftc.teamcode.subsystems.AutoHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.FlowerPickerSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
@@ -252,6 +253,10 @@ public class BiobuzzAuto extends OpMode {
     // ==================================================================
     // The steps. The robot is always in exactly one of these.
     // ==================================================================
+    // true once START was pressed. stop() only saves the ending heading for the TeleOp if the Auto
+    // really ran (an Auto that was only INIT'd and then stopped must not hand anything over).
+    private boolean autoStarted = false;
+
     private enum AutoState {
         SHOT_PAUSE, SHOT_FIND_HIVE, SHOT_WAIT_FOR_SPEED, SHOT_FEED_BALLS, SHOT_LIFT_LAST_BALL,
         FLOWER_BAR_DOWN, FLOWER_CREEP, FLOWER_PICK, FLOWER_BAR_UP,
@@ -431,6 +436,10 @@ public class BiobuzzAuto extends OpMode {
     public void start() {
         follower.setPose(startPose);
         follower.update();
+
+        // Tell the TeleOp which alliance this Auto played, so it starts on the same one.
+        AutoHandoff.save(alliance);
+        autoStarted = true;
         aWasPressed = gamepad1.a;
         runTimer.reset();
         totalButtonWaitSeconds = 0.0;
@@ -673,6 +682,11 @@ public class BiobuzzAuto extends OpMode {
      */
     @Override
     public void stop() {
+        // Hand the robot's ending heading to the TeleOp (only if this Auto really ran), so the
+        // field-centric drive knows which way the robot faces. Pedro's heading is in radians.
+        if (autoStarted) {
+            AutoHandoff.saveHeading(Math.toDegrees(follower.pose().heading()));
+        }
         follower.stop();
         follower.drivetrain.stop();
         shooterSubsystem.stop();

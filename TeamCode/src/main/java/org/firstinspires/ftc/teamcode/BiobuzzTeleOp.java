@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.subsystems.AutoHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.BiobuzzLog;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
@@ -81,7 +82,8 @@ import java.util.List;
  *                       wheel at that x the ratio dial. Let go to ABORT: the gate closes, the
  *                       intake stops, and (unless PRE-REV is ON) both wheels go to 0 power. A (hold)
  *                       floats the turret, so then a volley waits (the screen says it is floating).
- *   Start            -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
+ *   Start            -> switch alliance BLUE <-> RED (starts as BLUE, or as the
+ *                       alliance of the Auto that just ran). Check it on the screen!
  *                       (Gamepad1's START does the same.)
  *   Back             -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC).
  *                       (Gamepad1's BACK does the same.)
@@ -179,7 +181,8 @@ import java.util.List;
  *   - The operator's A (hold) floats the turret so it can be turned by hand. Let go of A and it
  *     goes back to tracking.
  *   - The ALLIANCE (START on either gamepad) must be right, or the turret tracks the OTHER team's hive.
- *     It starts as BLUE. Check the alliance on the screen before you press START.
+ *     It starts as BLUE, or as the alliance of the Auto that just ran (see AutoHandoff).
+ *     Check the alliance on the screen before you press START.
  *
  * THE INTAKE ALSO RUNS THE TRANSFER. One motor spins the front intake AND a hex shaft with
  * grippers in the transfer chute, so balls are carried up the chute while you drive.
@@ -240,8 +243,10 @@ public class BiobuzzTeleOp extends OpMode {
     private static final double DRIVER_FORWARD_FIELD_HEADING_RED_DEGREES = 0.0;
 
     // Which way the robot faces on the field at INIT, which is when the Pinpoint's heading is
-    // zeroed. Our Autos never turn the robot, so after Auto it faces the way it started: blue
-    // facing DOWN the field (-90), red facing UP (+90). (See FieldConstants in pedro/.)
+    // zeroed. These two numbers are only the FALLBACK, used when no Auto handed over its ending
+    // heading (see AutoHandoff): they assume the robot still faces the way it started, blue
+    // facing DOWN the field (-90), red facing UP (+90). (See FieldConstants in pedro/.) That is
+    // true for the Autos that never turn the robot, but not for the ones that do (3 Volley).
     private static final double ROBOT_FIELD_HEADING_AT_INIT_BLUE_DEGREES = -90.0;
     private static final double ROBOT_FIELD_HEADING_AT_INIT_RED_DEGREES = 90.0;
 
@@ -535,6 +540,12 @@ public class BiobuzzTeleOp extends OpMode {
 
     // true once the driver pressed D-pad Left: the offset is then the driver's, not the alliance's.
     private boolean driverReAimed = false;
+
+    // The heading the Auto ended on (degrees, Pedro's field), handed over by AutoHandoff. It is
+    // read once at INIT. When haveHandedOffHeading is true, the offset uses it instead of the fixed
+    // ROBOT_FIELD_HEADING_AT_INIT_* numbers. It is spent at START (see start()).
+    private double handedOffFieldHeadingDegrees = 0.0;
+    private boolean haveHandedOffHeading = false;
 
     private boolean wasOperatorDriveTogglePressed = false;
     private boolean wasDriverDriveTogglePressed = false;
@@ -996,6 +1007,12 @@ public class BiobuzzTeleOp extends OpMode {
             robotFieldHeadingAtInit = ROBOT_FIELD_HEADING_AT_INIT_BLUE_DEGREES;
             driverForwardFieldHeading = DRIVER_FORWARD_FIELD_HEADING_BLUE_DEGREES;
         }
+        // If the Auto told us which way the robot really faces, use that instead of the guess
+        // above. It is a fact about the ROBOT, so it stays right even if the operator switches the
+        // alliance (only where the driver stands changes).
+        if (haveHandedOffHeading) {
+            robotFieldHeadingAtInit = handedOffFieldHeadingDegrees;
+        }
         return HiveBearingMemory.wrapDegrees(robotFieldHeadingAtInit - driverForwardFieldHeading);
     }
 
@@ -1080,10 +1097,15 @@ public class BiobuzzTeleOp extends OpMode {
         if (driverReAimed) {
             return "FIELD-CENTRIC (re-aimed: forward = the way the robot faced when D-pad Left was pressed)";
         }
-        if (driveFrameAlliance == VisionSubsystem.Alliance.RED) {
-            return "FIELD-CENTRIC (RED driver station: forward = toward the RIGHT wall)";
+        // Say where the robot's heading came from, so you can check it on the INIT screen.
+        String headingSource = "";
+        if (haveHandedOffHeading) {
+            headingSource = String.format("; robot heading from the Auto: %.0f deg", handedOffFieldHeadingDegrees);
         }
-        return "FIELD-CENTRIC (BLUE driver station: forward = toward the LEFT wall)";
+        if (driveFrameAlliance == VisionSubsystem.Alliance.RED) {
+            return "FIELD-CENTRIC (RED driver station: forward = toward the RIGHT wall" + headingSource + ")";
+        }
+        return "FIELD-CENTRIC (BLUE driver station: forward = toward the LEFT wall" + headingSource + ")";
     }
 
     /*
@@ -1172,6 +1194,20 @@ public class BiobuzzTeleOp extends OpMode {
         turretSubsystem = new TurretSubsystem(hardwareMap);
         // The Limelight starts polling here. It needs about 30 seconds to boot after power-up.
         visionSubsystem = new VisionSubsystem(hardwareMap);
+        // If an Auto just ran, start on the alliance it played. That also sets the field-centric
+        // drive direction (INIT works it out from the alliance), so after a RED Auto the drive is
+        // already RED field-centric. The operator can still change it with START on either gamepad.
+        // If no Auto ran lately (or the app was restarted), this does nothing and we start on BLUE.
+        if (AutoHandoff.hasFreshAlliance()) {
+            visionSubsystem.setAlliance(AutoHandoff.getAlliance());
+        }
+        // Also take the heading the Auto ended on, so the field-centric drive knows which way the
+        // robot really faces (even after an Auto that turned it). It is saved in our own variables
+        // so it stays the same for this whole TeleOp run. It is spent at START.
+        haveHandedOffHeading = AutoHandoff.hasFreshHeading();
+        if (haveHandedOffHeading) {
+            handedOffFieldHeadingDegrees = AutoHandoff.getHeadingDegrees();
+        }
         // The Pinpoint zeros its position and calibrates its gyro here, so the robot must be
         // STILL during INIT. If the config has no "pinpoint", this does not stop the OpMode.
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
@@ -1270,6 +1306,11 @@ public class BiobuzzTeleOp extends OpMode {
         // Fix the drive's offset from the alliance as it is NOW. From here on, switching the alliance
         // only changes the camera's hive, not which way the stick drives.
         updateDriveFrameFromAlliance();
+
+        // The heading from the Auto is only true until the robot moves. We have used it (the offset
+        // above is now fixed), so spend it: if this TeleOp is stopped and started again after
+        // driving, it must not use an old heading.
+        AutoHandoff.clearHeading();
 
         // The battery numbers on the screen should be about THIS match, not about INIT.
         powerMonitorSubsystem.resetStatistics();
