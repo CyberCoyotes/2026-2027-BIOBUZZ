@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.subsystems.AllianceHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.BiobuzzLog;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
@@ -81,7 +82,8 @@ import java.util.List;
  *                       wheel at that x the ratio dial. Let go to ABORT: the gate closes, the
  *                       intake stops, and (unless PRE-REV is ON) both wheels go to 0 power. A (hold)
  *                       floats the turret, so then a volley waits (the screen says it is floating).
- *   Start            -> switch alliance BLUE <-> RED (starts as BLUE). Check it on the screen!
+ *   Start            -> switch alliance BLUE <-> RED (starts as BLUE, or as the
+ *                       alliance of the Auto that just ran). Check it on the screen!
  *                       (Gamepad1's START does the same.)
  *   Back             -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC).
  *                       (Gamepad1's BACK does the same.)
@@ -179,7 +181,8 @@ import java.util.List;
  *   - The operator's A (hold) floats the turret so it can be turned by hand. Let go of A and it
  *     goes back to tracking.
  *   - The ALLIANCE (START on either gamepad) must be right, or the turret tracks the OTHER team's hive.
- *     It starts as BLUE. Check the alliance on the screen before you press START.
+ *     It starts as BLUE, or as the alliance of the Auto that just ran (see AllianceHandoff).
+ *     Check the alliance on the screen before you press START.
  *
  * THE INTAKE ALSO RUNS THE TRANSFER. One motor spins the front intake AND a hex shaft with
  * grippers in the transfer chute, so balls are carried up the chute while you drive.
@@ -1089,6 +1092,13 @@ public class BiobuzzTeleOp extends OpMode {
         turretSubsystem = new TurretSubsystem(hardwareMap);
         // The Limelight starts polling here. It needs about 30 seconds to boot after power-up.
         visionSubsystem = new VisionSubsystem(hardwareMap);
+        // If an Auto just ran, start on the alliance it played. That also sets the field-centric
+        // drive direction (INIT works it out from the alliance), so after a RED Auto the drive is
+        // already RED field-centric. The operator can still change it with START on either gamepad.
+        // If no Auto ran lately (or the app was restarted), this does nothing and we start on BLUE.
+        if (AllianceHandoff.hasFreshAlliance()) {
+            visionSubsystem.setAlliance(AllianceHandoff.getAlliance());
+        }
         // The Pinpoint zeros its position and calibrates its gyro here, so the robot must be
         // STILL during INIT. If the config has no "pinpoint", this does not stop the OpMode.
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);

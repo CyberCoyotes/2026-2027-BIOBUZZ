@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.pedro.FieldConstants;
+import org.firstinspires.ftc.teamcode.subsystems.AllianceHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
@@ -303,6 +304,9 @@ public class ShootAndParkAuto extends OpMode {
         // Pedro that again, in case the robot was nudged while the drive team was setting up.
         follower.setPose(startPose);
         follower.update();
+
+        // Tell the TeleOp which alliance this Auto played, so it starts on the same one.
+        AllianceHandoff.save(alliance);
 
         // Start the run log over.
         runTimer.reset();

@@ -237,7 +237,7 @@ Letting go of RB or the stick holds the turret.
 | **Left Bumper** (hold) | **REVERSE** both wheels and the intake (clear a jam). Beats everything. (A volley carries on feeding by itself when you let go) |
 | **X / B / Y** | Gate by hand: **X** CLOSED (only while no volley is running), **B** (hold) FORCED SHOT (wheels on, gate OPENED, intake running, checks skipped; let go and it closes), **Y** (hold) LIFTED: while a volley feeds, hold it to push the last ball in and let go to go back to OPENED; while a volley only waits, hold it to lift anyway and let go to close (issue #92); between volleys let go to close |
 | **Back** | Speed source **TABLE / DIAL**. TABLE (starts here): the table sets the flywheel speed, and a volley will **not** start with no camera target. DIAL: a fixed speed, no camera needed |
-| **START** | Alliance BLUE / RED. Starts as BLUE. (Pairing the controller is Start + A, so check the alliance after pairing) |
+| **START** | Alliance BLUE / RED. Starts as BLUE, or as the alliance of the Auto that just ran (`AllianceHandoff`). (Pairing the controller is Start + A, so check the alliance after pairing) |
 
 ---
 

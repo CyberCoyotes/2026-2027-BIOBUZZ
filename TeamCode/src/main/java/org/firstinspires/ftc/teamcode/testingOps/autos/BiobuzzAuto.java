@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.pedro.FieldConstants;
+import org.firstinspires.ftc.teamcode.subsystems.AllianceHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.FlowerPickerSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
@@ -431,6 +432,9 @@ public class BiobuzzAuto extends OpMode {
     public void start() {
         follower.setPose(startPose);
         follower.update();
+
+        // Tell the TeleOp which alliance this Auto played, so it starts on the same one.
+        AllianceHandoff.save(alliance);
         aWasPressed = gamepad1.a;
         runTimer.reset();
         totalButtonWaitSeconds = 0.0;
