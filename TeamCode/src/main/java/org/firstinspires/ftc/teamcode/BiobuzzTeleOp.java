@@ -402,7 +402,16 @@ public class BiobuzzTeleOp extends OpMode {
 
     // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
     // bottom, under the live data). false = it is only shown before START, like it used to be.
-    private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
+    // It is false so the screen stays short (see FULL_TELEMETRY below).
+    private static final boolean SHOW_CONTROLS_WHILE_RUNNING = false;
+
+    // MINIMAL TELEMETRY. false = the Driver Station shows only the basics a driver needs in a match.
+    // true = it also shows every diagnostic line (battery black box, gyro, camera details, odometry
+    // speeds and drop log, the shooter dials, raw encoder numbers, servo positions, the raw gamepad
+    // and button tests, and so on). All of those lines are still in this file inside
+    // "if (FULL_TELEMETRY)" blocks, and the test OpModes still show them too. Set this to true
+    // when you are debugging something and want everything back.
+    private static final boolean FULL_TELEMETRY = false;
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
@@ -562,7 +571,10 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Trigger = SLOW MODE");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE   (the intake is the driver's only)");
         telemetry.addLine("LOGO = SOLO MODE on / off (one-person match: then the driver's Right Trigger fires too)");
-        telemetry.addLine("Y (HOLD) = gate LIFTED, SOLO MODE only (to push the last ball in)");
+        // This button only works in SOLO MODE, so only show it when SOLO MODE is on.
+        if (soloMode) {
+            telemetry.addLine("Y (HOLD) = gate LIFTED, SOLO MODE only (to push the last ball in)");
+        }
         telemetry.addLine("D-pad Up = PRE-REV on / off (wheels spin without firing)");
         telemetry.addLine("START = alliance BLUE / RED   BACK = drive FIELD-CENTRIC / ROBOT-CENTRIC");
         telemetry.addLine("D-pad Left = RE-AIM (the way the robot faces now is away from me)");
@@ -577,6 +589,77 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Trigger (hold) = WALL SHOT: turret straight ahead, fixed RPM, gate opens after a delay (let go = gate closes, wheels stop)");
         telemetry.addLine("Right Bumper = FLOWER PICKER UP   Left Bumper = FLOWER PICKER DOWN");
         telemetry.addLine("A (hold) = float the turret by hand (it tracks again when you let go)");
+    }
+
+    // ------------------------------------------------------------------
+    // MINIMAL TELEMETRY helpers. Each one prints only the basics for one mechanism. They are used
+    // when FULL_TELEMETRY is false. They only READ from the subsystems (no gamepad, no motors), and
+    // they leave the subsystems' own addTelemetry() alone, because the test OpModes still use that.
+    // ------------------------------------------------------------------
+
+    private void addBasicVisionTelemetry() {
+        telemetry.addLine("--- VISION ---");
+        if (!visionSubsystem.isCameraConnected()) {
+            telemetry.addData("Limelight", "NOT CONNECTED (check the cable and the config name)");
+            return;
+        }
+        telemetry.addData("Vision State", visionSubsystem.getState());
+        if (visionSubsystem.hasTarget()) {
+            telemetry.addData("tx", "%.1f deg  (+ = target is to the RIGHT)", visionSubsystem.getTxDegrees());
+            telemetry.addData("ty", "%.1f deg  (+ = up)", visionSubsystem.getTyDegrees());
+        }
+    }
+
+    private void addBasicOdometryTelemetry() {
+        telemetry.addLine("--- ODOMETRY (Pinpoint) ---");
+        if (!pinpointSubsystem.isAvailable()) {
+            telemetry.addData("Pinpoint", "NOT FOUND (check the config name)");
+            return;
+        }
+        telemetry.addData("Pinpoint status", pinpointSubsystem.getDeviceStatus());
+        telemetry.addData("Pose", "X %.1f in   Y %.1f in   Heading %.1f deg",
+                pinpointSubsystem.getXInches(), pinpointSubsystem.getYInches(),
+                pinpointSubsystem.getHeadingDegrees());
+    }
+
+    private void addBasicShooterTelemetry() {
+        telemetry.addLine("--- SHOOTER ---");
+        telemetry.addData("Shooter State", shooterSubsystem.getState());
+        telemetry.addData("At Speed?", shooterSubsystem.isAtSpeed());
+        telemetry.addData("Flywheel RPM", "%.0f  (target %.0f)",
+                shooterSubsystem.getFlywheelRpm(), shooterSubsystem.getTargetFlywheelRpm());
+        telemetry.addData("Hood Wheel RPM", "%.0f  (target %.0f)",
+                shooterSubsystem.getHoodWheelRpm(), shooterSubsystem.getTargetHoodWheelRpm());
+    }
+
+    private void addBasicGateTelemetry() {
+        telemetry.addLine("--- SHOOTER GATE ---");
+        telemetry.addData("Gate State", shooterServoSubsystem.getState());
+        // Only worth a line when it is happening.
+        if (shooterServoSubsystem.isClearingChute()) {
+            telemetry.addData("Clearing chute (intake reverse)?", true);
+        }
+    }
+
+    private void addBasicFlowerPickerTelemetry() {
+        telemetry.addLine("--- FLOWER PICKER ---");
+        telemetry.addData("Picker State", flowerPickerSubsystem.getState());
+    }
+
+    private void addBasicFiringTelemetry() {
+        telemetry.addLine("--- FIRING SEQUENCE ---");
+        telemetry.addData("Sequence step", firingSequence.getState());
+    }
+
+    private void addBasicIntakeTelemetry() {
+        telemetry.addLine("--- INTAKE ---");
+        telemetry.addData("Intake state", intakeSubsystem.getState());
+    }
+
+    private void addBasicTurretTelemetry() {
+        telemetry.addLine("--- TURRET ---");
+        telemetry.addData("Turret State", turretSubsystem.getState());
+        telemetry.addData("Angle", "%.1f deg", turretSubsystem.getAngleDegrees());
     }
 
     /*
@@ -1126,30 +1209,54 @@ public class BiobuzzTeleOp extends OpMode {
 
         // The Driver Station clears its screen every loop, so we add the
         // button map again here. That keeps it on the screen until START.
+        // (FULL_TELEMETRY = false shows only the basics. See the constant at the top.)
         telemetry.addData("Status", "Ready to start!");
         telemetry.addData("Alliance (START on either gamepad)", visionSubsystem.getAlliance());
         telemetry.addData("DRIVE MODE (BACK on either gamepad)", getDriveModeText());
-        telemetry.addData("SOLO MODE (gamepad1 LOGO)", soloMode ? "ON  (the driver's Right Trigger fires too)" : "off (only the operator fires)");
-        telemetry.addData("Flywheel speed source (gamepad2 LOGO)", getModeText());
-        // The battery: a fresh one reads about 13 V here. Swap it if it is much lower.
-        powerMonitorSubsystem.addTelemetry(telemetry);
-        // Check the gyro says a number before START (it gives the drive its heading).
-        imuSubsystem.addTelemetry(telemetry);
-        visionSubsystem.addTelemetry(telemetry);
-        // Check that the Pinpoint says READY before START. (The robot must be still until then.)
-        pinpointSubsystem.addTelemetry(telemetry);
-        addButtonTestTelemetry();
-        addRawGamepadTelemetry();
+        // SOLO MODE is only shown when it is switched ON (gamepad1 LOGO).
+        if (soloMode) {
+            telemetry.addData("SOLO MODE (gamepad1 LOGO)", "ON  (the driver's Right Trigger fires too)");
+        } else if (FULL_TELEMETRY) {
+            telemetry.addData("SOLO MODE (gamepad1 LOGO)", "off (only the operator fires)");
+        }
+        if (FULL_TELEMETRY) {
+            telemetry.addData("Flywheel speed source (gamepad2 LOGO)", getModeText());
+            // The battery: a fresh one reads about 13 V here. Swap it if it is much lower.
+            powerMonitorSubsystem.addTelemetry(telemetry);
+            // Check the gyro says a number before START (it gives the drive its heading).
+            imuSubsystem.addTelemetry(telemetry);
+            visionSubsystem.addTelemetry(telemetry);
+            // Check that the Pinpoint says READY before START. (The robot must be still until then.)
+            pinpointSubsystem.addTelemetry(telemetry);
+            addButtonTestTelemetry();
+            addRawGamepadTelemetry();
+        } else {
+            // Just one battery line: a fresh battery reads about 13 V here. Swap it if it is much
+            // lower. (0.0 means the hubs have not given a reading yet.)
+            telemetry.addData("Battery", "%.1f V   (a fresh one reads about 13 V, swap it if much lower)",
+                    powerMonitorSubsystem.getLowestVoltageNow());
+            addBasicVisionTelemetry();
+            // Check that the Pinpoint says READY before START. (The robot must be still until then.)
+            addBasicOdometryTelemetry();
+        }
         addControlsTelemetry();
 
         // Show the gate here too, so you can check before START that it went to CLOSED.
         // (The position shown is the one we COMMANDED. A servo cannot report where it really is.)
-        shooterServoSubsystem.addTelemetry(telemetry);
+        if (FULL_TELEMETRY) {
+            shooterServoSubsystem.addTelemetry(telemetry);
+        } else {
+            addBasicGateTelemetry();
+        }
 
         // The turret is not driven during INIT. We only read it, so you can turn it by hand
         // and watch the angle.
         turretSubsystem.update();
-        turretSubsystem.addTelemetry(telemetry);
+        if (FULL_TELEMETRY) {
+            turretSubsystem.addTelemetry(telemetry);
+        } else {
+            addBasicTurretTelemetry();
+        }
     }
 
     /*
@@ -1603,119 +1710,149 @@ public class BiobuzzTeleOp extends OpMode {
         wasWallShotHeld = wallShotHeld;
 
         // 4. Show what is happening on the Driver Station, one section at a time.
+        //    FULL_TELEMETRY = false (the default) shows only the basics. The extra lines are still
+        //    here, inside "if (FULL_TELEMETRY)" blocks: set the constant to true to get them back.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Bulk reads", USE_BULK_READS ? "AUTO (on)" : "off");
-        if (loopCount > 1) {
-            double averageLoopMs = totalLoopMs / (loopCount - 1);
-            telemetry.addData("Loop time (ms)", "%.1f now   %.1f average   %.1f worst   (%.0f loops/sec)",
-                    thisLoopMs, averageLoopMs, worstLoopMs, 1000.0 / averageLoopMs);
+        if (FULL_TELEMETRY) {
+            telemetry.addData("Bulk reads", USE_BULK_READS ? "AUTO (on)" : "off");
+            if (loopCount > 1) {
+                double averageLoopMs = totalLoopMs / (loopCount - 1);
+                telemetry.addData("Loop time (ms)", "%.1f now   %.1f average   %.1f worst   (%.0f loops/sec)",
+                        thisLoopMs, averageLoopMs, worstLoopMs, 1000.0 / averageLoopMs);
+            }
         }
         // Always on the screen: aiming at the wrong alliance's hive is not an obvious failure.
         telemetry.addData("Alliance (START on either gamepad)", visionSubsystem.getAlliance());
         telemetry.addData("DRIVE MODE (BACK on either gamepad)", getDriveModeText());
+        // SOLO MODE is only shown when it is switched ON (gamepad1 LOGO).
         if (soloMode) {
             telemetry.addData("SOLO MODE (gamepad1 LOGO)", "ON  (the driver's Right Trigger fires too)");
-        } else {
+        } else if (FULL_TELEMETRY) {
             telemetry.addData("SOLO MODE (gamepad1 LOGO)", "off (only the operator's Right Trigger fires)");
         }
+        // PRE-REV is only shown while it is ON (the wheels are spinning without a shot).
         if (preRevOn) {
             telemetry.addData("PRE-REV (driver D-pad Up)", "ON  (the wheels are spinning)");
-        } else {
+        } else if (FULL_TELEMETRY) {
             telemetry.addData("PRE-REV (driver D-pad Up)", "off");
         }
 
-        // The battery black box. If something blinks, look here (and in the log) FIRST.
-        powerMonitorSubsystem.addTelemetry(telemetry);
+        if (FULL_TELEMETRY) {
+            // The battery black box. If something blinks, look here (and in the log) FIRST.
+            powerMonitorSubsystem.addTelemetry(telemetry);
 
-        telemetry.addLine("--- DRIVE ---");
-        telemetry.addData("Drive Control", driveControl);
-        if (fieldCentricActive) {
-            telemetry.addData("Heading the drive uses (deg)", "%.1f   (IMU %.1f + offset %.1f)",
-                    drivingHeadingDegrees, imuSubsystem.getHeadingDegrees(), fieldHeadingOffsetDegrees);
-        }
-        // How far apart the two gyros are. They both start at zero at INIT and should stay within a
-        // few degrees. A sudden jump here means one of them blinked (the Pinpoint is the usual one,
-        // and it only affects the turret now). ImuAlpha logs these jumps.
-        if (imuSubsystem.isAvailable() && pinpointSubsystem.isReady()) {
-            telemetry.addData("Pinpoint minus IMU heading", "%+.1f deg",
-                    HiveBearingMemory.wrapDegrees(pinpointSubsystem.getHeadingDegrees() - imuSubsystem.getHeadingDegrees()));
-        }
-        // How often the Pinpoint blinked and came back by itself. Many of these with a weak battery
-        // means voltage dips. (A Pinpoint blink only costs the turret its hive memory now.)
-        telemetry.addData("Pinpoint glitches (came back by themselves)", "%d   longest %.2f s",
-                pinpointGlitchCount, pinpointLongestGlitchSeconds);
-        telemetry.addData("Camera pipeline fixes", "%d   (above 0 = the camera restarted or lost its pipeline)",
-                visionSubsystem.getPipelineFixCount());
-        telemetry.addData("Drive inputs", "forward %.2f   strafe %.2f   turn %.2f",
-                forward, strafe, turn);
+            telemetry.addLine("--- DRIVE ---");
+            telemetry.addData("Drive Control", driveControl);
+            if (fieldCentricActive) {
+                telemetry.addData("Heading the drive uses (deg)", "%.1f   (IMU %.1f + offset %.1f)",
+                        drivingHeadingDegrees, imuSubsystem.getHeadingDegrees(), fieldHeadingOffsetDegrees);
+            }
+            // How far apart the two gyros are. They both start at zero at INIT and should stay within a
+            // few degrees. A sudden jump here means one of them blinked (the Pinpoint is the usual one,
+            // and it only affects the turret now). ImuAlpha logs these jumps.
+            if (imuSubsystem.isAvailable() && pinpointSubsystem.isReady()) {
+                telemetry.addData("Pinpoint minus IMU heading", "%+.1f deg",
+                        HiveBearingMemory.wrapDegrees(pinpointSubsystem.getHeadingDegrees() - imuSubsystem.getHeadingDegrees()));
+            }
+            // How often the Pinpoint blinked and came back by itself. Many of these with a weak battery
+            // means voltage dips. (A Pinpoint blink only costs the turret its hive memory now.)
+            telemetry.addData("Pinpoint glitches (came back by themselves)", "%d   longest %.2f s",
+                    pinpointGlitchCount, pinpointLongestGlitchSeconds);
+            telemetry.addData("Camera pipeline fixes", "%d   (above 0 = the camera restarted or lost its pipeline)",
+                    visionSubsystem.getPipelineFixCount());
+            telemetry.addData("Drive inputs", "forward %.2f   strafe %.2f   turn %.2f",
+                    forward, strafe, turn);
 
-        // The Pinpoint prints its own "--- ODOMETRY (Pinpoint) ---" heading, with its status, the
-        // robot's position (X, Y, heading) and its speeds. Nothing uses the position yet.
-        pinpointSubsystem.addTelemetry(telemetry);
+            // The Pinpoint prints its own "--- ODOMETRY (Pinpoint) ---" heading, with its status, the
+            // robot's position (X, Y, heading) and its speeds. Nothing uses the position yet.
+            pinpointSubsystem.addTelemetry(telemetry);
 
-        // The dials: what the operator has asked for. (They take effect while the driver holds the
-        // Right Trigger, or while PRE-REV is ON.)
-        telemetry.addLine("--- SHOOTER DIALS (RPM) ---");
-        telemetry.addData("Flywheel speed source (gamepad2 LOGO)", getModeText());
-        telemetry.addData("Using", rpmSource);
-        if (flywheelCapped) {
-            telemetry.addData("Flywheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
-                    maxFlywheelRpm, maxFlywheelRpm, flywheelTargetRpm);
+            // The dials: what the operator has asked for. (They take effect while the driver holds the
+            // Right Trigger, or while PRE-REV is ON.)
+            telemetry.addLine("--- SHOOTER DIALS (RPM) ---");
+            telemetry.addData("Flywheel speed source (gamepad2 LOGO)", getModeText());
+            telemetry.addData("Using", rpmSource);
+            if (flywheelCapped) {
+                telemetry.addData("Flywheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
+                        maxFlywheelRpm, maxFlywheelRpm, flywheelTargetRpm);
+            } else {
+                telemetry.addData("Flywheel target RPM", "%.0f   (the dial is at %d)",
+                        flywheelTargetRpm, flywheelRpmDial);
+            }
+            if (shotFrozen) {
+                telemetry.addData("Ratio (hood / flywheel)", "%.2f   (frozen during the volley, the dial is at %.2f)", shotRatio, ratio);
+            } else {
+                telemetry.addData("Ratio (hood / flywheel)", "%.2f", shotRatio);
+            }
+            if (hoodWheelCapped) {
+                telemetry.addData("Hood wheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
+                        hoodWheelTargetRpm, maxHoodWheelRpm, wantedHoodWheelRpm);
+            } else {
+                telemetry.addData("Hood wheel target RPM", "%.0f", hoodWheelTargetRpm);
+            }
+            telemetry.addData("Shooter switch", shooterControl);
+
+            // The shooter prints its own "--- SHOOTER ---" heading, with its state, "At Speed?",
+            // and each wheel's real RPM next to its target. This is the data from the encoders.
+            shooterSubsystem.addTelemetry(telemetry);
+
+            // Is it OK to shoot? This comes from the real wheel speeds, not from a timer.
+            ShooterSubsystem.ShooterState shooterState = shooterSubsystem.getState();
+            String readyText;
+            if (shooterState == ShooterSubsystem.ShooterState.READY) {
+                readyText = "YES - OK to shoot";
+            } else if (shooterState == ShooterSubsystem.ShooterState.SPINNING_UP) {
+                readyText = "WAIT - wheels are not at their target RPM yet";
+            } else {
+                readyText = "shooter is OFF (hold the Right Trigger to shoot)";
+            }
+            telemetry.addData("OK to shoot? (both wheels, for information)", readyText);
+            // What the firing sequence really checks: the flywheel only. The hood wheel's error is shown
+            // so we can see whether "close enough" is true (issue #62).
+            telemetry.addData("Flywheel at speed (the volley's check)", flywheelAtSpeed);
+            telemetry.addData("Hood wheel error (actual - target, RPM)", "%.0f",
+                    shooterSubsystem.getHoodWheelRpm() - shooterSubsystem.getTargetHoodWheelRpm());
+
+            // The hood wheel RPM / flywheel RPM we really have right now. It should match the ratio
+            // dial once the wheels are at speed. If it does not, the hood wheel may be CAPPED.
+            if (shooterSubsystem.getFlywheelRpm() > MIN_RPM_FOR_MEASURED_RATIO) {
+                telemetry.addData("Ratio measured now", "%.2f",
+                        shooterSubsystem.getHoodWheelRpm() / shooterSubsystem.getFlywheelRpm());
+            }
+
+            // The gate prints its own "--- SHOOTER GATE ---" heading.
+            shooterServoSubsystem.addTelemetry(telemetry);
+            telemetry.addData("Gate control", gateControl);
+
+            // The flower picker prints its own "--- FLOWER PICKER ---" heading.
+            flowerPickerSubsystem.addTelemetry(telemetry);
+
+            // The firing sequence prints its own "--- FIRING SEQUENCE ---" heading and the last volley's
+            // log.
+            firingSequence.addTelemetry(telemetry);
         } else {
-            telemetry.addData("Flywheel target RPM", "%.0f   (the dial is at %d)",
-                    flywheelTargetRpm, flywheelRpmDial);
-        }
-        if (shotFrozen) {
-            telemetry.addData("Ratio (hood / flywheel)", "%.2f   (frozen during the volley, the dial is at %.2f)", shotRatio, ratio);
-        } else {
-            telemetry.addData("Ratio (hood / flywheel)", "%.2f", shotRatio);
-        }
-        if (hoodWheelCapped) {
-            telemetry.addData("Hood wheel target RPM", "%.0f  CAPPED at %.0f (you asked for %.0f)",
-                    hoodWheelTargetRpm, maxHoodWheelRpm, wantedHoodWheelRpm);
-        } else {
-            telemetry.addData("Hood wheel target RPM", "%.0f", hoodWheelTargetRpm);
-        }
-        telemetry.addData("Shooter switch", shooterControl);
+            // The basics: where the robot is, and the state of each mechanism.
+            addBasicOdometryTelemetry();
 
-        // The shooter prints its own "--- SHOOTER ---" heading, with its state, "At Speed?",
-        // and each wheel's real RPM next to its target. This is the data from the encoders.
-        shooterSubsystem.addTelemetry(telemetry);
+            // The dial numbers are hidden, but a CAPPED wheel means the shot is not what the operator
+            // asked for, so that one warning stays.
+            if (flywheelCapped) {
+                telemetry.addData("Flywheel target RPM", "CAPPED at %.0f (you asked for %.0f)",
+                        maxFlywheelRpm, flywheelTargetRpm);
+            }
+            if (hoodWheelCapped) {
+                telemetry.addData("Hood wheel target RPM", "CAPPED at %.0f (you asked for %.0f)",
+                        maxHoodWheelRpm, wantedHoodWheelRpm);
+            }
 
-        // Is it OK to shoot? This comes from the real wheel speeds, not from a timer.
-        ShooterSubsystem.ShooterState shooterState = shooterSubsystem.getState();
-        String readyText;
-        if (shooterState == ShooterSubsystem.ShooterState.READY) {
-            readyText = "YES - OK to shoot";
-        } else if (shooterState == ShooterSubsystem.ShooterState.SPINNING_UP) {
-            readyText = "WAIT - wheels are not at their target RPM yet";
-        } else {
-            readyText = "shooter is OFF (hold the Right Trigger to shoot)";
-        }
-        telemetry.addData("OK to shoot? (both wheels, for information)", readyText);
-        // What the firing sequence really checks: the flywheel only. The hood wheel's error is shown
-        // so we can see whether "close enough" is true (issue #62).
-        telemetry.addData("Flywheel at speed (the volley's check)", flywheelAtSpeed);
-        telemetry.addData("Hood wheel error (actual - target, RPM)", "%.0f",
-                shooterSubsystem.getHoodWheelRpm() - shooterSubsystem.getTargetHoodWheelRpm());
-
-        // The hood wheel RPM / flywheel RPM we really have right now. It should match the ratio
-        // dial once the wheels are at speed. If it does not, the hood wheel may be CAPPED.
-        if (shooterSubsystem.getFlywheelRpm() > MIN_RPM_FOR_MEASURED_RATIO) {
-            telemetry.addData("Ratio measured now", "%.2f",
-                    shooterSubsystem.getHoodWheelRpm() / shooterSubsystem.getFlywheelRpm());
+            addBasicShooterTelemetry();
+            addBasicGateTelemetry();
+            addBasicFlowerPickerTelemetry();
+            addBasicFiringTelemetry();
         }
 
-        // The gate prints its own "--- SHOOTER GATE ---" heading.
-        shooterServoSubsystem.addTelemetry(telemetry);
-        telemetry.addData("Gate control", gateControl);
-
-        // The flower picker prints its own "--- FLOWER PICKER ---" heading.
-        flowerPickerSubsystem.addTelemetry(telemetry);
-
-        // The firing sequence prints its own "--- FIRING SEQUENCE ---" heading and the last volley's
-        // log. While a volley waits, say what it is waiting for.
-        firingSequence.addTelemetry(telemetry);
+        // While a volley waits, say what it is waiting for. (This is a basic: it explains why the
+        // robot is not shooting yet.)
         if (firingSequence.getState() == FiringSequence.SequenceState.WAIT_FOR_READY) {
             telemetry.addData("Waiting for", getWaitingText(flywheelAtSpeed, hasTarget, aimedNow, aimedAtHive, turretHeld));
         }
@@ -1726,24 +1863,37 @@ public class BiobuzzTeleOp extends OpMode {
         }
 
         // The intake prints its own "--- INTAKE ---" heading, so we add our line under it.
-        intakeSubsystem.addTelemetry(telemetry);
-        telemetry.addData("Intake Control", intakeControl);
+        if (FULL_TELEMETRY) {
+            intakeSubsystem.addTelemetry(telemetry);
+            telemetry.addData("Intake Control", intakeControl);
+        } else {
+            addBasicIntakeTelemetry();
+        }
 
         // The turret prints its own "--- TURRET ---" heading, so we add our lines under it.
-        turretSubsystem.addTelemetry(telemetry);
-        telemetry.addData("Turret Control", turretControl);
-        telemetry.addData("ALWAYS-TRACK", "ON - the turret follows the hive (hold gamepad2 A to float it)");
-        telemetry.addData("Turret follows spin", "%+.2f power   (gain %.2f)",
-                turretFeedforward, TURRET_FEEDFORWARD_GAIN);
-        telemetry.addData("Hive memory (Pinpoint)", getHiveMemoryText());
+        if (FULL_TELEMETRY) {
+            turretSubsystem.addTelemetry(telemetry);
+            telemetry.addData("Turret Control", turretControl);
+            telemetry.addData("ALWAYS-TRACK", "ON - the turret follows the hive (hold gamepad2 A to float it)");
+            telemetry.addData("Turret follows spin", "%+.2f power   (gain %.2f)",
+                    turretFeedforward, TURRET_FEEDFORWARD_GAIN);
+            telemetry.addData("Hive memory (Pinpoint)", getHiveMemoryText());
+        } else {
+            addBasicTurretTelemetry();
+        }
 
         // The vision prints its own "--- VISION ---" heading, so we add our lines under it.
-        visionSubsystem.addTelemetry(telemetry);
-        if (hasTarget) {
-            telemetry.addData("Table says", "%.0f flywheel RPM", lastTableRpm);
-            if (!shotTable.isInRange(visionSubsystem.getTyDegrees())) {
-                telemetry.addLine("WARNING: ty is OUTSIDE the table. It is using the nearest row.");
+        if (FULL_TELEMETRY) {
+            visionSubsystem.addTelemetry(telemetry);
+            if (hasTarget) {
+                telemetry.addData("Table says", "%.0f flywheel RPM", lastTableRpm);
             }
+        } else {
+            addBasicVisionTelemetry();
+        }
+        // A warning, so it stays even in the minimal screen.
+        if (hasTarget && !shotTable.isInRange(visionSubsystem.getTyDegrees())) {
+            telemetry.addLine("WARNING: ty is OUTSIDE the table. It is using the nearest row.");
         }
 
         // Is the turret's half of the firing gate open? The camera must say we are centered on the

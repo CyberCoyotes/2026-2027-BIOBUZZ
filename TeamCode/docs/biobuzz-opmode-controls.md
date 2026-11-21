@@ -55,7 +55,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **LT** (HOLD) | **WALL SHOT** (issue #9): a dumb shot from a known spot, up against the wall. The turret goes straight ahead (0) and the wheels run at fixed speeds (flywheel 1300, hood wheel 2600 RPM) with no camera and no READY checks. After 1.5 s the gate **OPENS** and the intake runs. Let go and the gate **CLOSES** (with the auto-reverse) and the wheels go to 0 power (unless PRE-REV is on). While LT is held, B and RT do nothing. A still floats the turret. The driver's LT is SLOW MODE, so there is no SOLO MODE copy |
 | **Sticks** | Not used. The turret has no manual control, the intake is the driver's, and the shooter wheels cannot be reversed from this OpMode |
 
-**Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen shows loop time, the alliance, **PRE-REV**, the firing sequence step and what it is **Waiting for**, and **OK to shoot?** (both wheels, for information: the volley itself checks the flywheel only).
+**Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen is **minimal** (`FULL_TELEMETRY = false` in `BiobuzzTeleOp.java`): run time, the alliance, drive mode, and the basics for each mechanism (vision, odometry, shooter RPMs, gate, flower picker, intake, turret), plus the firing sequence step and what it is **Waiting for**. **SOLO MODE** and **PRE-REV** show only when ON. Set `FULL_TELEMETRY = true` to get every diagnostic line back (loop time, the dials, **OK to shoot?**, battery, gyro, and so on).
 
 ---
 
