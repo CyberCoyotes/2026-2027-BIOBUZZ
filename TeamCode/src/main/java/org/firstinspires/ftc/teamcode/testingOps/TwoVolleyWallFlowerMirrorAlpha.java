@@ -6,6 +6,7 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -107,7 +108,13 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * COORDINATES (Pedro's, same as the visualizer): origin at the bottom-left corner, X to the right,
  * Y up toward the rear wall. Heading 90 faces the rear wall, 0 faces the right wall, counterclockwise
  * (left) is positive.
+ *
+ * HIDDEN FROM THE DRIVER STATION
+ *   Nobody is using this OpMode right now, so it is @Disabled to keep the list short.
+ *   The code is all still here. To bring it back, put // in front of the @Disabled line
+ *   below and redeploy.
  */
+@Disabled
 @Autonomous(name = "2 Volley Wall Flower Mirror - Alpha", group = "Testing",
         preselectTeleOp = "TeleOp - Alpha 15")
 public class TwoVolleyWallFlowerMirrorAlpha extends OpMode {
