@@ -4,8 +4,18 @@ package org.firstinspires.ftc.teamcode.subsystems;
  * Alliance Handoff
  * A plain class with NO hardware, no update(), and no gamepad code. It is not a mechanism, so its
  * name does not end in "Subsystem" (the same as ShotTable and HiveBearingMemory). It does one
- * job: let an Auto TELL the TeleOp which alliance it just played, so the TeleOp starts on the
- * right alliance (and so the right field-centric drive direction) without anyone pressing START.
+ * job: let an Auto TELL the TeleOp two things, so the TeleOp starts with the right field-centric
+ * drive direction without anyone pressing a button:
+ *   1. which ALLIANCE it just played (so the TeleOp starts on the same alliance), and
+ *   2. which way the robot FACES at the end of the Auto (its heading on the field).
+ * (The name says "Alliance" because that came first. It now carries both.)
+ *
+ * WHY THE HEADING MATTERS
+ *   The field-centric drive needs to know which way the robot faces on the field when the TeleOp
+ *   starts. Without the heading it has to guess "the same way the Auto started", and that is wrong
+ *   after an Auto that turns the robot (the 3 Volley Autos). With the heading the guess is not
+ *   needed. The heading is in Pedro's field frame (0 degrees faces the right wall, 90 faces up
+ *   the field, turning left is positive), the same frame the TeleOp's drive uses.
  *
  * HOW IT WORKS (and why the fields say "static")
  *   Every OpMode is a separate object. When the Auto ends and the TeleOp starts, the TeleOp is a
@@ -25,8 +35,17 @@ package org.firstinspires.ftc.teamcode.subsystems;
  *
  * HOW THE OPMODES USE IT
  *   An Auto, at START:    AllianceHandoff.save(alliance);
+ *   An Auto, at STOP:     AllianceHandoff.saveHeading(final heading in degrees)   (only if it started)
  *   The TeleOp, at INIT:  if (AllianceHandoff.hasFreshAlliance()) { use AllianceHandoff.getAlliance(); }
- *   The operator can still switch the alliance with START on either gamepad, as always.
+ *                         if (AllianceHandoff.hasFreshHeading())  { use AllianceHandoff.getHeadingDegrees(); }
+ *   The TeleOp, at START: AllianceHandoff.clearHeading();   (see below)
+ *   The operator can still switch the alliance with START on either gamepad, as always. The
+ *   driver can still re-aim with D-pad Left, as always.
+ *
+ * WHY THE TELEOP "SPENDS" THE HEADING AT START
+ *   The heading is only true until the robot moves. Once the TeleOp starts driving, a heading
+ *   from the Auto is out of date. If the TeleOp is stopped and started again, it must NOT use it.
+ *   (Pressing INIT again BEFORE START is fine: the robot has not moved, so it is still true.)
  */
 public class AllianceHandoff {
 
@@ -39,6 +58,11 @@ public class AllianceHandoff {
 
     // The saved alliance, or null when nothing has been saved (or it was cleared).
     private static VisionSubsystem.Alliance savedAlliance = null;
+
+    // The robot's heading at the end of the Auto, in degrees on Pedro's field. It only counts when
+    // headingSaved is true.
+    private static double savedHeadingDegrees = 0.0;
+    private static boolean headingSaved = false;
 
     // When it was saved, from System.nanoTime() (a clock that only counts forward).
     private static long savedAtNanos = 0;
@@ -54,6 +78,24 @@ public class AllianceHandoff {
     public static void save(VisionSubsystem.Alliance alliance) {
         savedAlliance = alliance;
         savedAtNanos = System.nanoTime();
+        // A NEW Auto is starting, so a heading left over from an earlier one is out of date. The
+        // new Auto saves its own heading when it stops.
+        headingSaved = false;
+    }
+
+    /*
+     * An Auto calls this at STOP with the heading the robot ended on, in DEGREES on Pedro's field
+     * (Math.toDegrees(follower.pose().heading())). Only call it if the Auto actually started.
+     * It does nothing unless save() was called first, so a heading never gets saved on its own.
+     */
+    public static void saveHeading(double fieldHeadingDegrees) {
+        if (savedAlliance == null) {
+            return;
+        }
+        savedHeadingDegrees = fieldHeadingDegrees;
+        headingSaved = true;
+        // Count the age from the END of the Auto, which is when the TeleOp is about to start.
+        savedAtNanos = System.nanoTime();
     }
 
     /*
@@ -62,6 +104,15 @@ public class AllianceHandoff {
      */
     public static void clear() {
         savedAlliance = null;
+        headingSaved = false;
+    }
+
+    /*
+     * Forget only the heading. The TeleOp calls this at START, because once it starts driving the
+     * heading from the Auto is no longer true. (The alliance stays: it is still true.)
+     */
+    public static void clearHeading() {
+        headingSaved = false;
     }
 
     /*
@@ -73,6 +124,24 @@ public class AllianceHandoff {
         }
         double ageSeconds = (System.nanoTime() - savedAtNanos) / NANOSECONDS_PER_SECOND;
         return ageSeconds <= MAX_AGE_SECONDS;
+    }
+
+    /*
+     * True when an Auto saved its ending heading recently enough to trust it.
+     */
+    public static boolean hasFreshHeading() {
+        return headingSaved && hasFreshAlliance();
+    }
+
+    /*
+     * The heading the robot ended the Auto on, in degrees on Pedro's field. Ask hasFreshHeading()
+     * first. If there is no fresh one, this gives 0.0, which means nothing: do not use it.
+     */
+    public static double getHeadingDegrees() {
+        if (!hasFreshHeading()) {
+            return 0.0;
+        }
+        return savedHeadingDegrees;
     }
 
     /*

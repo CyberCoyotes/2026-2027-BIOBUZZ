@@ -177,6 +177,10 @@ public class ShootAndParkAuto extends OpMode {
     // ------------------------------------------------------------------
     // The steps of this Auto. The robot is always in exactly one of these.
     // ------------------------------------------------------------------
+    // true once START was pressed. stop() only saves the ending heading for the TeleOp if the Auto
+    // really ran (an Auto that was only INIT'd and then stopped must not hand anything over).
+    private boolean autoStarted = false;
+
     private enum AutoState {
         FIND_HIVE,
         WAIT_FOR_SPEED,
@@ -307,6 +311,7 @@ public class ShootAndParkAuto extends OpMode {
 
         // Tell the TeleOp which alliance this Auto played, so it starts on the same one.
         AllianceHandoff.save(alliance);
+        autoStarted = true;
 
         // Start the run log over.
         runTimer.reset();
@@ -457,6 +462,12 @@ public class ShootAndParkAuto extends OpMode {
      */
     @Override
     public void stop() {
+        // Hand the robot's ending heading to the TeleOp (only if this Auto really ran), so the
+        // field-centric drive knows which way the robot faces. Pedro's heading is in radians.
+        if (autoStarted) {
+            AllianceHandoff.saveHeading(Math.toDegrees(follower.pose().heading()));
+        }
+
         // Put the Follower in IDLE and tell the drivetrain to stop right now. (follower.stop()
         // only changes the mode. The wheels are zeroed by the next update(), and there is none.)
         follower.stop();

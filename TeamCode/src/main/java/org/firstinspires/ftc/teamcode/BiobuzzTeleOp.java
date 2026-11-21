@@ -243,8 +243,10 @@ public class BiobuzzTeleOp extends OpMode {
     private static final double DRIVER_FORWARD_FIELD_HEADING_RED_DEGREES = 0.0;
 
     // Which way the robot faces on the field at INIT, which is when the Pinpoint's heading is
-    // zeroed. Our Autos never turn the robot, so after Auto it faces the way it started: blue
-    // facing DOWN the field (-90), red facing UP (+90). (See FieldConstants in pedro/.)
+    // zeroed. These two numbers are only the FALLBACK, used when no Auto handed over its ending
+    // heading (see AllianceHandoff): they assume the robot still faces the way it started, blue
+    // facing DOWN the field (-90), red facing UP (+90). (See FieldConstants in pedro/.) That is
+    // true for the Autos that never turn the robot, but not for the ones that do (3 Volley).
     private static final double ROBOT_FIELD_HEADING_AT_INIT_BLUE_DEGREES = -90.0;
     private static final double ROBOT_FIELD_HEADING_AT_INIT_RED_DEGREES = 90.0;
 
@@ -529,6 +531,12 @@ public class BiobuzzTeleOp extends OpMode {
 
     // true once the driver pressed D-pad Left: the offset is then the driver's, not the alliance's.
     private boolean driverReAimed = false;
+
+    // The heading the Auto ended on (degrees, Pedro's field), handed over by AllianceHandoff. It is
+    // read once at INIT. When haveHandedOffHeading is true, the offset uses it instead of the fixed
+    // ROBOT_FIELD_HEADING_AT_INIT_* numbers. It is spent at START (see start()).
+    private double handedOffFieldHeadingDegrees = 0.0;
+    private boolean haveHandedOffHeading = false;
 
     private boolean wasOperatorDriveTogglePressed = false;
     private boolean wasDriverDriveTogglePressed = false;
@@ -916,6 +924,12 @@ public class BiobuzzTeleOp extends OpMode {
             robotFieldHeadingAtInit = ROBOT_FIELD_HEADING_AT_INIT_BLUE_DEGREES;
             driverForwardFieldHeading = DRIVER_FORWARD_FIELD_HEADING_BLUE_DEGREES;
         }
+        // If the Auto told us which way the robot really faces, use that instead of the guess
+        // above. It is a fact about the ROBOT, so it stays right even if the operator switches the
+        // alliance (only where the driver stands changes).
+        if (haveHandedOffHeading) {
+            robotFieldHeadingAtInit = handedOffFieldHeadingDegrees;
+        }
         return HiveBearingMemory.wrapDegrees(robotFieldHeadingAtInit - driverForwardFieldHeading);
     }
 
@@ -1000,10 +1014,15 @@ public class BiobuzzTeleOp extends OpMode {
         if (driverReAimed) {
             return "FIELD-CENTRIC (re-aimed: forward = the way the robot faced when D-pad Left was pressed)";
         }
-        if (driveFrameAlliance == VisionSubsystem.Alliance.RED) {
-            return "FIELD-CENTRIC (RED driver station: forward = toward the RIGHT wall)";
+        // Say where the robot's heading came from, so you can check it on the INIT screen.
+        String headingSource = "";
+        if (haveHandedOffHeading) {
+            headingSource = String.format("; robot heading from the Auto: %.0f deg", handedOffFieldHeadingDegrees);
         }
-        return "FIELD-CENTRIC (BLUE driver station: forward = toward the LEFT wall)";
+        if (driveFrameAlliance == VisionSubsystem.Alliance.RED) {
+            return "FIELD-CENTRIC (RED driver station: forward = toward the RIGHT wall" + headingSource + ")";
+        }
+        return "FIELD-CENTRIC (BLUE driver station: forward = toward the LEFT wall" + headingSource + ")";
     }
 
     /*
@@ -1099,6 +1118,13 @@ public class BiobuzzTeleOp extends OpMode {
         if (AllianceHandoff.hasFreshAlliance()) {
             visionSubsystem.setAlliance(AllianceHandoff.getAlliance());
         }
+        // Also take the heading the Auto ended on, so the field-centric drive knows which way the
+        // robot really faces (even after an Auto that turned it). It is saved in our own variables
+        // so it stays the same for this whole TeleOp run. It is spent at START.
+        haveHandedOffHeading = AllianceHandoff.hasFreshHeading();
+        if (haveHandedOffHeading) {
+            handedOffFieldHeadingDegrees = AllianceHandoff.getHeadingDegrees();
+        }
         // The Pinpoint zeros its position and calibrates its gyro here, so the robot must be
         // STILL during INIT. If the config has no "pinpoint", this does not stop the OpMode.
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
@@ -1173,6 +1199,11 @@ public class BiobuzzTeleOp extends OpMode {
         // Fix the drive's offset from the alliance as it is NOW. From here on, switching the alliance
         // only changes the camera's hive, not which way the stick drives.
         updateDriveFrameFromAlliance();
+
+        // The heading from the Auto is only true until the robot moves. We have used it (the offset
+        // above is now fixed), so spend it: if this TeleOp is stopped and started again after
+        // driving, it must not use an old heading.
+        AllianceHandoff.clearHeading();
 
         // The battery numbers on the screen should be about THIS match, not about INIT.
         powerMonitorSubsystem.resetStatistics();
