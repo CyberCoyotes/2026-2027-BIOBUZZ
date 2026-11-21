@@ -5,6 +5,7 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -55,7 +56,13 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   - Run it 5 times in a row before you trust it (rung rule). Write each run in
  *     TeamCode/docs/biobuzz-test-and-match-log.md.
  *   - It is in group "Auto" (below), with the other match Autos.
+ *
+ * HIDDEN FROM THE DRIVER STATION
+ *   Nobody is using this OpMode right now, so it is @Disabled to keep the list short.
+ *   The code is all still here. To bring it back, put // in front of the @Disabled line
+ *   below and redeploy.
  */
+@Disabled
 @Autonomous(name = "Leave and Park - Mark 1", group = "Auto",
         preselectTeleOp = "TeleOp - Alpha 15")
 public class AutoLeaveAndPark extends OpMode {

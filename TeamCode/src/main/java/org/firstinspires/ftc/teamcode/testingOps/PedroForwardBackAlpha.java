@@ -6,6 +6,7 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -47,7 +48,13 @@ import org.firstinspires.ftc.teamcode.pedro.Constants;
  * COORDINATES (Pedro's, not the FTC field's): X is straight ahead when the heading is 0 degrees,
  * Y is to the LEFT, and turning counterclockwise (left) is a positive heading. Because we start
  * at (0, 0) facing 0 degrees, "forward" is simply +X.
+ *
+ * HIDDEN FROM THE DRIVER STATION
+ *   Nobody is using this OpMode right now, so it is @Disabled to keep the list short.
+ *   The code is all still here. To bring it back, put // in front of the @Disabled line
+ *   below and redeploy.
  */
+@Disabled
 @Autonomous(name = "Pedro Forward Back - Alpha", group = "Testing")
 public class PedroForwardBackAlpha extends OpMode {
 
