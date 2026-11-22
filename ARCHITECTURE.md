@@ -418,7 +418,7 @@ The robot is still being designed. See `TeamCode/docs/biobuzz-robot-design.md` f
 
 ## 7. Session protocol (for Claude Code)
 
-> Read `ARCHITECTURE.md` and `CLAUDE.md`. Read the reference code in section 4 and the closest SDK sample. Then do the task. Modify only the files the task lists. Propose before coding unless the task already says the design is approved. Ask before adding dependencies, changing hardware config names, or inventing new conventions. **Before starting, search the open `needs-decision` GitHub Issues for any that touch the task. If you hit a `[#nn]` marker relevant to the task, stop and ask. If you can't reach GitHub, stop and ask.** The full rule, including "draft, don't create", is in `CLAUDE.md` (session protocol, item 4).
+> Read `ARCHITECTURE.md` and `CLAUDE.md`. Read the reference code in section 4 and the closest SDK sample. Then do the task. Modify only the files the task lists. Propose before coding unless the task already says the design is approved. Ask before adding dependencies, changing hardware config names, or inventing new conventions. **If you hit Issue `[#nn]` marker relevant to the task, look on GitHub, and stop and ask if you can't reach it.** The full rule, including "draft, don't create", is in `CLAUDE.md` (session protocol, item 4).
 
 ## 8. Open decisions (GitHub Issues)
 
