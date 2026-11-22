@@ -28,7 +28,7 @@ From Joel. I won't be at the event, so this is what you need to run these Autos,
 
 Driver Hub names follow the pattern **`<Spot> - <Routine>`**, for example `Blue D6 - Shoot Park` or `Red C6 - 3 Volley`, listed under the **Auto** group. Blue parks in the blue loading zone (F2), red in the red loading zone (A5). Both come from `FieldConstants.parkPose()`, the same as `AutoLeaveAndPark`.
 
-**Fallbacks** (in the main teamcode folder, not this one): `AutoLeaveAndPark` (LEAVE + PARK from D6/C1; currently `@Disabled`), and `Drive Forward` (`AutoEmergencyLeave`, drives 24 inches measured by the Pinpoint, with a timed backup; no Pedro, LEAVE only) if Pedro or the Pinpoint is down.
+**Fallbacks** (in the main teamcode folder, not this one): `AutoLeaveAndPark` (LEAVE + PARK from D6/C1; currently `@Disabled`), and `Drive Forward` (`AutoEmergencyLeave`, drives 24 inches measured by the Pinpoint, with a timed backup; no Pedro, LEAVE only) if Pedro or the Pinpoint is down. It does not know the alliance. Four copies of it do (issue #114): `Blue - Drive Forward 24in`, `Red - Drive Forward 24in`, `Blue - Drive Reverse 24in` and `Red - Drive Reverse 24in` (`AutoBlueDriveForward24` and so on). They are "dumb" Autos with no tile or grid reference: the robot drives 24 inches straight from wherever it starts, forward (back against a wall) or backward (intake against a wall), and tells the TeleOp the alliance. They do not hand over a heading, so field-centric drive is only right if the robot started facing down the field map on blue or up on red (see the header of any of the four files).
 
 ## Running one at the event
 

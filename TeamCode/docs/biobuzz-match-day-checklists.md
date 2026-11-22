@@ -29,7 +29,7 @@
 - [ ] Exactly **4 POLLEN** touching the robot.
 - [ ] Robot sitting still after INIT. **Keep it still** so the Pinpoint can calibrate its gyro.
 - [ ] Screen says **Pinpoint status: READY**.
-- [ ] Screen shows the **alliance we are playing**, not just BLUE by default. (TeleOp starts as BLUE, **unless an Auto just ran: then it starts on that Auto's alliance** (see `AutoHandoff`, which also hands over the heading the robot ended on); it falls back to BLUE if the app was restarted between the Auto and the TeleOp, or after Drive Forward, which does not know the alliance. **Start** on either gamepad switches it. A wrong alliance aims at the other hive and does not look like a failure.)
+- [ ] Screen shows the **alliance we are playing**, not just BLUE by default. (TeleOp starts as BLUE, **unless an Auto just ran: then it starts on that Auto's alliance** (see `AutoHandoff`, which also hands over the heading the robot ended on); it falls back to BLUE if the app was restarted between the Auto and the TeleOp, or after the plain "Drive Forward", which does not know the alliance. (The four "Blue/Red - Drive Forward/Reverse 24in" Autos do save it.) **Start** on either gamepad switches it. A wrong alliance aims at the other hive and does not look like a failure.)
 - [ ] With the robot pointed at the hive, the screen shows a target (not **NO TARGET**).
 - [ ] Partner talk done: Auto plans and start spots match, who parks where (see `biobuzz-auto-strategy.md` section 7).
 - [ ] Human player knows to add nectar only after a tip (one per tip) until 1:00 is left.
