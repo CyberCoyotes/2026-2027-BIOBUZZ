@@ -36,8 +36,10 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * HOW IT WORKS
  *   It uses DriveSubsystem (the same class as the TeleOp) to drive, and PinpointSubsystem to
  *   MEASURE how far the robot has gone. No Pedro, no camera. It drives until the Pinpoint says
- *   the robot is 24 inches from where it started, then stops. Because it measures the distance,
- *   a weak battery or a slippery floor does not change how far it goes.
+ *   the robot is close to 24 inches from where it started, then stops. "Close" means 24 minus
+ *   COAST_DISTANCE_INCHES: the robot keeps rolling a little after the wheels stop, so the Auto
+ *   stops a little EARLY and lets the robot roll the rest of the way. Because it measures the
+ *   distance, a weak battery or a slippery floor does not change how far it goes.
  *
  *   TWO SAFETY NETS (so a broken Pinpoint can never leave us driving forever):
  *     1. SAFETY_TIMEOUT_SECONDS: if the robot has not reached 24 inches by then, it stops anyway.
@@ -66,11 +68,13 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *
  * HOW TO TUNE IT (all at the top of this file)
  *   1. Put the robot on a clear floor with 24 inches or more of room. Keep DRIVE_POWER low.
- *   2. Run it and measure how far the robot really moved from its start. It should be 24 inches.
- *      The robot keeps rolling a little after the motors stop, so it may go a bit over. If it
- *      does, make DRIVE_DISTANCE_INCHES a little smaller (or DRIVE_POWER lower) and run again.
- *      If you change DRIVE_DISTANCE_INCHES, change the "24" in the class name and in the
- *      @Autonomous name too, so the name never lies.
+ *   2. Run it and measure with a tape measure how far the robot really moved from its start. It
+ *      should be 24 inches. The robot rolls on after the motors stop (the coast), so the Auto
+ *      stops early by COAST_DISTANCE_INCHES. If the robot still ends up long, make
+ *      COAST_DISTANCE_INCHES bigger by the amount it was over, and run again. If it ends up
+ *      short, make it smaller. Leave DRIVE_DISTANCE_INCHES at 24: it is the number in the class
+ *      name and the @Autonomous name. If you change DRIVE_POWER, measure again, because a
+ *      faster robot rolls farther.
  *   3. Run it 5 times in a row and write the distances in
  *      TeamCode/docs/biobuzz-test-and-match-log.md.
  *   4. To check the backup, unplug the Pinpoint (or pick a robot config without it), run it, and
@@ -100,10 +104,19 @@ public class AutoRedDriveReverse24 extends OpMode {
     // Keep the path clear: by our (unmeasured) numbers the near edge of the hive frame is only
     // about 46 to 51 inches from the wall. A robot that starts against a wall ends with its far
     // edge about 42 inches out (24 plus its 17.75 inch length), so there is not much room to spare.
-    // The class name and the @Autonomous name both say "24in". If you change this number, change
-    // both names too.
-    // TODO: measure on the robot how far it really goes (it coasts a little after the stop).
+    // This is where the robot should END UP, after it has finished rolling (see
+    // COAST_DISTANCE_INCHES below). The class name and the @Autonomous name both say "24in". If
+    // you change this number, change both names too.
     private static final double DRIVE_DISTANCE_INCHES = 24.0;
+
+    // How far the robot keeps rolling after we tell the wheels to stop, in inches. The Auto stops
+    // this much BEFORE DRIVE_DISTANCE_INCHES, so the robot rolls the rest of the way.
+    // MEASURED 2026-11-23 at DRIVE_POWER 0.30, with no coast allowance: asked for 24 inches, the
+    // robot went 27.7 by the Pinpoint,
+    // so it rolled about 3.7 inches too far.
+    // TODO: measure again with this setting on each robot. Ends long: make this bigger. Ends
+    // short: make it smaller.
+    private static final double COAST_DISTANCE_INCHES = 3.7;
 
     // If the robot has not gone DRIVE_DISTANCE_INCHES after this many seconds, stop anyway. This is
     // only a safety net for a Pinpoint that stops counting. 2.0 is a starting guess: at 0.30 power
@@ -254,7 +267,10 @@ public class AutoRedDriveReverse24 extends OpMode {
     private boolean isDriveFinished() {
         if (drivingByDistance) {
             // Normal case: stop at the distance, or at the safety timeout, whichever comes first.
-            boolean reachedDistance = distanceDrivenInches >= DRIVE_DISTANCE_INCHES;
+            // Stop a little EARLY, because the robot rolls COAST_DISTANCE_INCHES more after the
+            // wheels stop.
+            double stopDistanceInches = DRIVE_DISTANCE_INCHES - COAST_DISTANCE_INCHES;
+            boolean reachedDistance = distanceDrivenInches >= stopDistanceInches;
             boolean tookTooLong = driveTimer.seconds() >= SAFETY_TIMEOUT_SECONDS;
             return reachedDistance || tookTooLong;
         }
@@ -278,5 +294,6 @@ public class AutoRedDriveReverse24 extends OpMode {
         telemetry.addData("Direction", "BACKWARD");
         telemetry.addData("Drive power", "%.2f", DRIVE_POWER);
         telemetry.addData("Drive distance (in)", "%.1f", DRIVE_DISTANCE_INCHES);
+        telemetry.addData("Coast allowance (in)", "%.1f", COAST_DISTANCE_INCHES);
     }
 }
