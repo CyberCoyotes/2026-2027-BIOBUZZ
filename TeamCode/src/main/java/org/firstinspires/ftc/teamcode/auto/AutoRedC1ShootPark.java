@@ -1,7 +1,8 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.auto;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
+import org.firstinspires.ftc.teamcode.auto.testing.BiobuzzAuto;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*

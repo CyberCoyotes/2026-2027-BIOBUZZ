@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.auto;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -10,8 +10,8 @@ import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
- * Blue - Drive Reverse 24in  (a "dumb" Auto: no Pedro, no camera, no field map)
- * BLUE alliance. The robot drives straight BACKWARD 24 inches and stops. That is
+ * Blue - Drive Forward 24in  (a "dumb" Auto: no Pedro, no camera, no field map)
+ * BLUE alliance. The robot drives straight FORWARD 24 inches and stops. That is
  * LEAVE = 3 points, as long as the robot is no longer touching the perimeter wall when AUTO ends.
  *
  * WHY THERE ARE FOUR OF THESE (issue #114)
@@ -22,8 +22,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   in one, fix it in the other three and in AutoEmergencyLeave too.
  *
  * WHEN TO USE IT
- *   Use it when the robot starts with its FRONT (the intake) against a wall, so
- *   driving backward takes it off the wall. (Driving forward would push it into the wall.)
+ *   Use it when the robot starts with its BACK toward a wall, so driving forward
+ *   takes it off the wall.
  *   Use it when Pedro Pathing is not tuned yet (FORESIGHT_TUNED is false), or when something
  *   else is broken at an event (the camera is dead, Pedro is not working) and we want to be sure
  *   of the 3 LEAVE points.
@@ -57,7 +57,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   TeleOp uses its own guess for field-centric driving. For BLUE that guess is that the
  *   robot faces:
  *       DOWN the field map (toward the audience wall)
- *   A start with the intake against the AUDIENCE wall
+ *   A start with the robot's back against the REAR wall (our usual blue start)
  *   matches that guess. If the robot started facing some other way (for example against a side
  *   wall), field-centric driving will be turned until the driver re-aims (D-pad Left, see
  *   BiobuzzTeleOp).
@@ -83,9 +83,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * Nothing moves during INIT (rule G403). The robot only moves after START. Stop it any time with
  * the Driver Station STOP button.
  */
-@Autonomous(name = "Blue - Drive Reverse 24in", group = "Auto",
+@Autonomous(name = "Blue - Drive Forward 24in", group = "Auto",
         preselectTeleOp = "TeleOp - Alpha 15")
-public class AutoBlueDriveReverse24 extends OpMode {
+public class AutoBlueDriveForward24 extends OpMode {
 
     // ------------------------------------------------------------------
     // Settings (change these to change the Auto)
@@ -96,7 +96,7 @@ public class AutoBlueDriveReverse24 extends OpMode {
 
     // How hard to drive, from 0.0 to 1.0. Keep it low: a tall robot that stops from full speed can
     // tip, and a low power is easier to repeat. 0.30 is a starting guess.
-    // TODO: Reverse may not go as far as the other direction at the same power, so
+    // TODO: Forward may not go as far as the other direction at the same power, so
     // tune each of the four files on its own.
     private static final double DRIVE_POWER = 0.30;
 
@@ -112,11 +112,11 @@ public class AutoBlueDriveReverse24 extends OpMode {
     // How far the robot keeps rolling after we tell the wheels to stop, in inches. The Auto stops
     // this much BEFORE DRIVE_DISTANCE_INCHES, so the robot rolls the rest of the way.
     // MEASURED 2026-11-23 at DRIVE_POWER 0.30, with no coast allowance: asked for 24 inches, the
-    // robot went 27.7 by the Pinpoint,
-    // so it rolled about 3.7 inches too far.
+    // robot went 27.4 by the Pinpoint (about 27.5 by tape measure),
+    // so it rolled about 3.4 inches too far.
     // TODO: measure again with this setting on each robot. Ends long: make this bigger. Ends
     // short: make it smaller.
-    private static final double COAST_DISTANCE_INCHES = 3.7;
+    private static final double COAST_DISTANCE_INCHES = 3.4;
 
     // If the robot has not gone DRIVE_DISTANCE_INCHES after this many seconds, stop anyway. This is
     // only a safety net for a Pinpoint that stops counting. 2.0 is a starting guess: at 0.30 power
@@ -219,9 +219,8 @@ public class AutoBlueDriveReverse24 extends OpMode {
         // 2. Decide what to do next, and tell the drivetrain.
         switch (autoState) {
             case DRIVING:
-                // forward = MINUS DRIVE_POWER (a negative forward means backward), strafe = 0,
-                // turn = 0: straight back.
-                driveSubsystem.drive(-DRIVE_POWER, 0.0, 0.0);
+                // forward = DRIVE_POWER, strafe = 0, turn = 0: straight ahead.
+                driveSubsystem.drive(DRIVE_POWER, 0.0, 0.0);
                 if (isDriveFinished()) {
                     driveSubsystem.stop();
                     autoState = AutoState.DONE;
@@ -291,7 +290,7 @@ public class AutoBlueDriveReverse24 extends OpMode {
     private void addSettingsTelemetry() {
         // The alliance is first, because a wrong alliance does not look like a failure.
         telemetry.addData("Alliance", ALLIANCE);
-        telemetry.addData("Direction", "BACKWARD");
+        telemetry.addData("Direction", "FORWARD");
         telemetry.addData("Drive power", "%.2f", DRIVE_POWER);
         telemetry.addData("Drive distance (in)", "%.1f", DRIVE_DISTANCE_INCHES);
         telemetry.addData("Coast allowance (in)", "%.1f", COAST_DISTANCE_INCHES);

@@ -44,7 +44,7 @@ Each rung is its own OpMode. The earlier rungs stay in the Driver Station list a
 | **A-4 Reload and shoot again** | After the first load, collect more POLLEN (FLOWER or GARDEN on our half), then shoot again. | Second chance at a tip | A-3, intake running while driving, a Pedro path to the pollen | Not started |
 | **A-5 Stretch** | Two tips in AUTO. | 40 | Everything above, plus a lot of speed | Only if A-4 is boringly reliable |
 
-**Where the 12 Pedro match Autos (`testingOps/autos/`) sit on the ladder:** `Move Park` is A-1, `Shoot Park` is A-3 + A-1 (there is no A-2 preset-angle fallback), and `3 Volley` reaches toward A-4 but runs about 35 s, so all four are hidden. Only the eight `Move Park` and `Shoot Park` Autos are on the Driver Station. The four from the D1 and C6 start spots are flagged "Remove or fix heading" in `[#112]`.
+**Where the 12 Pedro match Autos (`auto/` and `auto/testing/`) sit on the ladder:** `Move Park` is A-1, `Shoot Park` is A-3 + A-1 (there is no A-2 preset-angle fallback), and `3 Volley` reaches toward A-4 but runs about 35 s, so all four are hidden. Only the eight `Move Park` and `Shoot Park` Autos are on the Driver Station. The four from the D1 and C6 start spots are flagged "Remove or fix heading" in `[#112]`.
 
 ## 4. Facts we still need before choosing a rung `[#60]`
 
