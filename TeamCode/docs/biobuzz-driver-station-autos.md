@@ -108,4 +108,4 @@ The code is the source of truth. This command lists every Auto that is **not** h
 grep -L "^@Disabled" $(grep -rl "^@Autonomous" TeamCode/src) | xargs grep -h -A1 "^@Autonomous" | grep -o 'name = "[^"]*"'
 ```
 
-If a name, the count, or `preselectTeleOp` changes, update this sheet, the Autos in `ARCHITECTURE.md` section 2, and `biobuzz-auto-strategy.md`. More about the 12 Pedro Autos (what they do, risks, quick fixes in the pits): `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/testingOps/autos/README.md`. The TeleOp buttons are in `biobuzz-teleop-controls.md`.
+If a name, the count, or `preselectTeleOp` changes, update this sheet, the Autos in `ARCHITECTURE.md` section 2, and `biobuzz-auto-strategy.md`. More about the 12 Pedro Autos (what they do, risks, quick fixes in the pits): `../src/main/java/org/firstinspires/ftc/teamcode/auto/testing/README.md`. The TeleOp buttons are in `biobuzz-teleop-controls.md`.

@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.auto;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -10,8 +10,8 @@ import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
- * Red - Drive Reverse 24in  (a "dumb" Auto: no Pedro, no camera, no field map)
- * RED alliance. The robot drives straight BACKWARD 24 inches and stops. That is
+ * Blue - Drive Reverse 24in  (a "dumb" Auto: no Pedro, no camera, no field map)
+ * BLUE alliance. The robot drives straight BACKWARD 24 inches and stops. That is
  * LEAVE = 3 points, as long as the robot is no longer touching the perimeter wall when AUTO ends.
  *
  * WHY THERE ARE FOUR OF THESE (issue #114)
@@ -50,14 +50,14 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   It does NOT park in the LOADING ZONE. Parking needs Pedro.
  *
  * WHAT IT TELLS THE TELEOP
- *   At START it saves the alliance (RED) with AutoHandoff, so the TeleOp starts on the
+ *   At START it saves the alliance (BLUE) with AutoHandoff, so the TeleOp starts on the
  *   right alliance without anyone pressing a button. (The old "Drive Forward" does not know the
  *   alliance, so after it the TeleOp always started on BLUE.)
  *   It does NOT save a heading, because this Auto does not know which wall you started on. So the
- *   TeleOp uses its own guess for field-centric driving. For RED that guess is that the
+ *   TeleOp uses its own guess for field-centric driving. For BLUE that guess is that the
  *   robot faces:
- *       UP the field map (toward the rear wall)
- *   A start with the intake against the REAR wall
+ *       DOWN the field map (toward the audience wall)
+ *   A start with the intake against the AUDIENCE wall
  *   matches that guess. If the robot started facing some other way (for example against a side
  *   wall), field-centric driving will be turned until the driver re-aims (D-pad Left, see
  *   BiobuzzTeleOp).
@@ -83,16 +83,16 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * Nothing moves during INIT (rule G403). The robot only moves after START. Stop it any time with
  * the Driver Station STOP button.
  */
-@Autonomous(name = "Red - Drive Reverse 24in", group = "Auto",
+@Autonomous(name = "Blue - Drive Reverse 24in", group = "Auto",
         preselectTeleOp = "TeleOp - Alpha 15")
-public class AutoRedDriveReverse24 extends OpMode {
+public class AutoBlueDriveReverse24 extends OpMode {
 
     // ------------------------------------------------------------------
     // Settings (change these to change the Auto)
     // ------------------------------------------------------------------
     // The alliance this Auto plays. It is saved for the TeleOp at START (see "WHAT IT TELLS THE
     // TELEOP" above). It does not change how the robot drives.
-    private static final VisionSubsystem.Alliance ALLIANCE = VisionSubsystem.Alliance.RED;
+    private static final VisionSubsystem.Alliance ALLIANCE = VisionSubsystem.Alliance.BLUE;
 
     // How hard to drive, from 0.0 to 1.0. Keep it low: a tall robot that stops from full speed can
     // tip, and a low power is easier to repeat. 0.30 is a starting guess.
