@@ -20,6 +20,7 @@ The code is the source of truth. This table only tells you **where to look and w
 | Intake power, direction | `IntakeSubsystem` | The motor or the chute changes | `IntakeAlpha` |
 | Drive directions, slow-mode scale | `DriveSubsystem` | Wiring changes | `DriveAlpha` |
 | Pinpoint pod offsets, directions, distance multiplier | `PinpointSubsystem` | A pod moves | `PinpointAlpha` |
+| Drive Forward / Drive Reverse: drive power, coast allowance (`COAST_DISTANCE_INCHES`), safety timeout, backup seconds | Each of the four `AutoBlueDriveForward24`, `AutoRedDriveForward24`, `AutoBlueDriveReverse24`, `AutoRedDriveReverse24` (and `AutoEmergencyLeave`), tuned on its own | The wheels, battery or floor change, or `DRIVE_POWER` changes (a faster robot coasts farther). Tune the coast, not `DRIVE_DISTANCE_INCHES` (the name says `24in`) | The Auto itself: run it 5 times, measure with a tape from the start spot (issue #114) |
 
 **Per-robot warning:** the practice bot, 11940, and 22091 can differ. Say which robot every row is for. Per-robot values wait for the build flavors (`ARCHITECTURE.md` section 5).
 
