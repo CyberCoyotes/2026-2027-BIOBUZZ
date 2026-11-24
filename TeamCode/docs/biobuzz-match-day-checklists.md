@@ -19,7 +19,7 @@
 ## B. Driver Station
 
 - [ ] Gamepads paired: **Start + A** (driver, gamepad 1), **Start + B** (operator, gamepad 2). Logitech: switch on the back is on **X**.
-- [ ] The Auto OpMode is selected **with the 30 second timer on** (G305). If we are not running Auto, we still need to select a TeleOp OpMode.
+- [ ] The Auto OpMode is selected **with the 30 second timer on** (G305). If we are not running Auto, we still need to select a TeleOp OpMode. The Auto names to pick from are on `biobuzz-driver-station-autos.md` (print it).
 - [ ] Press **INIT** on the selected OpMode.
 - [ ] Wait about **30 seconds** after power-on for the Limelight to boot.
 

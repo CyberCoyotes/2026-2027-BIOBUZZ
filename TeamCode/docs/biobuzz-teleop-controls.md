@@ -1,6 +1,6 @@
 # BIOBUZZ TeleOp Controls: Driver and Operator
 
-**Print pages 1 and 2 only.** Page 1 is the **driver's** table and page 2 is the **operator's** table, each on its own page. Everything after them is the explanation, for reading before practice. This sheet matches **`TeleOp - Alpha 15`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet. The controls for every other OpMode (the test Alphas) are in `biobuzz-opmode-controls.md`.
+**Print pages 1 and 2 only.** Page 1 is the **driver's** table and page 2 is the **operator's** table, each on its own page. Everything after them is the explanation, for reading before practice. This sheet matches **`TeleOp - Alpha 15`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet. The controls for every other OpMode (the test Alphas) are in `biobuzz-opmode-controls.md`. **Last checked against the code: 2026-11-24 (Issue #118).** Every gamepad read in `BiobuzzTeleOp`, the dial ranges and steps, the wall shot numbers and the slow-mode speed matched both tables. The Autos you can pick before this TeleOp are on `biobuzz-driver-station-autos.md`.
 
 **How to read the tables:** every button has a row, except the two thumbstick presses. A **—** means **nothing is assigned**, so it is free if we need a new control. **HOLD** means the action lasts only while the button is held. The other buttons are **one move per press**: holding does not repeat. Words in *italics* point to a section in the notes after the tables.
 
