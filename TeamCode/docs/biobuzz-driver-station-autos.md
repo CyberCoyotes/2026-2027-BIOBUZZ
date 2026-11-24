@@ -40,14 +40,15 @@ Pick the one for **our alliance and the tile we start on**. Wrong alliance means
 | **Blue D6 - Shoot Park** | Tile D6, rear wall | down, at the hive | Shoots the 4 preloaded POLLEN, then parks | **8**, plus any score from the shots | about 8 to 10 s |
 | **Red C1 - Move Park** | Tile C1, audience wall | up, at the hive | Same as Blue D6, turned 180 degrees | **8** | about 4 s |
 | **Red C1 - Shoot Park** | Tile C1, audience wall | up, at the hive | Same as Blue D6 - Shoot Park, turned 180 degrees | **8**, plus shots | about 8 to 10 s |
-| **Blue D1 - Move Park** `[#112]` | Tile D1, audience wall, about half an inch from the blue flower | up, at the hive | Drives straight off the wall first, then parks | **8** | about 4 s |
-| **Blue D1 - Shoot Park** `[#112]` | Tile D1 (same) | up, at the hive | Shoots 4, then parks | **8**, plus shots | about 8 to 10 s |
-| **Red C6 - Move Park** `[#112]` | Tile C6, rear wall, next to the red flower | down, at the hive | Same idea as Blue D1, turned 180 degrees | **8** | about 4 s |
-| **Red C6 - Shoot Park** `[#112]` | Tile C6 (same) | down, at the hive | Shoots 4, then parks | **8**, plus shots | about 8 to 10 s |
+| **Blue D1 - Move Park** `[#112]` | Tile D1, audience wall, about half an inch from the blue flower | **the wall**: front of the robot touching it | Backs straight off the wall (in reverse), curves over and parks. It never turns | **8** | about 4 s |
+| **Blue D1 - Shoot Park** `[#112]` | Tile D1 (same) | **the wall** (same) | Backs up, turns left 120 degrees, shoots 4, then parks | **8**, plus shots | about 8 to 10 s |
+| **Red C6 - Move Park** `[#112]` | Tile C6, rear wall, next to the red flower | **the wall**: front of the robot touching it | Same idea as Blue D1, turned 180 degrees | **8** | about 4 s |
+| **Red C6 - Shoot Park** `[#112]` | Tile C6 (same) | **the wall** (same) | Backs up, turns left 120 degrees, shoots 4, then parks | **8**, plus shots | about 8 to 10 s |
 
 - **Default choice: `Shoot Park` from D6 (blue) or C1 (red).** If the shooter or camera is broken but driving works, pick `Move Park`.
 - The time numbers are estimates from a simulation (`auto/testing/README.md`). **How many balls it takes to tip the hive is still unknown**, so a tip is a bonus, not a promise (`biobuzz-auto-strategy.md`, section 4).
 - The D1 and C6 starts are tight: the robot starts about half an inch from a flower. Place it centered in the tile and square to the wall.
+- **D1 and C6 start FACING THE WALL (issue #121): the front of the robot (the intake) touches the wall, and the hive is behind the robot.** This is the opposite of D6 and C1, where the back is against the wall. The robot then faces the same way as at D6 / C1 on the field map, so the TeleOp's field-centric fallback is right for every start spot. On the INIT screen `Hive visible` is **not checked** for these two (the camera looks at the wall until the robot turns). **These changes have not run on a robot yet**: use STEP mode on the practice field first.
 
 ### Backup Autos (5): no Pedro, no camera, just drive 24 inches in a straight line
 

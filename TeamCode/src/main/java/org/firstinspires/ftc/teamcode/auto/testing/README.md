@@ -22,9 +22,9 @@ From Joel. I won't be at the event, so this is what you need to run these Autos,
 | Start spot | Tile / wall | Robot faces |
 |---|---|---|
 | **Blue D6** | D6, rear wall (our usual blue start, from `FieldConstants`) | down, at the hive |
-| **Blue D1** | D1, audience wall, straight across from D6, about ½ in from the blue flower | up, at the hive |
+| **Blue D1** | D1, audience wall, straight across from D6, about ½ in from the blue flower | **the wall** (front of the robot touching it, hive behind it) for `Move Park` and `Shoot Park`. `3 Volley` (hidden) still faces up, at the hive |
 | **Red C1** | C1, audience wall (our usual red start, from `FieldConstants`) | up, at the hive |
-| **Red C6** | C6, rear wall, straight across from C1, about ½ in from the red flower | down, at the hive |
+| **Red C6** | C6, rear wall, straight across from C1, about ½ in from the red flower | **the wall** (front of the robot touching it, hive behind it) for `Move Park` and `Shoot Park`. `3 Volley` (hidden) still faces down, at the hive |
 
 Driver Hub names follow the pattern **`<Spot> - <Routine>`**, for example `Blue D6 - Shoot Park`, listed under the **Auto** group. **The four `3 Volley` Autos have been hidden (`@Disabled`) since 2026-11-21, so only the 8 `Move Park` and `Shoot Park` Autos are on the list.** The list as it appears on the Driver Station is in `TeamCode/docs/biobuzz-driver-station-autos.md`. Issue #112 flags the four D1 and C6 Autos "Remove or fix heading" `[#112]`. Blue parks in the blue loading zone (F2), red in the red loading zone (A5). Both come from `FieldConstants.parkPose()`, the same as `AutoLeaveAndPark`.
 
@@ -61,7 +61,7 @@ Driver Hub names follow the pattern **`<Spot> - <Routine>`**, for example `Blue 
 1. **3 Volley is too long.** Estimated ~35 s. A built-in cutoff skips or cuts short any shot or flower after **24 s** so it can still park, which means shot 3 will usually be skipped, and it may still miss the park. Don't run it in a match until a nonstop run on a real field comes in under ~28 s.
 2. **Flower bar.** If the robot drives straight instead of curving or drifts off its path, the flower bar's UP position is wrong and it's dragging. Quick fix: set `USE_FLOWER_BAR = false` in `BiobuzzAuto.java` (only affects 3 Volley picks). Proper fix: tune the bar with `FlowerPickerAlpha`.
 3. **Shaking at stops.** Pedro actively holding a stop made the robot shake on our practice field, so holding is off (`HOLD_AT_STOPS = false`): the drive motors just stop at each stop. If shaking shows up anyway, Foresight needs re-tuning on a fresh battery.
-4. **The flower start spots (D1 / C6) are tight.** The robot starts about ½ in from the flower. Every path from there drives straight off the wall first, and the geometry check shows it never gets closer than where it started, but it has to be placed carefully: centered in the tile, square to the wall. From these spots the robot parks facing the way it started, and shot 3 in the 3 Volley is taken from a spot a little way out (not jammed against the flower).
+4. **The flower start spots (D1 / C6) are tight, and they start FACING THE WALL (issue #121).** The robot starts about ½ in from the flower, **front (intake) against the wall**, so it faces the same way as at D6 / C1 (blue -90, red +90) and the TeleOp's fallback heading is right for every start spot. Place it centered in the tile and square to the wall. `Move Park` backs straight off the wall, curves over and parks (it never turns). `Shoot Park` first **backs up 19 in, turns left 120° (the turn starts after the first 14 in so its corners clear the flower)**, shoots from about 43 in from the hive (the D6 / C1 shot is about 62 in), then drives to the zone and turns back to the D6 / C1 heading. The turret has to point 59° left at the shot, well inside its −110° to +180° limits. **None of this has run on a robot.** Check in STEP mode: (a) the turn clears the flower (if it scrapes, raise `FLOWER_BACK_UP_BEFORE_TURN_INCHES`, max about 18), (b) the shot table's RPM is right from the closer spot, (c) the turret cables are fine at +59°. The hidden `3 Volley` Autos from D1 / C6 were **not** changed: they still start facing the hive.
 5. **Shot 2 turret swing (3 Volley).** On 11/16 the turret limits changed from ±120° to −110° (right) / +180° (left). The hive is behind the robot at shot 2, so the turret now swings **left and stops at its +180° limit**, about 11° short of the hive (it can't go past the limit). The camera can't finish the aim from there, so shot 2 fires after the 3 s lock timeout, 11° off. Expect `locked at -1.0 s` for shot 2 in the run log. It may still score, since the hive forgives about 5–13°. This hasn't run on the robot: before using 3 Volley, check in STEP mode that the turret cables are OK at +180° and whether shot 2 balls go in.
 6. **Field estimates.** Field size (141.5 in), loading-zone size and hive position come from Pedro's field image and the manual, not a tape measure (issue #55 in `FieldConstants`).
 
@@ -78,6 +78,8 @@ Everything adjustable is at the top of **`BiobuzzAuto.java`**. One change there 
 | Flower bar dragging | `USE_FLOWER_BAR = false` |
 | Bar too late or too early at a flower | `FLOWER_A_BAR_DOWN_INCHES` (20) / `FLOWER_B_BAR_DOWN_INCHES` (0) |
 | Not reaching into a flower / pushing it | `FLOWER_A_CREEP_INCHES` (5) / `FLOWER_B_CREEP_INCHES` (8) |
+| D1 / C6 `Shoot Park`: the turn scrapes the flower | Raise `FLOWER_BACK_UP_BEFORE_TURN_INCHES` (14, max about 18) |
+| D1 / C6 `Shoot Park`: shoots long, short or off to one side | Check `FLOWER_SHOT_1_Y_INCHES` (28) and `FLOWER_SHOT_1_TURN_LEFT_DEGREES` (120), then the shot table (#4) |
 | Hits the hive or a flower on a drive | Note which drive (STEP mode), then adjust that path's stop or control points in the "Field spots" section |
 
 Change one thing at a time, redeploy, and re-check in STEP mode.
@@ -87,7 +89,7 @@ Change one thing at a time, redeploy, and re-check in STEP mode.
 - `BiobuzzAuto.java`: the complete Auto (an iterative OpMode state machine): Pedro paths, the shot sequence (same as `ShootAndParkAuto`), flower picking, the 24 s cutoff, step mode, telemetry. Not listed on the Driver Hub by itself.
 - 12 thin subclasses, e.g. `AutoBlueD6ThreeVolley`:
   `super(VisionSubsystem.Alliance.BLUE, StartSpot.MAIN, Routine.THREE_VOLLEY);`
-  `StartSpot.MAIN` = D6 (blue) / C1 (red). `StartSpot.FLOWER` = D1 (blue) / C6 (red), across the field in the same column, next to our flower.
+  `StartSpot.MAIN` = D6 (blue) / C1 (red). `StartSpot.FLOWER` = D1 (blue) / C6 (red), across the field in the same column, next to our flower. With `Move Park` or `Shoot Park` it starts **facing the wall** (`facesWallAtStart` in `BiobuzzAuto`, issue #121), and `Shoot Park` adds one drive step, `DRIVE_TO_SHOT_1` (back up, turn left, then shoot). With `3 Volley` it starts facing the hive as before.
   This is one level of `extends`. I know `CLAUDE.md` says no base classes. I did it this way because 12 copies of a ~1000-line file couldn't be kept in sync.
 - **Field positions are written once, in blue coordinates.** Red is the 180° rotation about the field center (`x → 141.5−x`, `y → 141.5−y`, heading + 180°), the same rule as `FieldConstants.makePose()`. Not a mirror.
 - Pedro's Follower owns the drive motors and the Pinpoint. `DriveSubsystem` and `PinpointSubsystem` aren't used.

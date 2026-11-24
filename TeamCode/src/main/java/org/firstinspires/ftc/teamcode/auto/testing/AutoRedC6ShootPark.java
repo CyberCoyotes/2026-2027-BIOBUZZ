@@ -6,8 +6,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
  * Red C6 - Shoot Park
- * RED alliance. Starts on tile C6 (straight across from C1), touching the REAR wall right next to the flower, facing down at the hive.
- * Shoots the 4 preloaded POLLEN, then parks in our loading zone.
+ * RED alliance. Starts on tile C6 (straight across from C1), touching the REAR wall right next to the flower, FACING THE WALL (the front of the robot touches it, so the hive is behind the robot; issue #121).
+ * Backs up off the wall, turns left 120 degrees so the turret can see the hive, shoots the 4 preloaded POLLEN, then parks in our loading zone.
  * All the code is in BiobuzzAuto. This file only picks the alliance, the start spot and the routine.
  */
 @Autonomous(name = "Red C6 - Shoot Park", group = "Auto", preselectTeleOp = "TeleOp - Alpha 15")

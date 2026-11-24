@@ -36,14 +36,28 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   only the same after a 180 degree turn. Pedro's map: origin at the bottom-left corner (audience
  *   at the bottom, RED area on the left, BLUE on the right), heading 0 faces right, 90 faces up.
  *
- * THE 4 START SPOTS (all touching the wall, facing the hive, in the tile column in front of it)
- *   MAIN  : the start the other Autos use (FieldConstants). BLUE: tile D6, rear wall, facing down.
- *           RED: tile C1, audience wall, facing up.
+ * THE 4 START SPOTS (all touching the wall, in the tile column in front of the hive)
+ *   MAIN  : the start the other Autos use (FieldConstants). BLUE: tile D6, rear wall, facing down
+ *           at the hive. RED: tile C1, audience wall, facing up at the hive.
  *   FLOWER: straight across the field from MAIN, in the same column, right next to our flower.
- *           BLUE: tile D1, audience wall, facing up (about half an inch from the audience-wall
- *           flower). RED: tile C6, rear wall, facing down (next to the rear-wall flower).
+ *           BLUE: tile D1, audience wall (about half an inch from the audience-wall flower).
+ *           RED: tile C6, rear wall (next to the rear-wall flower).
+ *           MOVE_PARK and SHOOT_PARK start FACING THE WALL (issue #121). The FRONT of the robot
+ *           (the intake) touches the wall, so the robot faces the SAME way as at MAIN (blue: -90,
+ *           down the field map; red: +90, up) and the hive is straight BEHIND it. Why:
+ *             - Every Auto then starts and ends on the same heading as D6 / C1, so the TeleOp's
+ *               fallback heading (ROBOT_FIELD_HEADING_AT_INIT_* in BiobuzzTeleOp) is right for
+ *               every start spot, even if the Auto's handoff (AutoHandoff) is ever missing.
+ *             - The turret can't aim at a hive straight behind the robot (that needs +179 degrees
+ *               and its limit is +180), so SHOOT_PARK first BACKS UP straight off the wall, away
+ *               from the flower, and only THEN turns LEFT FLOWER_SHOT_1_TURN_LEFT_DEGREES. The hive
+ *               is then about 60 degrees to the turret's left, far from both turret limits. The
+ *               shot is taken from there (SHOT 1), then the robot parks.
+ *             - The park drive turns the robot back to the MAIN heading (-90 blue, +90 red).
+ *           THREE_VOLLEY from the FLOWER spot was NOT changed: it still starts facing the hive
+ *           (blue up, red down). It is hidden and too long for a match (see README.md).
  *           Starting that close to a flower, every path from here first drives STRAIGHT off the
- *           wall before it moves sideways or turns, so it never gets closer to the flower.
+ *           wall before it turns, so the robot never gets closer to the flower.
  *
  * THE 3 ROUTINES
  *   MOVE_PARK    : drive to our LOADING ZONE (blue F2, red A5) and stop. LEAVE + PARK.
@@ -119,10 +133,15 @@ public class BiobuzzAuto extends OpMode {
     private final StartSpot startSpot;
     private final Routine routine;
 
+    // true = the robot starts FACING THE WALL, with the hive behind it (issue #121). That is the
+    // FLOWER spot with MOVE_PARK or SHOOT_PARK. Every other Auto starts facing the hive.
+    private final boolean facesWallAtStart;
+
     public BiobuzzAuto(VisionSubsystem.Alliance alliance, StartSpot startSpot, Routine routine) {
         this.alliance = alliance;
         this.startSpot = startSpot;
         this.routine = routine;
+        this.facesWallAtStart = (startSpot == StartSpot.FLOWER) && (routine != Routine.THREE_VOLLEY);
     }
 
     // ==================================================================
@@ -183,13 +202,43 @@ public class BiobuzzAuto extends OpMode {
     private static final double START_MAIN_X_INCHES = FieldConstants.BLUE_START_X_INCHES;
     private static final double START_MAIN_Y_INCHES = FieldConstants.BLUE_START_Y_INCHES;
     private static final double START_MAIN_HEADING_DEGREES = FieldConstants.BLUE_HEADING_DEGREES;
-    // START, FLOWER spot: tile D1, the same column, touching the audience wall, facing up at the
-    // hive. The robot's right side is about half an inch from the audience-wall flower.
+    // START, FLOWER spot: tile D1, the same column, touching the audience wall. The robot's side is
+    // about half an inch from the audience-wall flower.
     private static final double START_FLOWER_X_INCHES = FieldConstants.BLUE_START_X_INCHES;
     private static final double START_FLOWER_Y_INCHES = FieldConstants.ROBOT_LENGTH_INCHES / 2.0;
+    // MOVE_PARK and SHOOT_PARK (issue #121): the FRONT of the robot touches the wall, so the robot
+    // FACES the audience wall. That is the same heading as the MAIN start (-90, "down the map").
+    private static final double START_FLOWER_WALL_HEADING_DEGREES = FieldConstants.BLUE_HEADING_DEGREES;
+    // THREE_VOLLEY only (not changed): it still starts facing UP at the hive.
     private static final double START_FLOWER_HEADING_DEGREES = 90.0;
-    // PARK: our loading zone, from FieldConstants (blue F2, red A5). From the FLOWER spot the robot
-    // parks facing up instead of down (it never turns around on the way), same spot.
+    // PARK: our loading zone, from FieldConstants (blue F2, red A5), facing the MAIN heading.
+    // THREE_VOLLEY from the FLOWER spot parks facing up instead (it never turns around on the way).
+
+    // SHOT 1 from the FLOWER spot, facing-the-wall start only (issue #121). The robot BACKS UP
+    // straight off the wall to this Y (same X as the start), turns left as it arrives, and shoots.
+    // The hive is at Y about 71, so this puts the robot about 43 inches from it. (From the D6 and
+    // C1 starts the shot is about 62 inches.)
+    // TODO (issue #121): check on the field that the shot table's RPM is right from this closer
+    // spot. The table uses its closest measured row for any spot closer than that row.
+    private static final double FLOWER_SHOT_1_Y_INCHES = 28.0;
+    // How far the robot turns LEFT (counterclockwise) on the way to shot 1. From -90 (facing the
+    // wall), 120 degrees left is +30, and the hive is then about 59 degrees to the turret's LEFT.
+    // The turret angle at the shot is about 180 minus this number, and the turret reaches -110
+    // (right) to +180 (left), so any number from about 30 to 250 works. 120 keeps the turret far
+    // from both limits (and its cables relaxed) with a short turn. 0 would need +179: no margin.
+    private static final double FLOWER_SHOT_1_TURN_LEFT_DEGREES = 120.0;
+    // How far the robot backs up, still facing the wall, BEFORE it starts to turn. While it turns,
+    // its corners swing out about 12 inches from its center, and the flower is right next to the
+    // start. A geometry check (written for issue #121) ASSUMED a flower about 6 inches wide and up
+    // to 10 inches deep: 14 inches keeps the corners about 4 inches away from it. The flower's real
+    // size is not in our docs yet. It must be smaller than FLOWER_SHOT_1_Y_INCHES minus
+    // START_FLOWER_Y_INCHES (about 19).
+    // TODO (issues #55 and #121): measure how far the flower sticks out from the wall, and check
+    // in STEP mode that the turn clears it. If it scrapes, raise this number (up to about 18).
+    private static final double FLOWER_BACK_UP_BEFORE_TURN_INCHES = 14.0;
+    // The same number as a fraction (0 to 1) of the drive from the start to the shot 1 spot.
+    private static final double FLOWER_BACK_UP_BEFORE_TURN_FRACTION = FLOWER_BACK_UP_BEFORE_TURN_INCHES
+            / (FLOWER_SHOT_1_Y_INCHES - START_FLOWER_Y_INCHES);
 
     // FLOWER A: the audience-wall flower (its center is at X 94.3). Stop facing the audience wall,
     // then creep FLOWER_A_CREEP_INCHES in.
@@ -260,6 +309,7 @@ public class BiobuzzAuto extends OpMode {
     private enum AutoState {
         SHOT_PAUSE, SHOT_FIND_HIVE, SHOT_WAIT_FOR_SPEED, SHOT_FEED_BALLS, SHOT_LIFT_LAST_BALL,
         FLOWER_BAR_DOWN, FLOWER_CREEP, FLOWER_PICK, FLOWER_BAR_UP,
+        DRIVE_TO_SHOT_1,   // only for the FLOWER spot facing the wall: back up, turn, then shoot
         DRIVE_TO_FLOWER_A, DRIVE_TO_SHOT_2, DRIVE_TO_FLOWER_B, DRIVE_TO_SHOT_3, DRIVE_TO_PARK,
         WAIT_FOR_BUTTON,   // STEP mode only: stopped after a drive, waiting for A
         DONE
@@ -281,6 +331,7 @@ public class BiobuzzAuto extends OpMode {
 
     // Poses, already turned for red.
     private Pose startPose;
+    private Pose shot1Pose;   // MAIN and THREE_VOLLEY: the start. FLOWER facing the wall: backed up and turned.
     private Pose parkPose;
     private Pose flowerAPose;
     private Pose flowerACreepPose;
@@ -292,6 +343,8 @@ public class BiobuzzAuto extends OpMode {
 
     // Paths, built once in init().
     private Path startToParkPath;
+    private Path startToShot1Path;   // only built for the FLOWER spot facing the wall
+    private Path shot1ToParkPath;    // the park drive after shot 1 (for MAIN it is startToParkPath)
     private Path toFlowerAPath;
     private Path flowerACreepPath;
     private Path toShot2Path;
@@ -345,9 +398,22 @@ public class BiobuzzAuto extends OpMode {
         // Poses (BLUE numbers, turned for red by makePose).
         if (startSpot == StartSpot.MAIN) {
             startPose = makePose(START_MAIN_X_INCHES, START_MAIN_Y_INCHES, START_MAIN_HEADING_DEGREES);
+            shot1Pose = startPose;   // shot 1 is taken from the start
+            parkPose = FieldConstants.parkPose(alliance);
+        } else if (facesWallAtStart) {
+            // FLOWER spot, MOVE_PARK / SHOOT_PARK (issue #121): start facing the wall, same heading
+            // as MAIN. Shot 1 is taken from straight back from the start, after a LEFT turn.
+            startPose = makePose(START_FLOWER_X_INCHES, START_FLOWER_Y_INCHES,
+                    START_FLOWER_WALL_HEADING_DEGREES);
+            Pose backedUpPose = makePose(START_FLOWER_X_INCHES, FLOWER_SHOT_1_Y_INCHES,
+                    START_FLOWER_WALL_HEADING_DEGREES);
+            shot1Pose = turnedLeft(backedUpPose, FLOWER_SHOT_1_TURN_LEFT_DEGREES);
+            // The park spot and heading are the same as the MAIN start's.
             parkPose = FieldConstants.parkPose(alliance);
         } else {
+            // FLOWER spot, THREE_VOLLEY (unchanged): start facing the hive.
             startPose = makePose(START_FLOWER_X_INCHES, START_FLOWER_Y_INCHES, START_FLOWER_HEADING_DEGREES);
+            shot1Pose = startPose;
             // Same park spot, but facing the way the robot started (up, for blue).
             parkPose = makePose(FieldConstants.BLUE_PARK_X_INCHES, FieldConstants.BLUE_PARK_Y_INCHES,
                     START_FLOWER_HEADING_DEGREES);
@@ -452,6 +518,12 @@ public class BiobuzzAuto extends OpMode {
         }
         if (actionsOn) {
             shooterSubsystem.setTargetRpm(PRE_REV_FLYWHEEL_RPM);
+        }
+        if (facesWallAtStart) {
+            // The hive is behind the robot, so back up and turn first. The flywheel spins up on the
+            // way. The shot starts when this drive ends (see continueAfterDrive).
+            startDrive(startToShot1Path, AutoState.DRIVE_TO_SHOT_1);
+            return;
         }
         startShot(1);
     }
@@ -602,6 +674,12 @@ public class BiobuzzAuto extends OpMode {
                 break;
 
             // ---------------- DRIVES ----------------
+            case DRIVE_TO_SHOT_1:
+                if (isDriveDone("shot 1")) {
+                    finishDrive("Shot 1", shot1Pose, autoState);
+                }
+                break;
+
             case DRIVE_TO_FLOWER_A:
                 lowerBarNearFlower(FLOWER_A_BAR_DOWN_INCHES);
                 if (isDriveDone("flower A")) {
@@ -702,8 +780,9 @@ public class BiobuzzAuto extends OpMode {
     // After shot 1, 2 or 3.
     private void afterShot() {
         if (shotNumber >= lastShotNumber) {
-            // Park from where the last shot was: the start (shot 1), or the shot 3 spot.
-            startDrive(shotNumber == 3 ? shot3ToParkPath : startToParkPath, AutoState.DRIVE_TO_PARK);
+            // Park from where the last shot was: the shot 1 spot (the start, unless the robot
+            // backed up first), or the shot 3 spot.
+            startDrive(shotNumber == 3 ? shot3ToParkPath : shot1ToParkPath, AutoState.DRIVE_TO_PARK);
         } else if (shotNumber == 1) {
             startDrive(toFlowerAPath, AutoState.DRIVE_TO_FLOWER_A);
         } else {
@@ -723,6 +802,9 @@ public class BiobuzzAuto extends OpMode {
     // After each drive (right away, or after A in STEP mode).
     private void continueAfterDrive(AutoState driveState) {
         switch (driveState) {
+            case DRIVE_TO_SHOT_1:
+                startShot(1);
+                break;
             case DRIVE_TO_FLOWER_A:
                 startFlower('A');
                 break;
@@ -1026,6 +1108,14 @@ public class BiobuzzAuto extends OpMode {
         return makePose(blueX, blueY, 0.0);
     }
 
+    // The same spot, but turned LEFT (counterclockwise) by this many degrees. The new heading is
+    // NOT wrapped back into -180 to 180 on purpose: for RED, 90 + 120 stays 210 (not -150). Then
+    // the turn from the start heading to this one is +120 whichever way Pedro works out its turns:
+    // by simple subtraction, or by taking the shortest way around.
+    private Pose turnedLeft(Pose pose, double degrees) {
+        return new Pose(pose.x(), pose.y(), pose.heading() + Math.toRadians(degrees));
+    }
+
     // The pose a number of inches straight ahead of a pose (negative = straight back).
     private Pose poseAhead(Pose pose, double inches) {
         return new Pose(pose.x() + inches * Math.cos(pose.heading()),
@@ -1046,8 +1136,29 @@ public class BiobuzzAuto extends OpMode {
                     makePoint(TO_FLOWER_A_CONTROL1_X, TO_FLOWER_A_CONTROL1_Y),
                     makePoint(TO_FLOWER_A_CONTROL2_X, TO_FLOWER_A_CONTROL2_Y),
                     flowerAPose).constant(flowerAPose);
+            shot1ToParkPath = startToParkPath;   // shot 1 is taken from the start
+        } else if (facesWallAtStart) {
+            // FLOWER start facing the wall (issue #121), MOVE_PARK: straight back off the wall (the
+            // robot drives in reverse), then over to the zone. The start and park headings are the
+            // same, so the robot never turns. The same curve the old facing-up start used.
+            startToParkPath = Paths.curve(startPose,
+                    makePoint(FLOWER_TO_PARK_CONTROL1_X, FLOWER_TO_PARK_CONTROL1_Y),
+                    makePoint(FLOWER_TO_PARK_CONTROL2_X, FLOWER_TO_PARK_CONTROL2_Y),
+                    parkPose).constant(parkPose);
+            // SHOOT_PARK: start -> shot 1 spot. A straight line back from the wall. The heading holds
+            // (still facing the wall) until the robot has backed up FLOWER_BACK_UP_BEFORE_TURN_INCHES,
+            // and then it turns left to the shot 1 heading, so the corners never swing into the
+            // flower. "Piecewise" means one heading rule until a point on the path, then another.
+            Interpolator backUpThenTurnLeft = Interpolator.piecewise()
+                    .until(FLOWER_BACK_UP_BEFORE_TURN_FRACTION, Interpolator.constant(startPose))
+                    .until(1.0, Interpolator.linear(startPose, shot1Pose));
+            startToShot1Path = Paths.line(startPose, shot1Pose).heading(backUpThenTurnLeft);
+            // SHOOT_PARK: shot 1 spot -> park. Straight over to the zone, turning back to the park
+            // heading (the same one the MAIN start parks on) while it drives.
+            shot1ToParkPath = Paths.line(shot1Pose, parkPose)
+                    .heading(Interpolator.linear(shot1Pose, parkPose));
         } else {
-            // FLOWER start -> park: straight off the wall, then over to the zone, still facing up.
+            // FLOWER start (THREE_VOLLEY, unchanged) -> park: straight off the wall, then over to the zone, still facing up.
             startToParkPath = Paths.curve(startPose,
                     makePoint(FLOWER_TO_PARK_CONTROL1_X, FLOWER_TO_PARK_CONTROL1_Y),
                     makePoint(FLOWER_TO_PARK_CONTROL2_X, FLOWER_TO_PARK_CONTROL2_Y),
@@ -1063,6 +1174,7 @@ public class BiobuzzAuto extends OpMode {
                     makePoint(FLOWER_TO_FLOWER_A_CONTROL1_X, FLOWER_TO_FLOWER_A_CONTROL1_Y),
                     makePoint(FLOWER_TO_FLOWER_A_CONTROL2_X, FLOWER_TO_FLOWER_A_CONTROL2_Y),
                     flowerAPose).heading(upThenTurnAround);
+            shot1ToParkPath = startToParkPath;   // shot 1 is taken from the start
         }
 
         // THREE_VOLLEY paths (the same for both spots from flower A on).
@@ -1107,7 +1219,12 @@ public class BiobuzzAuto extends OpMode {
             tile = startSpot == StartSpot.MAIN ? "C1 (audience wall)" : "C6 (rear wall, by the flower)";
         }
         telemetry.addData(">>> ALLIANCE", alliance);
-        telemetry.addData(">>> START", "%s, facing the hive", tile);
+        if (facesWallAtStart) {
+            // The front (intake) touches the wall. The hive is behind the robot.
+            telemetry.addData(">>> START", "%s, FRONT OF THE ROBOT AGAINST THE WALL (hive is behind it)", tile);
+        } else {
+            telemetry.addData(">>> START", "%s, facing the hive", tile);
+        }
         telemetry.addData(">>> ROUTINE", routine);
     }
 
@@ -1119,6 +1236,12 @@ public class BiobuzzAuto extends OpMode {
 
     private void addInitCameraTelemetry() {
         telemetry.addData("Camera connected", visionSubsystem.isCameraConnected());
+        if (facesWallAtStart) {
+            // The camera is on the turret, which points at the wall until the robot has turned.
+            // "Hive visible: NO" is normal here, so it is not checked at INIT.
+            telemetry.addLine("Hive visible: not checked (the camera faces the wall until the robot turns)");
+            return;
+        }
         if (visionSubsystem.hasTarget()) {
             double tyDegrees = visionSubsystem.getTyDegrees();
             telemetry.addData("Hive visible", "YES (ty %.1f)", tyDegrees);

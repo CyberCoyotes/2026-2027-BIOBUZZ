@@ -6,7 +6,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
  * Red C6 - Move Park
- * RED alliance. Starts on tile C6 (straight across from C1), touching the REAR wall right next to the flower, facing down at the hive.
+ * RED alliance. Starts on tile C6 (straight across from C1), touching the REAR wall right next to the flower, FACING THE WALL (the front of the robot touches it, so the hive is behind the robot; issue #121).
  * Drives to our loading zone and parks.
  * All the code is in BiobuzzAuto. This file only picks the alliance, the start spot and the routine.
  */
