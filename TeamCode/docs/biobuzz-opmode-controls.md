@@ -7,7 +7,7 @@ Print this and keep it at the driver station. It lists **what every button does 
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
 - **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In the TeleOp, **Start on either gamepad** switches the alliance, and gamepad 2's B starts a FORCED SHOT (wheels, gate and intake), so pair before START.)
 
-**Names on the Driver Station:** `TeleOp - Alpha 15`. **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Flower Picker Testing - Alpha`, `IMU - Alpha` (these five were hidden in issue #103), `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below.
+**Names on the Driver Station:** `TeleOp - Alpha 15`. **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Pinpoint - Alpha`, `Firing Sequence - Alpha`, `Flower Picker Testing - Alpha`, `IMU - Alpha` (these five were hidden in issue #103), `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below. **Last checked against the code: 2026-11-24 (Issue #118):** `TeleOp - Alpha 15` is the only TeleOp left on the Driver Station, and the 12 OpModes above are all `@Disabled`. The Autonomous OpModes are on `biobuzz-driver-station-autos.md`.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
@@ -59,7 +59,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 
 ---
 
-## 2. Shooter RPM - Alpha 2 (two controllers)
+## 2. Shooter RPM - Alpha 2 (two controllers) (hidden)
 
 Speed-control version of the shooter test. **Hold** a button, the wheels run, let go and they coast. New in Alpha 2: the gate has **three positions**, and the intake runs from gamepad 2.
 
@@ -113,7 +113,7 @@ Plain **power**, no speed control. Note: with the 1620 RPM flywheel motor, the s
 
 ---
 
-## 4. Shooter Ratio - Alpha (two controllers)
+## 4. Shooter Ratio - Alpha (two controllers) (hidden)
 
 Finds the best **hood / flywheel ratio**. Shoot only when the screen says **At Speed? true**. Do not record a shot marked **CAPPED**.
 
@@ -142,7 +142,7 @@ Careful: **D-pad Right / Left** is the ratio here, and **D-pad Up / Down** is th
 
 ---
 
-## 5. Shot Table - Alpha (gamepad 1 only)
+## 5. Shot Table - Alpha (gamepad 1 only) (hidden)
 
 Measures and checks the shot table. **No drive, no turret, no gate.** Move the robot **by hand**, load balls by hand. The intake feeds only when the screen says **READY**.
 

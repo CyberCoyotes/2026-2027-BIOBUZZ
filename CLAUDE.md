@@ -77,6 +77,9 @@ These cost us time before, so don't repeat them:
 - `TeamCode/docs/biobuzz-hive-apriltag-geometry.md`: hive and cell dimensions, tag IDs and layout, camera math
 - `TeamCode/docs/biobuzz-robot-design.md`: current robot concept (turret shooter + Limelight), build order, and open decisions
 - `TeamCode/docs/biobuzz-auto-strategy.md`: Autonomous plan (the build ladder A-0 to A-5), what AUTO is worth, and facts still needed
+- `TeamCode/docs/biobuzz-driver-station-autos.md`: printable list of the Autonomous OpModes as they appear on the Driver Station, what each does, and which are hidden (kept current by Issue #118)
+- `TeamCode/docs/biobuzz-teleop-controls.md`: printable driver and operator button tables for `TeleOp - Alpha 15` (kept current by Issue #118)
+- `TeamCode/docs/biobuzz-opmode-controls.md`: the buttons for every TeleOp and test OpMode, including the hidden ones
 - `TeamCode/docs/pedro-setup-and-auto-guide.md`: Pedro Pathing 3 robot setup, tuning order, and the rules for writing every Pedro Auto
 - `TeamCode/docs/biobuzz-game-strategy.md`: match strategy, ranking points, scoring cycle, timeline, and drive team roles
 - `TeamCode/docs/biobuzz-match-day-checklists.md`: pit, field, and match checklists
