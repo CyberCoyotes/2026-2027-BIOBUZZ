@@ -46,7 +46,7 @@ Pick the one for **our alliance and the tile we start on**. Wrong alliance means
 | **Red C6 - Shoot Park** `[#112]` | Tile C6 (same) | down, at the hive | Shoots 4, then parks | **8**, plus shots | about 8 to 10 s |
 
 - **Default choice: `Shoot Park` from D6 (blue) or C1 (red).** If the shooter or camera is broken but driving works, pick `Move Park`.
-- The time numbers are estimates from a simulation (`testingOps/autos/README.md`). **How many balls it takes to tip the hive is still unknown**, so a tip is a bonus, not a promise (`biobuzz-auto-strategy.md`, section 4).
+- The time numbers are estimates from a simulation (`auto/testing/README.md`). **How many balls it takes to tip the hive is still unknown**, so a tip is a bonus, not a promise (`biobuzz-auto-strategy.md`, section 4).
 - The D1 and C6 starts are tight: the robot starts about half an inch from a flower. Place it centered in the tile and square to the wall.
 
 ### Backup Autos (5): no Pedro, no camera, just drive 24 inches in a straight line
@@ -93,6 +93,14 @@ The code is all still here. To bring one back, put `//` in front of its `@Disabl
 | Auto - Shoot and Park - Alpha 1 | Testing | Test Auto, nobody is using it. Moving it onto the shared firing sequence is `[#89]` |
 | Pedro Forward Back - Alpha | Testing | Pedro tuning test, nobody is using it |
 | 1 Volley Park Mirror - Alpha, 3 Volley Mirror - Alpha, 2 Volley Rear Flower Mirror - Alpha, 2 Volley Wall Flower Mirror - Alpha | Testing | Built for our practice-field layout. **Never run these in a match** |
+
+## Where the files are (moved 2026-11-24)
+
+Under `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/`:
+
+- **`auto/`**: the four `24in` Autos, and `Move Park` and `Shoot Park` from **Blue D6** and **Red C1**.
+- **`auto/testing/`**: `BiobuzzAuto` (the engine the Pedro Autos share: **do not delete this folder**), the **Blue D1** and **Red C6** Autos, plain **Drive Forward** (`AutoEmergencyLeave`), and the hidden 3 Volley and `Leave and Park` Autos.
+- **A folder named `testing` does not hide an Auto.** Only `@Disabled` does. Today **Blue D1, Red C6 and Drive Forward are in `auto/testing/` and are still on the Driver Station list.**
 
 ## Open items that change this sheet
 

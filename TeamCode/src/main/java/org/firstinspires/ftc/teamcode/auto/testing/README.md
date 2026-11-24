@@ -11,7 +11,7 @@ From Joel. I won't be at the event, so this is what you need to run these Autos,
 
 ## What's here
 
-12 Autos: 4 start spots × 3 routines. All 12 run the same code in `BiobuzzAuto.java`, and each small file only selects the alliance, spot and routine.
+12 Autos: 4 start spots × 3 routines. All 12 run the same code in `BiobuzzAuto.java`, and each small file only selects the alliance, spot and routine. **Where the files are (moved 2026-11-24):** `BiobuzzAuto.java` and the D1, C6 and `3 Volley` Autos are in this folder (`auto/testing/`). The D6 and C1 `Move Park` and `Shoot Park` Autos are one folder up, in `auto/`, and import `BiobuzzAuto` from here, so **do not delete this folder**.
 
 | Routine | Does | Est. time | Match-ready? |
 |---|---|---|---|
@@ -28,7 +28,7 @@ From Joel. I won't be at the event, so this is what you need to run these Autos,
 
 Driver Hub names follow the pattern **`<Spot> - <Routine>`**, for example `Blue D6 - Shoot Park`, listed under the **Auto** group. **The four `3 Volley` Autos have been hidden (`@Disabled`) since 2026-11-21, so only the 8 `Move Park` and `Shoot Park` Autos are on the list.** The list as it appears on the Driver Station is in `TeamCode/docs/biobuzz-driver-station-autos.md`. Issue #112 flags the four D1 and C6 Autos "Remove or fix heading" `[#112]`. Blue parks in the blue loading zone (F2), red in the red loading zone (A5). Both come from `FieldConstants.parkPose()`, the same as `AutoLeaveAndPark`.
 
-**Fallbacks** (in the main teamcode folder, not this one): `AutoLeaveAndPark` (LEAVE + PARK from D6/C1; currently `@Disabled`), and `Drive Forward` (`AutoEmergencyLeave`, drives 24 inches measured by the Pinpoint, with a timed backup; no Pedro, LEAVE only) if Pedro or the Pinpoint is down. It does not know the alliance. Four copies of it do (issue #114): `Blue - Drive Forward 24in`, `Red - Drive Forward 24in`, `Blue - Drive Reverse 24in` and `Red - Drive Reverse 24in` (`AutoBlueDriveForward24` and so on). They are "dumb" Autos with no tile or grid reference: the robot drives 24 inches straight from wherever it starts, forward (back against a wall) or backward (intake against a wall), and tells the TeleOp the alliance. They do not hand over a heading, so field-centric drive is only right if the robot started facing down the field map on blue or up on red (see the header of any of the four files).
+**Fallbacks** (not run by `BiobuzzAuto`; `AutoLeaveAndPark` and `AutoEmergencyLeave` are in this folder, and the four 24in copies are in `auto/`, one folder up): `AutoLeaveAndPark` (LEAVE + PARK from D6/C1; currently `@Disabled`), and `Drive Forward` (`AutoEmergencyLeave`, drives 24 inches measured by the Pinpoint, with a timed backup; no Pedro, LEAVE only) if Pedro or the Pinpoint is down. It does not know the alliance. Four copies of it do (issue #114): `Blue - Drive Forward 24in`, `Red - Drive Forward 24in`, `Blue - Drive Reverse 24in` and `Red - Drive Reverse 24in` (`AutoBlueDriveForward24` and so on). They are "dumb" Autos with no tile or grid reference: the robot drives 24 inches straight from wherever it starts, forward (back against a wall) or backward (intake against a wall), and tells the TeleOp the alliance. They do not hand over a heading, so field-centric drive is only right if the robot started facing down the field map on blue or up on red (see the header of any of the four files).
 
 ## Running one at the event
 
