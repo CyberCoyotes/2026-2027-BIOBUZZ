@@ -68,7 +68,6 @@ public class ShooterServoSubsystem {
     // The servo does not tell us when it arrives. This is how long we assume a move takes.
     // (CLOSED to LIFTED is the whole travel, so it may need more time than a shorter move.)
     // Too short and isAtPosition() lies. Too long and we wait for nothing.
-    // TODO (issue #88): Starting guess. Time the gate with a phone stopwatch, then change this number.
     private static final double SERVO_TRAVEL_SECONDS = 0.50;
 
     // How many SECONDS the intake should run in REVERSE after the gate starts to close from OPENED or
@@ -77,9 +76,9 @@ public class ShooterServoSubsystem {
     // only our guess for "long enough to clear the chute", not how long the gate takes.
     //   Bigger  = the intake reverses longer (more sure the chute is clear, slower to get going again).
     //   Smaller = a shorter reverse.
-    // TODO (issue #88): Starting guess (it was 0.75 s from OPENED and 2 s from LIFTED, which was too long). Play with it
     // on the robot with a ball left in the chute.
-    private static final double CLOSE_REVERSE_SECONDS = 0.50;
+    // Ran Fruitport event at 0.50
+    private static final double CLOSE_REVERSE_SECONDS = 0.25;
 
     // ------------------------------------------------------------------
     // State
