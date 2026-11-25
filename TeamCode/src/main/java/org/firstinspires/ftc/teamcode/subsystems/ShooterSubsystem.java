@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 /*
  * Shooter Subsystem
@@ -508,6 +509,33 @@ public class ShooterSubsystem {
 
     public double getMaxHoodWheelTargetRpm() {
         return HOOD_WHEEL_MAX_TARGET_RPM;
+    }
+
+    // ------------------------------------------------------------------
+    // Read-only numbers for FiringMonitor (issue #122). They change nothing on the robot.
+    // ------------------------------------------------------------------
+
+    // How close a wheel must be to its target to count as "at speed", in RPM. FiringMonitor draws
+    // this as a band around the target, so you can see when the flywheel is inside it. The number
+    // lives only here (AT_SPEED_TOLERANCE_RPM), so there is no second copy to forget to change.
+    public double getAtSpeedToleranceRpm() {
+        return AT_SPEED_TOLERANCE_RPM;
+    }
+
+    // The flywheel's RPM worked out from the RAW encoder reading, with NO smoothing. Compare it with
+    // getFlywheelRpm() (smoothed) on a graph to see how much the smoothing hides or delays.
+    public double getFlywheelRawRpm() {
+        return ticksPerSecondToRpm(flywheelTicksPerSecond, FLYWHEEL_TICKS_PER_REV);
+    }
+
+    // How much current the flywheel motor is drawing, in amps. THIS ASKS THE HUB, so it costs a
+    // little loop time every time it is called (the speed readings do not, because bulk reads
+    // already bring them). Only call it while testing. Why it is useful: the speed controller's own
+    // power number is not visible to us, but the current is. A flywheel that is below its target
+    // while drawing a LOT of current has no power left to catch up (weak battery, belt rubbing, a
+    // heavy shot). A flywheel below its target while drawing LITTLE current is a tuning problem.
+    public double getFlywheelCurrentAmps() {
+        return flywheelMotor.getCurrent(CurrentUnit.AMPS);
     }
 
     /*
