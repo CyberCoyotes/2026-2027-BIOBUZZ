@@ -427,7 +427,7 @@ public class BiobuzzTeleOp extends OpMode {
     // false = nothing is sent to Panels. SET IT BACK TO FALSE BEFORE A MATCH.
     // The "VOLLEY WAIT" and "VOLLEY FEED" lines in the Robot Controller log are written either way
     // (see FiringMonitor). How to open Panels: TeamCode/docs/biobuzz-panels-how-to.md.
-    private static final boolean SHOW_PANELS_FIRING_GRAPHS = false;
+    private static final boolean SHOW_PANELS_FIRING_GRAPHS = true; // Change to true for practices
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
