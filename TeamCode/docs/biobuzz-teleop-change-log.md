@@ -4,7 +4,7 @@
 
 ## FIRING MONITOR AND PANELS GRAPHS (issue #122, no new Alpha number)
 
-*The screen name stays "TeleOp - Alpha 15": nothing the driver or operator does has changed. Code written, compiled with `javac` against the real Panels library and stand-ins for the SDK, and run in a simulation. **Not built with Gradle, not run on a robot.***
+*The screen name stays "TeleOp - Alpha 15": nothing the driver or operator does has changed. Compiled with `javac` against the real Panels library and stand-ins for the SDK, and run in a simulation. **Built with Gradle and deployed by the coach; on 2026-11-25 the Panels flywheel graph was seen working on a robot (the switch had to be set to `true` first). The volley log, the other graphs and the flywheel amps are not checked yet.***
 
 ```text
 WHAT CHANGED
