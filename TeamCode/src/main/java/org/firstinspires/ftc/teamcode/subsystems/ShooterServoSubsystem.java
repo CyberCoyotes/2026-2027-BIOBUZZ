@@ -71,7 +71,6 @@ public class ShooterServoSubsystem {
     // The servo does not tell us when it arrives. This is how long we assume a move takes.
     // (CLOSED to LIFTED is the whole travel, so it may need more time than a shorter move.)
     // Too short and isAtPosition() lies. Too long and we wait for nothing.
-    // TODO (issue #88): Starting guess. Time the gate with a phone stopwatch, then change this number.
     private static final double SERVO_TRAVEL_SECONDS = 0.50;
 
     // How many SECONDS the intake should run in REVERSE after the gate starts to close from OPENED or
@@ -80,17 +79,18 @@ public class ShooterServoSubsystem {
     // only our guess for "long enough to clear the chute", not how long the gate takes.
     //   Bigger  = the intake reverses longer (more sure the chute is clear, slower to get going again).
     //   Smaller = a shorter reverse.
-    // TODO (issue #116): Starting guess (it was 0.75 s from OPENED and 2 s from LIFTED, which was too long).
     // Find it at school with "Firing Sequence - Alpha": D-pad Left / Right changes this time by 0.05 s
     // while the OpMode runs. Leave a ball in the chute, fire, let go, and film the throat in slow
     // motion. Find the SHORTEST time that clears the ball every time and the LONGEST time before a ball
     // is pushed out the FRONT of the intake, then type a number a little above the shortest one here.
     // (The steps are in issue #116 and in biobuzz-test-and-match-log.md, section 5.)
-    private static final double CLOSE_REVERSE_SECONDS = 0.50;
+    // on the robot with a ball left in the chute.
+    // Ran Fruitport event at 0.50
+    private static final double CLOSE_REVERSE_SECONDS = 0.25;
 
     // The most nudgeCloseReverseSeconds() can raise the reverse time to, in SECONDS. A long reverse
     // pushes balls out of the FRONT of the intake, so there is a limit. (It also stops a runaway nudge.)
-    private static final double MAX_CLOSE_REVERSE_SECONDS = 2.0;
+    private static final double MAX_CLOSE_REVERSE_SECONDS = 1.0;
 
     // ------------------------------------------------------------------
     // State
