@@ -18,6 +18,7 @@ The code is the source of truth. This table only tells you **where to look and w
 | Camera pipeline index, exposure, gain | `VisionSubsystem` and the Limelight web page | Different arena lighting | `VisionAlpha` |
 | Turret spin-follow gain (`TURRET_FEEDFORWARD_GAIN`) | `BiobuzzTeleOp` | The turret or its controller changes | Spin steadily while aligned and watch `tx` |
 | Intake power, direction | `IntakeSubsystem` | The motor or the chute changes | `IntakeAlpha` |
+| Intake reverse time after the gate closes (`CLOSE_REVERSE_SECONDS`): clears a ball out of the throat | `ShooterServoSubsystem` | The gate speed, the chute, the intake power, the battery, or the balls change | `FiringSequenceAlpha` (D-pad Left / Right nudges the time by 0.05 s, test step 11), or `BiobuzzTeleOp` (fire, let go with a ball left in the chute). Needs the slow-mo video test in section 5 |
 | Drive directions, slow-mode scale | `DriveSubsystem` | Wiring changes | `DriveAlpha` |
 | Pinpoint pod offsets, directions, distance multiplier | `PinpointSubsystem` | A pod moves | `PinpointAlpha` |
 | Drive Forward / Drive Reverse: drive power, coast allowance (`COAST_DISTANCE_INCHES`), safety timeout, backup seconds | Each of the four `AutoBlueDriveForward24`, `AutoRedDriveForward24`, `AutoBlueDriveReverse24`, `AutoRedDriveReverse24` (and `AutoEmergencyLeave`), tuned on its own | The wheels, battery or floor change, or `DRIVE_POWER` changes (a faster robot coasts farther). Tune the coast, not `DRIVE_DISTANCE_INCHES` (the name says `24in`) | The Auto itself: run it 5 times, measure with a tape from the start spot (issue #114) |
@@ -66,3 +67,5 @@ Quick measurements for the strategy docs. These fill in the blanks in `biobuzz-a
 | | Full scoring cycle (reload to last shot) | | | |
 | | Drive from shooting spot to the LOADING ZONE | | | |
 | | Balls it took to tip the hive | (count) | | |
+| | Intake reverse after the gate closes: SHORTEST time that always clears the throat (10 tries in a row, with 1 ball left, then 2, then 3) | | | Phone slow-mo video of the throat, frame count from the gate command to the ball clear. Replaces the guess `CLOSE_REVERSE_SECONDS` 0.50. Chute sensors are issue #116 |
+| | Intake reverse after the gate closes: LONGEST time before a ball is pushed out the FRONT of the intake | | | Same video. The final number goes between the shortest and the longest, closer to the shortest. Test on a fresh battery AND a low one |
