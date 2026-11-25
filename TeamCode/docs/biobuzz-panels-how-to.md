@@ -53,7 +53,7 @@ Copy these lines into the test sheet in `biobuzz-test-and-match-log.md` (section
 
 ## Deploy over wifi (ADB) with the same laptop connection
 
-*Written from standard FTC practice and **not tested by us yet**: fill in what really worked.* The Control Hub accepts ADB over its wifi (port 5555), so one connection to the robot's network serves **both** Panels and Android Studio. No USB cable is needed.
+*Confirmed working by the coach on 2026-11-25: connected with `adb connect 192.168.43.1:5555` and deployed from Android Studio over the robot's wifi.* The Control Hub accepts ADB over its wifi (port 5555), so one connection to the robot's network serves **both** Panels and Android Studio. No USB cable is needed.
 
 1. Deploy once with the USB cable, so the project is built and Gradle has downloaded everything (the robot's wifi has no internet).
 2. Join the Control Hub's wifi network from the laptop.
