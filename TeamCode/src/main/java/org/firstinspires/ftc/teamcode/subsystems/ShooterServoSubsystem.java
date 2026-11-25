@@ -36,6 +36,9 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * isClearingChute() is true for CLOSE_REVERSE_SECONDS after such a close is commanded. A servo
  * cannot tell us when the gate is really shut, so this is a TIMER we tune on the robot, not a
  * measurement. Nothing needs update(): the gate only needs timers.
+ * To FIND the right time, a test OpMode calls nudgeCloseReverseSeconds() (FiringSequenceAlpha: D-pad
+ * Left / Right, 0.05 s per tap). Like nudgePosition(), a nudge only lasts while the OpMode runs, so
+ * type the number you find into CLOSE_REVERSE_SECONDS.
  *
  * Robot configuration (on the Driver Station):
  *   Servo name: shooter_servo   (goBILDA dual mode servo, configured as a plain "Servo")
@@ -77,9 +80,17 @@ public class ShooterServoSubsystem {
     // only our guess for "long enough to clear the chute", not how long the gate takes.
     //   Bigger  = the intake reverses longer (more sure the chute is clear, slower to get going again).
     //   Smaller = a shorter reverse.
-    // TODO (issue #88): Starting guess (it was 0.75 s from OPENED and 2 s from LIFTED, which was too long). Play with it
-    // on the robot with a ball left in the chute.
+    // TODO (issue #116): Starting guess (it was 0.75 s from OPENED and 2 s from LIFTED, which was too long).
+    // Find it at school with "Firing Sequence - Alpha": D-pad Left / Right changes this time by 0.05 s
+    // while the OpMode runs. Leave a ball in the chute, fire, let go, and film the throat in slow
+    // motion. Find the SHORTEST time that clears the ball every time and the LONGEST time before a ball
+    // is pushed out the FRONT of the intake, then type a number a little above the shortest one here.
+    // (The steps are in issue #116 and in biobuzz-test-and-match-log.md, section 5.)
     private static final double CLOSE_REVERSE_SECONDS = 0.50;
+
+    // The most nudgeCloseReverseSeconds() can raise the reverse time to, in SECONDS. A long reverse
+    // pushes balls out of the FRONT of the intake, so there is a limit. (It also stops a runaway nudge.)
+    private static final double MAX_CLOSE_REVERSE_SECONDS = 2.0;
 
     // ------------------------------------------------------------------
     // State
@@ -103,6 +114,11 @@ public class ShooterServoSubsystem {
     private double closedPosition = CLOSED_POSITION;
     private double openedPosition = OPENED_POSITION;
     private double liftedPosition = LIFTED_POSITION;
+
+    // Starts at CLOSE_REVERSE_SECONDS. It is a variable (not a constant) only so
+    // nudgeCloseReverseSeconds() can change it while we are finding the right time.
+    // isClearingChute() reads THIS one, not the constant.
+    private double closeReverseSeconds = CLOSE_REVERSE_SECONDS;
 
     // Times how long ago we last gave the servo a new position.
     private ElapsedTime travelTimer = new ElapsedTime();
@@ -189,6 +205,24 @@ public class ShooterServoSubsystem {
         sendServoToCurrentState();
     }
 
+    /*
+     * For finding how long the intake should reverse after the gate closes. Changes the time
+     * isClearingChute() uses by this many SECONDS: a positive amount makes the reverse LONGER, a
+     * negative amount makes it SHORTER. The result is kept between 0.0 and MAX_CLOSE_REVERSE_SECONDS.
+     *
+     * The time is rounded to two decimals so 0.05 steps stay clean on the screen (0.15, not
+     * 0.15000000000000002), and so the number we read off the screen is exactly the one to type in.
+     * A reverse that is already running uses the new time at once.
+     *
+     * This only changes the number while the OpMode runs. When you find a good time, you still
+     * have to type it into CLOSE_REVERSE_SECONDS above.
+     */
+    public void nudgeCloseReverseSeconds(double amount) {
+        double newSeconds = closeReverseSeconds + amount;
+        newSeconds = Math.round(newSeconds * 100.0) / 100.0;
+        closeReverseSeconds = Range.clip(newSeconds, 0.0, MAX_CLOSE_REVERSE_SECONDS);
+    }
+
     // ==================================================================
     // QUESTIONS: the OpMode asks the gate what is happening
     // ==================================================================
@@ -219,12 +253,19 @@ public class ShooterServoSubsystem {
     }
 
     /*
-     * True for CLOSE_REVERSE_SECONDS after the gate is commanded to close from OPENED or LIFTED.
+     * True for the reverse time (CLOSE_REVERSE_SECONDS, unless nudgeCloseReverseSeconds() changed it)
+     * after the gate is commanded to close from OPENED or LIFTED.
      * The OpMode reverses the intake while this is true. It is false when the gate was already
      * closed, and it goes false at once if the gate is told to open or lift. A TIME GUESS.
      */
     public boolean isClearingChute() {
-        return chuteClearing && chuteClearTimer.seconds() < CLOSE_REVERSE_SECONDS;
+        return chuteClearing && chuteClearTimer.seconds() < closeReverseSeconds;
+    }
+
+    // How many SECONDS the intake reverses after the gate closes right now (CLOSE_REVERSE_SECONDS,
+    // or the nudged number). This is the number to type into CLOSE_REVERSE_SECONDS.
+    public double getCloseReverseSeconds() {
+        return closeReverseSeconds;
     }
 
     // The position (0.0 to 1.0) we are currently sending to the servo.
@@ -247,6 +288,7 @@ public class ShooterServoSubsystem {
         telemetry.addData("Gate State", state);
         telemetry.addData("Gate Position", "%.3f", getTargetPosition());
         telemetry.addData("Clearing chute (intake reverse)?", isClearingChute());
+        telemetry.addData("Intake reverse after close", "%.2f s", closeReverseSeconds);
         telemetry.addData("Gate At Position?", isAtPosition());
         telemetry.addData("Closed Position", "%.3f", closedPosition);
         telemetry.addData("Opened Position", "%.3f", openedPosition);
