@@ -2,6 +2,32 @@
 
 *This text used to be the top of `BiobuzzTeleOp.java`. It was moved here, unchanged, so the file's header can describe how the TeleOp works **right now**. Each entry is what the code did when that Alpha was written: later Alphas may have replaced it (for example, the gentle gate close in Alpha 13 was removed later). When something here and the code disagree, the code wins. The current button map is in `biobuzz-teleop-controls.md`.*
 
+## FIRING MONITOR AND PANELS GRAPHS (issue #122, no new Alpha number)
+
+*The screen name stays "TeleOp - Alpha 15": nothing the driver or operator does has changed. Compiled with `javac` against the real Panels library and stand-ins for the SDK, and run in a simulation. **Built with Gradle and deployed by the coach; on 2026-11-25 the Panels flywheel graph was seen working on a robot (the switch had to be set to `true` first). The volley log, the other graphs and the flywheel amps are not checked yet.***
+
+```text
+WHAT CHANGED
+  1. NEW CLASS FiringMonitor (subsystems/): it only LOOKS at the shooter, the gate, the firing sequence,
+     the camera and the battery. It moves nothing and changes no decision. BiobuzzTeleOp creates it in
+     init() and calls update() once per loop, after the gate and the intake were set (step 3, just
+     before the buttons are remembered).
+  2. THE VOLLEY LOG (always on): two lines per volley in the Robot Controller log, "VOLLEY WAIT" (how
+     long the volley waited, whether it was the flywheel, the turret or both, the flywheel RPM at the
+     trigger pull, PRE-REV, TABLE or DIAL, battery) and "VOLLEY FEED" (dips, intake paused, lowest
+     flywheel RPM and battery).
+  3. PANELS GRAPHS (practice only): SHOW_PANELS_FIRING_GRAPHS at the top of BiobuzzTeleOp, false by
+     default. true sends the flywheel, the green-light answers, the camera, the battery, the loop time
+     and the buttons to Panels. How to use it: biobuzz-panels-how-to.md. SET IT BACK TO FALSE BEFORE A
+     MATCH.
+  4. ShooterSubsystem got three read-only getters: getAtSpeedToleranceRpm(), getFlywheelRawRpm() and
+     getFlywheelCurrentAmps(). The current getter asks the hub, so it is only called while Panels is on
+     (GRAPH_FLYWHEEL_CURRENT in FiringMonitor).
+  5. WHY: the operator often presses Y or B because the gate waits too long (issue #122). The log and
+     the graphs say whether it waits on the flywheel (spin-up from 0 RPM without PRE-REV, a droop, a
+     noisy reading) or on the turret (camera tx wobbling across the 2 degree limit).
+```
+
 ## ALPHA 15: THE FLOWER PICKER (issue #75)
 
 *The screen name became "TeleOp - Alpha 15" (it was Alpha 14). The three Autos' `preselectTeleOp`, the comments and the docs that name it were changed to match, and the Alpha 14 entries below stay as they were written.*

@@ -31,6 +31,16 @@ The code is the source of truth. This table only tells you **where to look and w
 |---|---|---|---|---|---|---|
 | | | | | | | |
 
+### 2a. Firing sequence test (issue #122)
+
+*Why: the gate does not always open on time and the operator presses Y or B by hand. Two robots, TABLE mode with the camera, PRE-REV off, battery 12.5 V no load (fresh off the charger it is 13.5 to 14 V). **Write your guess before you test**, then compare. How to see the numbers: `biobuzz-panels-how-to.md`.*
+
+Test 5 volleys each, same robot, same spot: **(1)** TABLE, PRE-REV off. **(2)** TABLE, PRE-REV on (D-pad Up, wait for the wheels, then pull the trigger). **(3)** the same as (1) with a fresh battery. Copy the two `VOLLEY` lines from the log (or `Last wait` and `Last feed` in Panels) into each row.
+
+| Date | Robot | Battery V (no load) | Test (1, 2 or 3) | Flywheel RPM at the pull | Seconds to ready | Waited on (flywheel / turret / both, s) | Y or B pressed? | Flywheel low during feed | Peak amps | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | | |
+
 ## 3. Match log
 
 Fill in one row after **every** match, including practice matches.
