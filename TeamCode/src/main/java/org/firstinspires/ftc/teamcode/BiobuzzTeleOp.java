@@ -10,6 +10,7 @@ import org.firstinspires.ftc.teamcode.subsystems.AutoHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.BiobuzzLog;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.FiringMonitor;
 import org.firstinspires.ftc.teamcode.subsystems.FiringSequence;
 import org.firstinspires.ftc.teamcode.subsystems.FlowerPickerSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.HiveBearingMemory;
@@ -418,6 +419,16 @@ public class BiobuzzTeleOp extends OpMode {
     // when you are debugging something and want everything back.
     private static final boolean FULL_TELEMETRY = false;
 
+    // PANELS GRAPHS (issue #122). true = send live numbers about the firing sequence to Panels: the
+    // flywheel's RPM against its target, the "ready" answers (flywheel, turret), the camera, the
+    // battery, and what the driver and operator are pressing. A laptop on the robot's wifi can then
+    // graph them. This is for PRACTICE ONLY: a laptop cannot be connected during a match, and the
+    // flywheel current graph asks the hub for one extra number every loop.
+    // false = nothing is sent to Panels. SET IT BACK TO FALSE BEFORE A MATCH.
+    // The "VOLLEY WAIT" and "VOLLEY FEED" lines in the Robot Controller log are written either way
+    // (see FiringMonitor). How to open Panels: TeamCode/docs/biobuzz-panels-how-to.md.
+    private static final boolean SHOW_PANELS_FIRING_GRAPHS = true; // Change to true for practices
+
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -446,6 +457,8 @@ public class BiobuzzTeleOp extends OpMode {
     private HiveBearingMemory hiveMemory;
     private ShotTable shotTable;
     private FiringSequence firingSequence;
+    // Watches the firing sequence (the volley log, and the Panels graphs when they are switched on).
+    private FiringMonitor firingMonitor;
 
     // PRE-REV (the driver's D-pad Up): are the wheels spinning even though nobody is firing?
     private boolean preRevOn = false;
@@ -1219,6 +1232,9 @@ public class BiobuzzTeleOp extends OpMode {
         hiveMemory = new HiveBearingMemory();
         shotTable = new ShotTable();
         firingSequence = new FiringSequence();
+        // The monitor only LOOKS at the subsystems above (it moves nothing), so it comes last.
+        firingMonitor = new FiringMonitor(shooterSubsystem, shooterServoSubsystem, firingSequence,
+                visionSubsystem, powerMonitorSubsystem, AIMED_TOLERANCE_DEGREES, SHOW_PANELS_FIRING_GRAPHS);
 
         telemetry.addData("Status", "Initialized");
         addControlsTelemetry();
@@ -1740,6 +1756,17 @@ public class BiobuzzTeleOp extends OpMode {
 
         // The operator's bumpers move the flower picker (it has nothing to do with the intake above).
         checkFlowerPickerButtons();
+
+        // The FIRING MONITOR (issue #122). It only LOOKS: it writes the volley log, and when
+        // SHOW_PANELS_FIRING_GRAPHS is true it sends the graph numbers to Panels. It comes after the
+        // sequence, the gate and the intake were set, so every answer is fresh. The "waiting for"
+        // words are only needed while a volley waits, so they are only built then.
+        String waitingForText = "";
+        if (firingSequence.getState() == FiringSequence.SequenceState.WAIT_FOR_READY) {
+            waitingForText = getWaitingText(flywheelAtSpeed, hasTarget, aimedNow, aimedAtHive, turretHeld);
+        }
+        firingMonitor.update(fireHeld, forcedShotHeld, gateLiftedPressed, turretReady, readyToStart,
+                tableMode, preRevOn, thisLoopMs, waitingForText);
 
         // Remember this loop's buttons for the next loop.
         wasDpadUpPressed = dpadUpPressed;
