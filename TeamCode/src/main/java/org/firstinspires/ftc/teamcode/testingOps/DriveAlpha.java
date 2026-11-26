@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.utils.HiveBearingMemory;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 
 /*
  * Drive Alpha
@@ -141,6 +142,9 @@ public class DriveAlpha extends OpMode {
     private ElapsedTime runtime = new ElapsedTime();
     private DriveSubsystem driveSubsystem;
     private PinpointSubsystem pinpointSubsystem;
+
+    // Sends this OpMode's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
 
     // Does the driver WANT field-centric? (Back switches it.) It starts ON.
     private boolean fieldCentricWanted = true;
@@ -375,6 +379,9 @@ public class DriveAlpha extends OpMode {
         // does not stop the OpMode (it just drives robot-centric).
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
 
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
+
         telemetry.addData("Status", "Initialized");
         addControlsTelemetry();
     }
@@ -417,6 +424,9 @@ public class DriveAlpha extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Read sensors. (The drive has none. The Pinpoint gives the robot's heading.)
         pinpointSubsystem.update();
         checkPinpointHealth();
@@ -498,6 +508,23 @@ public class DriveAlpha extends OpMode {
         if (SHOW_CONTROLS_WHILE_RUNNING) {
             addControlsTelemetry();
         }
+
+        // Panels graphs: add this OpMode's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs(forward, strafe, turn);
+        panelsGraphs.send();
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names (see
+    // PanelsGraphs), so Panels can graph them. It does nothing on a loop Panels will not send.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs(double forward, double strafe, double turn) {
+        if (!panelsGraphs.isFrameOpen()) {
+            return;
+        }
+        // The sticks as the drive got them (after the deadband). The wheel powers are private inside DriveSubsystem.
+        panelsGraphs.addDriveInputs(forward, strafe, turn);
+        panelsGraphs.addPinpoint(pinpointSubsystem);
     }
 
     /*

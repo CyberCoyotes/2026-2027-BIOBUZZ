@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 
@@ -120,6 +121,9 @@ public class ShooterRatioAlpha extends OpMode {
     private ShooterServoSubsystem shooterServoSubsystem;
     private IntakeSubsystem intakeSubsystem;
 
+    // Sends this OpMode's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
+
     // The dials, in whole numbers.
     private int flywheelRpmDial = FLYWHEEL_RPM_START;
     private int ratioHundredths = RATIO_HUNDREDTHS_START;
@@ -189,6 +193,9 @@ public class ShooterRatioAlpha extends OpMode {
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
 
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
+
         telemetry.addData("Status", "Initialized");
         addControlsTelemetry();
     }
@@ -220,6 +227,9 @@ public class ShooterRatioAlpha extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Read sensors. (The shooter reads its own encoders inside update(), below.)
         intakeSubsystem.update();
 
@@ -409,6 +419,25 @@ public class ShooterRatioAlpha extends OpMode {
         if (SHOW_CONTROLS_WHILE_RUNNING) {
             addControlsTelemetry();
         }
+
+        // Panels graphs: add this OpMode's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs();
+        panelsGraphs.send();
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names (see
+    // PanelsGraphs), so Panels can graph them. It does nothing on a loop Panels will not send.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs() {
+        if (!panelsGraphs.isFrameOpen()) {
+            return;
+        }
+        // true = also graph the flywheel's current (amps). It asks the hub, which is fine in a test.
+        panelsGraphs.addShooter(shooterSubsystem, true);
+        panelsGraphs.addFlag("At speed (1=yes)", shooterSubsystem.isFlywheelAtSpeed());
+        panelsGraphs.addGate(shooterServoSubsystem);
+        panelsGraphs.addIntake(intakeSubsystem);
     }
 
     /*

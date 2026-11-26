@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 
 /*
  * Pinpoint Testing, Alpha
@@ -60,6 +61,9 @@ public class PinpointAlpha extends OpMode {
 
     private PinpointSubsystem pinpointSubsystem;
 
+    // Sends this OpMode's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
+
     // Used so each button press counts ONCE, no matter how long it is held.
     private boolean wasAPressed = false;
     private boolean wasBPressed = false;
@@ -71,6 +75,9 @@ public class PinpointAlpha extends OpMode {
     public void init() {
         // The Pinpoint zeros itself and calibrates its gyro here, so keep the robot STILL.
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
+
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
 
         telemetry.addData("Status", "Initialized");
         telemetry.addLine("Keep the robot still during INIT (the gyro is calibrating).");
@@ -93,6 +100,9 @@ public class PinpointAlpha extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Read the sensor.
         pinpointSubsystem.update();
 
@@ -113,6 +123,26 @@ public class PinpointAlpha extends OpMode {
         // 4. Show what is happening on the Driver Station.
         telemetry.addLine("Push the robot by hand.  A = zero here.  B = recalibrate (robot STILL).");
         addPinpointTelemetry();
+
+        // Panels graphs: add this OpMode's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs();
+        panelsGraphs.send();
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names (see
+    // PanelsGraphs), so Panels can graph them. It does nothing on a loop Panels will not send.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs() {
+        if (!panelsGraphs.isFrameOpen()) {
+            return;
+        }
+        panelsGraphs.addPinpoint(pinpointSubsystem);
+        if (pinpointSubsystem.isAvailable()) {
+            panelsGraphs.add("Forward pod ticks", pinpointSubsystem.getForwardPodTicks());
+            panelsGraphs.add("Sideways pod ticks", pinpointSubsystem.getSidewaysPodTicks());
+            panelsGraphs.add("Pinpoint update rate (Hz)", pinpointSubsystem.getPinpointFrequencyHz());
+        }
     }
 
     /*
