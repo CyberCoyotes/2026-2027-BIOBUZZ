@@ -1,9 +1,11 @@
 package org.firstinspires.ftc.teamcode.auto.testing;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.BiobuzzTeleOp;
 import org.firstinspires.ftc.teamcode.utils.AutoHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
@@ -13,6 +15,12 @@ import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
  * The simplest Auto there is (rung A-0 in TeamCode/docs/biobuzz-auto-strategy.md). The robot drives
  * straight FORWARD 24 inches and stops. That is LEAVE = 3 points, as long as the robot is no
  * longer touching the perimeter wall when AUTO ends.
+ *
+ * HIDDEN (2026-11-26, issue #136): this Auto does not know which alliance we are on, so after it the
+ * TeleOp falls back to BLUE, and a RED team would aim at the wrong hive. The coach decided that
+ * every Auto on the Driver Station must name its alliance. The four "Blue / Red - Drive Forward /
+ * Reverse 24in" Autos (in auto/) are copies of this one that do. The code is all still here. To
+ * bring it back, put // in front of the @Disabled line below and redeploy.
  *
  * WHEN TO USE IT
  *   - Pedro Pathing is not tuned yet (FORESIGHT_TUNED is false), so AutoLeaveAndPark will not
@@ -60,8 +68,9 @@ import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
  * Nothing moves during INIT (rule G403). The robot only moves after START. Stop it any time with
  * the Driver Station STOP button.
  */
+@Disabled
 @Autonomous(name = "Drive Forward", group = "Auto",
-        preselectTeleOp = "TeleOp - Alpha 15")
+        preselectTeleOp = BiobuzzTeleOp.TELEOP_NAME)
 public class AutoEmergencyLeave extends OpMode {
 
     // ------------------------------------------------------------------

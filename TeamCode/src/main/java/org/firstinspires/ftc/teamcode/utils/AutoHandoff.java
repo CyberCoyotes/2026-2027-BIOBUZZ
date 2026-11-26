@@ -31,7 +31,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   - The Robot Controller app was restarted, or the Control Hub was power cycled, between the
  *     Auto and the TeleOp. The statics start empty again.
  *   - The Auto was never started (INIT only). Autos save the alliance at START, not at INIT.
- *   - The Auto does not know the alliance (AutoEmergencyLeave). It calls clear() instead.
+ *   - The Auto does not know the alliance (AutoEmergencyLeave, now hidden: every Auto on the Driver
+ *     Station names its alliance, issue #136). Such an Auto calls clear() instead.
  *   - Too much time has passed. See MAX_AGE_SECONDS.
  *
  * HOW THE OPMODES USE IT
@@ -40,7 +41,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   The TeleOp, at INIT:  if (AutoHandoff.hasFreshAlliance()) { use AutoHandoff.getAlliance(); }
  *                         if (AutoHandoff.hasFreshHeading())  { use AutoHandoff.getHeadingDegrees(); }
  *   The TeleOp, at START: AutoHandoff.clearHeading();   (see below)
- *   The operator can still switch the alliance with START on either gamepad, as always. The
+ *   The driver can still set the alliance (HOLD X = BLUE, HOLD B = RED, issue #136). The
  *   driver can still re-aim with D-pad Left, as always.
  *
  * WHY THE TELEOP "SPENDS" THE HEADING AT START

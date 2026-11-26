@@ -12,14 +12,15 @@
 | Pinpoint says NOT FOUND, all numbers 0 | The config still uses last season's name `odo`. | Rename it to `pinpoint` (steps in `pinpoint-setup-guide.md`). |
 | Home switch always reads the wrong way or the code cannot read it | Configured as "REV Touch Sensor" instead of **Digital Device**. | Reconfigure as a Digital Device. |
 | Gamepads do nothing | Not paired. | **Start + A** (driver) and **Start + B** (operator). Logitech switch on **X**. |
-| A gamepad was paired (or re-paired) while the TeleOp was running and the alliance flipped | Pairing is **Start + A** (driver) or **Start + B** (operator), so it also presses **START** in the OpMode, and START switches the alliance on **both** gamepads. | Check the alliance on the screen and press START again if it is wrong. Better: pair before pressing START on the Driver Station. |
+| A gamepad was paired (or re-paired) while an OpMode was running and the alliance flipped | Pairing is **Start + A** (driver) or **Start + B** (operator), so it also presses **START** in the OpMode. **`TeleOp - RC 1` does not use START for the alliance any more (issue #136), so this cannot happen there.** It can still happen in the test OpModes (for example `Firing Sequence - Alpha`), where START switches the alliance. | In a test OpMode: check the alliance on the screen and press START again if it is wrong. Better: pair before pressing START on the Driver Station. |
 | The operator paired gamepad 2 while the TeleOp was running and the gate opened (and the wheels and the intake ran) | **B** on gamepad 2 is the FORCED SHOT button (wheels on, gate OPENED, intake running, checks skipped), and the pairing combo Start + B holds it. (Gamepad 1's buttons do not move the gate.) | Press **X** on gamepad 2 to close it (it closes gently, and the intake reverses for that moment). Pair before START. |
 
 ## Shooting
 
 | Symptom | Likely cause | Check |
 |---|---|---|
-| Turret tracks the wrong hive | Alliance is wrong. TeleOp **starts BLUE**. | Screen alliance line; **Start** on either gamepad switches it. |
+| Turret tracks the wrong hive | Alliance is wrong. TeleOp **starts BLUE**, or on the alliance of the Auto that just ran (it falls back to BLUE if the Auto was never STARTed, the app restarted, or more than 5 minutes passed). | Screen alliance line. The **driver holds X (BLUE) or B (RED) for 1 second** until the line changes. |
+| The driver held X or B and the alliance did not change | **SOLO MODE is on** (the alliance buttons are off there, because B is the forced shot), or **both** X and B were held, or the button was let go before 1 second. | Turn SOLO MODE off (gamepad 1 **LOGO**), then hold **one** button (X = BLUE, B = RED) until the screen line changes. In a solo match at home, set the alliance **before** turning SOLO MODE on. |
 | Turret does not move on its own | No target (the turret holds when it sees nothing), or gamepad 2's **A** is being held (it floats the turret). | Screen says **NO TARGET**? Point the robot at the hive. Is someone holding gamepad 2 **A**? (ALWAYS-TRACK has no off switch any more.) |
 | Turret hits a limit in the wrong place, or the zero is off | Power-up position was not "on the home switch, pointing straight ahead". 0 degrees is wherever the turret sat at power-up if the switch did not re-zero it. | Reset the turret by hand on the switch and power cycle. |
 | Turret coasts further than expected past +/-120 degrees | Turret power is now 100%, and stopping distance grows with speed squared. | Ease the stick into a limit. (Not yet tested at 100%.) |

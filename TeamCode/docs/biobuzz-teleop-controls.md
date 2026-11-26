@@ -1,20 +1,20 @@
 # BIOBUZZ TeleOp Controls: Driver and Operator
 
-**Print pages 1 and 2 only.** Page 1 is the **driver's** table and page 2 is the **operator's** table, each on its own page. Everything after them is the explanation, for reading before practice. This sheet matches **`TeleOp - Alpha 15`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet. The controls for every other OpMode (the test Alphas) are in `biobuzz-opmode-controls.md`. **Last checked against the code: 2026-11-24 (Issue #118).** Every gamepad read in `BiobuzzTeleOp`, the dial ranges and steps, the wall shot numbers and the slow-mode speed matched both tables. The Autos you can pick before this TeleOp are on `biobuzz-driver-station-autos.md`.
+**Print pages 1 and 2 only.** Page 1 is the **driver's** table and page 2 is the **operator's** table, each on its own page. Everything after them is the explanation, for reading before practice. This sheet matches **`TeleOp - RC 1`** (`BiobuzzTeleOp.java`). If the code changes, update this sheet. The controls for every other OpMode (the test Alphas) are in `biobuzz-opmode-controls.md`. **The alliance buttons changed on 2026-11-26 (issue #136): the driver holds X (BLUE) or B (RED) for 1 second, and START no longer touches the alliance. Reprint both pages.** **Last checked against the code: 2026-11-24 (Issue #118), plus the alliance change above.** Every gamepad read in `BiobuzzTeleOp`, the dial ranges and steps, the wall shot numbers and the slow-mode speed matched both tables. The Autos you can pick before this TeleOp are on `biobuzz-driver-station-autos.md`.
 
 **How to read the tables:** every button has a row, except the two thumbstick presses. A **—** means **nothing is assigned**, so it is free if we need a new control. **HOLD** means the action lasts only while the button is held. The other buttons are **one move per press**: holding does not repeat. Words in *italics* point to a section in the notes after the tables.
 
 ## Gamepad 1: DRIVER
 
-**Your job:** drive and run the **intake**. The **operator fires**. The turret aims itself. **Before START:** pair with **Start + A**, then check the **alliance** (Start) on the screen.
+**Your job:** drive and run the **intake**, and **set the alliance**. The **operator fires**. The turret aims itself. **Before START:** pair with **Start + A**, then set and check the **alliance** on the screen (**hold X** = BLUE, **hold B** = RED).
 
 | Button | What it does |
 |---|---|
 | **Left Stick** | Drive forward / backward and slide (strafe) left / right |
 | **Right Stick** | Turn (push right to turn right) |
 | **A** | — |
-| **B** (HOLD) | **SOLO MODE only:** FORCED SHOT (same as the operator's B). Does nothing otherwise |
-| **X** | — |
+| **B** (HOLD) | **ALLIANCE RED:** hold for 1 second (the red button). **In SOLO MODE** it is the FORCED SHOT instead (same as the operator's B), and does **not** change the alliance |
+| **X** (HOLD) | **ALLIANCE BLUE:** hold for 1 second (the blue button). Does nothing in SOLO MODE |
 | **Y** (HOLD) | **SOLO MODE only:** lift the shooter gate (same as the operator's Y). Does nothing otherwise |
 | **Left Bumper (LB)** | **REVERSE** the intake (push balls out). Beats everything, so it always clears a jam |
 | **Right Bumper (RB)** | **INTAKE** (pull balls in). **The intake is the driver's only** |
@@ -24,7 +24,7 @@
 | **D-pad Down** | — |
 | **D-pad Left** | **RE-AIM:** "the way the robot faces right now is **away from me**." Press it if the robot was turned or bumped |
 | **D-pad Right** | — |
-| **Start** | **ALLIANCE** BLUE / RED (same as the operator's). Starts **BLUE**. **Check the screen** |
+| **Start** | — (only for pairing: Start + A). The alliance starts **BLUE**, or the alliance of the Auto that just ran. **Check the screen** |
 | **Back** | Drive **FIELD-CENTRIC / ROBOT-CENTRIC** (same as the operator's). Starts **FIELD-CENTRIC** |
 | **Guide** (center logo) | **SOLO MODE** on / off, for a one-person match. Starts **OFF**. Screen says **SOLO MODE ON** |
 
@@ -34,7 +34,7 @@
 
 ## Gamepad 2: OPERATOR
 
-**Your job:** **fire** (RT), set the shooter speeds, move the shooter gate, force a shot when the checks are wrong (B), move the **flower picker** (the bumpers), and check the alliance. **The intake is the driver's.** You do not aim the turret: it tracks the hive by itself. **Every button always does the same thing** (no layers). **Before START:** pair with **Start + B**, then check the **alliance** on the screen.
+**Your job:** **fire** (RT), set the shooter speeds, move the shooter gate, force a shot when the checks are wrong (B), move the **flower picker** (the bumpers), and check the alliance on the screen (the **driver** sets it). **The intake is the driver's.** You do not aim the turret: it tracks the hive by itself. **Every button always does the same thing** (no layers). **Before START:** pair with **Start + B**, then check the **alliance** on the screen.
 
 | Button | What it does |
 |---|---|
@@ -52,11 +52,11 @@
 | **D-pad Down** | Flywheel target **DOWN** 100 RPM |
 | **D-pad Left** | Ratio (hood wheel / flywheel) **DOWN** 0.05 (range 1.00 to 3.00) |
 | **D-pad Right** | Ratio (hood wheel / flywheel) **UP** 0.05 |
-| **Start** | **ALLIANCE** BLUE / RED (same as the driver's). Starts **BLUE**. **Check the screen**: the wrong alliance aims at the other hive |
+| **Start** | — (only for pairing: Start + B). The **driver** sets the alliance (hold X or B). **Check the screen**: the wrong alliance aims at the other hive |
 | **Back** | Drive **FIELD-CENTRIC / ROBOT-CENTRIC** (same as the driver's) |
 | **Guide** (center **LOGO**) | Flywheel speed source **TABLE / DIAL**. Starts **TABLE** (the camera) |
 
-**Starts at:** flywheel **1300 RPM**, ratio **2.00** (hood wheel 2600 RPM). **X and Y at once:** CLOSED wins. **During a volley or forced shot** X does nothing. **While LT (wall shot) is held,** B and RT do nothing. **Pairing while the TeleOp runs** flips the alliance and starts a forced shot: pair before START.
+**Starts at:** flywheel **1300 RPM**, ratio **2.00** (hood wheel 2600 RPM). **X and Y at once:** CLOSED wins. **During a volley or forced shot** X does nothing. **While LT (wall shot) is held,** B and RT do nothing. **Pairing gamepad 2 while the TeleOp runs** starts a forced shot (the pairing combo holds B): pair before START. (It can no longer flip the alliance: Start is not the alliance button, issue #136.)
 
 <div style="page-break-after: always"></div>
 
@@ -66,7 +66,7 @@
 
 **Pairing:** on the Driver Station, press **Start + A** on the driver's controller (gamepad 1) and **Start + B** on the operator's controller (gamepad 2).
 
-**Pairing warning:** if you pair or re-pair either controller while this OpMode is running, **Start flips the alliance** (it may flip to the wrong one), and **B starts a FORCED SHOT** (on gamepad 2: the wheels spin and the gate opens and the intake runs, for as long as the pairing combo holds B). **Keep hands and balls clear.** Pair before START, or check the **Alliance** line and the gate on the screen afterward.
+**Pairing warning:** if you pair or re-pair gamepad 2 while this OpMode is running, **B starts a FORCED SHOT** (the wheels spin and the gate opens and the intake runs, for as long as the pairing combo holds B). **Keep hands and balls clear.** Pair before START, or check the gate on the screen afterward. **The alliance is safe from pairing now** (issue #136): START does nothing in this TeleOp, and the alliance buttons (the driver's X and B) have to be held for 1 second, which pairing does not do. (Gamepad 1 pairs with Start + A, and A does nothing here.)
 
 **Logitech controller (F310 / F710):** set the switch on the back to **X** (XInput mode), not D. The buttons are then labeled A, B, X, Y like the code. Bumpers are **LB / RB** and triggers are **LT / RT**. (The screen may call it an "XBOX_360" controller: that is only the SDK's label for a Logitech in X mode.)
 
@@ -76,7 +76,7 @@
 
 **Safety:** keep hands, hair, and loose clothing away from the shooter wheels, and keep everyone out of the path of the ball. Keep a hand near the **Stop** button when testing the turret.
 
-**Free buttons right now (blank in the tables):** on gamepad 1: A, X, D-pad Down, D-pad Right. On gamepad 2: both sticks. (Gamepad 1's Right Trigger, Y and B only do something in SOLO MODE, its D-pad Up is PRE-REV, Start is the alliance, Back is the drive toggle and LOGO is the SOLO MODE toggle.)
+**Free buttons right now (blank in the tables):** on gamepad 1: A, D-pad Down, D-pad Right (and Start, which is only for pairing). On gamepad 2: both sticks (and Start). (Gamepad 1's Right Trigger and Y only do something in SOLO MODE, its B is the RED alliance button (and the forced shot in SOLO MODE), its X is the BLUE alliance button, its D-pad Up is PRE-REV, Back is the drive toggle and LOGO is the SOLO MODE toggle.)
 
 ## The firing sequence (the operator holds the Right Trigger)
 
@@ -108,7 +108,7 @@ An override for when the READY checks are wrong, for example the camera is dead 
 A dumb shot from a known spot, up against the wall. The **turret goes straight ahead (0)** and the wheels run at **fixed speeds** (flywheel 1300, hood wheel 2600 RPM), with no camera and no READY checks. After a **1.5 s delay** the gate **OPENS** and the intake runs. **Let go and the gate CLOSES** (with the 0.5 s intake reverse) and the wheels go to 0 power (unless PRE-REV is on). While LT is held, B and RT do nothing. A still floats the turret. The driver has no copy of it (the driver's LT is SLOW MODE). The two speeds and the delay are still to be verified on the robot.
 
 ### SOLO MODE (one person)
-Press **LOGO** on gamepad 1. Now the driver's Right Trigger fires too, the driver's **Y** (hold) lifts the gate, and the driver's **B** (hold) is the forced shot (the operator's buttons still work if there is one). In a solo match **nobody can use the rest of the operator's buttons**: gate CLOSED (X), the wall shot (LT), the dials, DIAL / TABLE (gamepad 2 LOGO) and the flower picker (gamepad 2 bumpers). You **can** still set the alliance (**START**) and switch field / robot centric (**BACK**) yourself. The speed source now starts on **TABLE**, so in a solo match **the camera must see the hive before a volley will start**. If the camera cannot see it, someone has to press gamepad 2 **LOGO** to switch to **DIAL** before the match. LOGO is known to reach the Robot Controller on our controllers; the INIT screen's **BUTTON TEST** shows every button each gamepad reports if you want to check.
+Press **LOGO** on gamepad 1. Now the driver's Right Trigger fires too, the driver's **Y** (hold) lifts the gate, and the driver's **B** (hold) is the forced shot (the operator's buttons still work if there is one). In a solo match **nobody can use the rest of the operator's buttons**: gate CLOSED (X), the wall shot (LT), the dials, DIAL / TABLE (gamepad 2 LOGO) and the flower picker (gamepad 2 bumpers). The **alliance buttons (hold X / B) are switched off in SOLO MODE**, because B is the forced shot there: **set the alliance BEFORE you turn SOLO MODE on** (it starts BLUE, and solo matches only happen at home on BLUE). You **can** still switch field / robot centric (**BACK**) yourself. The speed source now starts on **TABLE**, so in a solo match **the camera must see the hive before a volley will start**. If the camera cannot see it, someone has to press gamepad 2 **LOGO** to switch to **DIAL** before the match. LOGO is known to reach the Robot Controller on our controllers; the INIT screen's **BUTTON TEST** shows every button each gamepad reports if you want to check.
 
 ### Not tested on a robot yet
 Whether the last ball leaves with the Y lift, whether pausing the intake when the turret is off feels right (a flickering camera pauses it for a moment), and whether a ball gets caught when the gate closes.
@@ -121,7 +121,7 @@ Whether the last ball leaves with the Y lift, whether pausing the intake when th
 - **The turret keeps pointing at the hive while you spin, even if the camera loses it.** The Pinpoint remembers which way the hive was. It gives up (screen: **Hive memory ... STALE**, turret holds still) if you drive more than **12 inches** or **5 seconds** pass without the camera seeing the hive. When the camera sees the hive again it takes over.
 - The turret **always tracks the hive**, so you don't need to hold anything to aim. If the screen says **NO TARGET**, the turret just holds where it is, so check the alliance and point the robot toward the hive.
 - The operator's **A** (hold) floats the turret, so don't be surprised if the turret stops following while they hold it.
-- **The shooter gate is the sequence's job during a volley**, and the operator's (X / Y between volleys, B for a forced shot, LT for the wall shot, all on gamepad 2). Your X does nothing, and your Y (lift) and B (forced shot) only work in SOLO MODE.
+- **The shooter gate is the sequence's job during a volley**, and the operator's (X / Y between volleys, B for a forced shot, LT for the wall shot, all on gamepad 2). Your X does not touch the gate (hold it for the BLUE alliance), and your Y (lift) and B (forced shot) only work in SOLO MODE (with SOLO MODE off, holding B sets the RED alliance).
 - You do not wait for "OK to shoot" any more: the volley waits for you. It checks the **flywheel only** (within 25 RPM for 0.15 s), plus the turret. The screen also shows the **hood wheel's error** and the old **"OK to shoot?"** line (both wheels), for information.
 - **There is no way to reverse the shooter wheels** from the controllers. If a ball jams in the wheels, stop the robot and clear it by hand (power off first). The intake REVERSE (your Left Bumper) still works for the intake.
 
@@ -129,10 +129,12 @@ Whether the last ball leaves with the Y lift, whether pausing the intake when th
 The turret follows the hive **all the time**, with no button held, and it also follows the robot's spin. There is **no switch** for it any more: it is always ON. It never moves during INIT.
 - **A (hold)** floats the turret so you can turn it by hand (for example, to line it up before a match). Let go and it goes back to tracking.
 - If the camera loses the hive, the turret **holds** where it is. It does not search.
-- **Check the alliance (Start button, on either gamepad) before START.** The wrong alliance tracks the other team's hive.
+- **Check the alliance on the screen before START.** The wrong alliance tracks the other team's hive. The **driver** fixes it: **hold X** for BLUE or **hold B** for RED, for 1 second, until the screen line changes.
 - The turret will not go past **±120 degrees** (see `TurretSubsystem`). **0 degrees** is where the turret pointed when the Control Hub powered on, because the home switch is not installed yet. Power on with the turret pointing straight ahead, or the limits will be measured from the wrong place.
 
 ## Alliance and speed source
+**The alliance** is set by the **driver** (issue #136): **hold X for BLUE, hold B for RED, for 1 second** (`ALLIANCE_HOLD_SECONDS` in `BiobuzzTeleOp`; a tap does nothing, so a thumb sliding off the right stick cannot flip it). Each button **sets** the alliance, it does not toggle, so holding longer or doing it twice never flips it back. Nothing happens in **SOLO MODE** (B is the forced shot there), or while **both** buttons are held. It starts **BLUE**, or on the alliance of the Auto that just ran (it falls back to BLUE if the Auto was never STARTed, the app restarted, or more than 5 minutes passed). Only the driver has these buttons: the operator **checks** the alliance on the screen and tells the driver. START is only for pairing now.
+
 **DIAL** is the speed the operator dialed in (below), and needs no camera. **TABLE** uses the shot table: while the camera sees the hive, the flywheel speed comes from how high the hive's tags appear (closer = lower RPM). If the camera loses the hive, the table's last speed is kept for **1 second**, then the flywheel goes back to the dial. The screen says which one is in use. The hood wheel is always the flywheel speed x the ratio dial.
 
 ## Shooter speeds (the dials)
