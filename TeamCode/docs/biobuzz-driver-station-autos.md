@@ -4,23 +4,23 @@
 
 The names below are copied letter for letter from the `name = "..."` text in each `@Autonomous` line, so what you see on the Driver Station should match them exactly.
 
-**About the order:** this list is alphabetical, which is how we expect the Driver Station to show it. The real Driver Station app was not open when this sheet was written, so **look at the real screen once. If the order is different, fix it here.**
+**About the order:** we expect the Driver Station to sort the Autonomous list by **group, then name** (see the groups below), so plain **Drive Forward** (group `Auto`) comes first, then the **Blue** Autos, then the **Red** Autos. The real Driver Station app has not been checked: **look at the real screen once. If the order is different, fix it here.** (Groups were changed on 2026-11-26, issue #136.)
 
 ## What you pick from: 13 Autos
 
-All 13 are in group **Auto**. Every one loads **TeleOp - Alpha 15** after it ends (`preselectTeleOp`).
+The Autos with an alliance in the name are in group **Auto - Blue** or **Auto - Red**. Plain **Drive Forward** has no alliance, so it is in group **Auto**. Every one loads **TeleOp - RC 1** after it ends (`preselectTeleOp`, set in one place: `BiobuzzTeleOp.TELEOP_NAME`).
 
 ```
  Autonomous                         (13 on the list)
  ----------------------------------------------------
- Blue - Drive Forward 24in
+ Drive Forward                      (group Auto: no alliance)
+ Blue - Drive Forward 24in          (group Auto - Blue)
  Blue - Drive Reverse 24in
  Blue D1 - Move Park                [#112]
  Blue D1 - Shoot Park               [#112]
  Blue D6 - Move Park
  Blue D6 - Shoot Park
- Drive Forward
- Red - Drive Forward 24in
+ Red - Drive Forward 24in           (group Auto - Red)
  Red - Drive Reverse 24in
  Red C1 - Move Park
  Red C1 - Shoot Park
@@ -80,7 +80,7 @@ Use these if Pedro or the Pinpoint is broken, or the robot cannot get to a path 
    - Match Autos (Pedro): our **alliance**, **tile** and **routine** at the top, `Mode: NONSTOP`, `Actions: ON`, `Hive visible: YES` (Shoot Park only), and **no `NOT TUNED` warning**.
    - Backup Autos: no alliance buttons. The alliance is in the name.
 7. **Gamepad 1 buttons during INIT are for testing only** (Pedro match Autos): **A** STEP mode (stops after every drive: **never in a match**, nobody can press A), **B** NONSTOP (the default), **X** drive only (shots become short pauses), **Y** shooting on (the default). With no buttons pressed it runs as a real match Auto.
-8. **After the Auto:** the Driver Station loads **TeleOp - Alpha 15**. Check the **alliance** line. The eight Pedro Autos and the four "24in" Autos hand it over. Plain **Drive Forward** does not, so it shows BLUE.
+8. **After the Auto:** the Driver Station loads **TeleOp - RC 1**. Check the **alliance** line. The eight Pedro Autos and the four "24in" Autos hand it over. Plain **Drive Forward** does not, so it shows BLUE.
 
 ## Not on the list (hidden with `@Disabled`)
 
@@ -88,7 +88,8 @@ The code is all still here. To bring one back, put `//` in front of its `@Disabl
 
 | Name on the Driver Station | Group | Why it is hidden |
 |---|---|---|
-| Blue D6 - 3 Volley, Blue D1 - 3 Volley, Red C1 - 3 Volley, Red C6 - 3 Volley | Auto | Runs about 35 s, past the 30 s limit. Hidden 2026-11-21 |
+| Blue D6 - 3 Volley, Blue D1 - 3 Volley | Auto - Blue | Runs about 35 s, past the 30 s limit. Hidden 2026-11-21 |
+| Red C1 - 3 Volley, Red C6 - 3 Volley | Auto - Red | Runs about 35 s, past the 30 s limit. Hidden 2026-11-21 |
 | Leave and Park - Mark 1 | Auto | The Pedro "Move Park" Autos do the same job for each start. Hidden 2026-11-21 |
 | Auto - Shoot and Park - Alpha 1 | Testing | Test Auto, nobody is using it. Moving it onto the shared firing sequence is `[#89]` |
 | Pedro Forward Back - Alpha | Testing | Pedro tuning test, nobody is using it |

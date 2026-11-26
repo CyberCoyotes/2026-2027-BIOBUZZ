@@ -26,7 +26,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 import java.util.List;
 
 /*
- * TeleOp Alpha 15
+ * TeleOp RC 1 (the Driver Station name is TELEOP_NAME, below)
  * An iterative OpMode with TWO controllers:
  *   gamepad1 = the DRIVER: drives the robot, runs the INTAKE, and holds the trigger to FIRE a volley
  *              (the FIRING SEQUENCE, see the change log, Alpha 13).
@@ -224,8 +224,21 @@ import java.util.List;
  *   I2C Device name: pinpoint         (PinpointSubsystem, goBILDA Pinpoint Odometry Computer. If it
  *                                      is missing, the screen says so and the OpMode still runs.)
  */
-@TeleOp(name = "TeleOp - Alpha 15", group = "Testing")
+@TeleOp(name = BiobuzzTeleOp.TELEOP_NAME, group = "Competition")
 public class BiobuzzTeleOp extends OpMode {
+
+    // ------------------------------------------------------------------
+    // The name on the Driver Station (the ONE place it is typed)
+    // ------------------------------------------------------------------
+    // This is the name the Driver Station shows for this TeleOp. Every Auto uses it too:
+    //     preselectTeleOp = BiobuzzTeleOp.TELEOP_NAME
+    // so the Driver Station loads this TeleOp after the Auto ends. WHY ONE PLACE: the name used to be
+    // typed by hand in 23 Autos, and one typo meant an Auto stopped lining up the TeleOp. To rename
+    // the TeleOp, change ONLY this line (then the docs that name it).
+    // Names: Alpha = a piece tested alone. RC = a release candidate: all the pieces together, only
+    // bug fixes, and each fix is the next RC. Stable = an RC that went through a full practice
+    // session with no code changes (see "Release names" in ARCHITECTURE.md).
+    public static final String TELEOP_NAME = "TeleOp - RC 1";
 
     // ------------------------------------------------------------------
     // Driving

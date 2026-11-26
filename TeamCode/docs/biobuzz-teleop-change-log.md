@@ -2,9 +2,37 @@
 
 *This text used to be the top of `BiobuzzTeleOp.java`. It was moved here, unchanged, so the file's header can describe how the TeleOp works **right now**. Each entry is what the code did when that Alpha was written: later Alphas may have replaced it (for example, the gentle gate close in Alpha 13 was removed later). When something here and the code disagree, the code wins. The current button map is in `biobuzz-teleop-controls.md`.*
 
+## RENAMED "TELEOP - RC 1", NEW GROUPS, ONE NAME CONSTANT (issue #136)
+
+*The TeleOp is now **"TeleOp - RC 1"** (it was "TeleOp - Alpha 15"). The behavior is the same as the alliance-button entry below. **Not built with Gradle and not run on a robot.** Checked on a laptop only: `javac` found no syntax errors, and a small test with stand-ins for the SDK showed that an annotation can use the shared name constant (also on the TeleOp's own class).*
+
+```text
+WHAT CHANGED
+  1. THE NAME: "TeleOp - Alpha 15" is now "TeleOp - RC 1". RC = release candidate: all the pieces
+     together, only bug fixes, each fix is the next RC. We went from Alpha straight to RC (no Beta step).
+     Stable is an RC that went through a full practice session with no code changes; the coach decides
+     when (ARCHITECTURE.md, "Release names").
+  2. ONE PLACE: the name is BiobuzzTeleOp.TELEOP_NAME. All 23 Autos that had
+     preselectTeleOp = "TeleOp - Alpha 15" typed by hand now use preselectTeleOp = BiobuzzTeleOp.TELEOP_NAME.
+     To rename again, change that one line (then the docs). New Autos must do the same.
+  3. TELEOP GROUP: "Competition" (it was "Testing"). Only the test OpModes that are not @Disabled stay in
+     "Testing" (today that is Firing Sequence - Alpha). The test Autos in testingOps/ keep "Testing".
+  4. AUTO GROUPS: an Auto with an alliance in its name is in group "Auto - Blue" or "Auto - Red"
+     (also the hidden 3 Volley ones, so un-hiding one keeps the scheme). Plain Drive Forward has no
+     alliance and stays in "Auto".
+  5. WHAT A GROUP DOES: as far as we know the Driver Station only SORTS by group (then by name) and shows no
+     group headings. The names already start with Blue or Red, so the list looks almost the same. The one
+     change we expect: Drive Forward (group Auto) moves to the top, out from between Blue and Red. This
+     is NOT checked on the real Driver Station yet: look once, and fix biobuzz-driver-station-autos.md.
+
+NOT CHANGED
+  - Older entries in this log (they say "Alpha 15" because that is what the TeleOp was called then).
+  - The test OpModes' names, and what any button or Auto does.
+```
+
 ## THE ALLIANCE BUTTONS: HOLD X OR B (issue #136, no new Alpha number)
 
-*The screen name stays "TeleOp - Alpha 15". **The driver's buttons changed, so the printed controls sheet must be reprinted** (the coach can decide whether this should be called Alpha 16: if so, the three Autos' `preselectTeleOp` strings and the docs that name it have to change with it, as they did for Alpha 15). **Not built with Gradle and not run on a robot.** Checked on a laptop only: `javac` found no syntax errors in `BiobuzzTeleOp` and `AutoHandoff` (the SDK classes were missing, so that was all it could check), and the hold logic was copied into a small simulation with a fake clock (17 checks: taps, brushes, a long hold, both buttons, solo mode, a button already down at the first loop).*
+*The screen name was "TeleOp - Alpha 15" when this was written. It became "TeleOp - RC 1" in the entry above (the same issue, #136). **The driver's buttons changed, so the printed controls sheet must be reprinted.** **Not built with Gradle and not run on a robot.** Checked on a laptop only: `javac` found no syntax errors in `BiobuzzTeleOp` and `AutoHandoff` (the SDK classes were missing, so that was all it could check), and the hold logic was copied into a small simulation with a fake clock (17 checks: taps, brushes, a long hold, both buttons, solo mode, a button already down at the first loop).*
 
 ```text
 WHAT CHANGED

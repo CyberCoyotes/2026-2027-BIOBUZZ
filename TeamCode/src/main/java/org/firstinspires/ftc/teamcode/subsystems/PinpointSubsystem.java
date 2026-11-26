@@ -15,7 +15,7 @@ import org.firstinspires.ftc.teamcode.utils.HiveBearingMemory;
 /*
  * Pinpoint Subsystem
  * Owns the goBILDA PINPOINT odometry computer and its two odometry pods. It only READS. It never
- * moves a motor, and it has no gamepad code. Another class (for now TeleOp - Alpha 15 and
+ * moves a motor, and it has no gamepad code. Another class (for now BiobuzzTeleOp and
  * PinpointAlpha) asks it where the robot is.
  *
  * WHAT IT ANSWERS: "Where is the robot, and which way is it facing, compared to where it started?"

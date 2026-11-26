@@ -5,15 +5,15 @@ Print this and keep it at the driver station. It lists **what every button does 
 **Controller:** Logitech F310 / F710, switch on the back set to **X** (XInput), not D.
 - Face buttons: **A, B, X, Y**. Bumpers: **LB / RB**. Triggers: **LT / RT**. Stick buttons: **LS / RS** (press the stick in).
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
-- **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In `TeleOp - Alpha 15`, Start no longer switches the alliance (issue #136: the driver holds X or B), but gamepad 2's B still starts a FORCED SHOT (wheels, gate and intake), so pair before START. In the test OpModes below, **Start** can still switch the alliance.)
+- **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In `TeleOp - RC 1`, Start no longer switches the alliance (issue #136: the driver holds X or B), but gamepad 2's B still starts a FORCED SHOT (wheels, gate and intake), so pair before START. In the test OpModes below, **Start** can still switch the alliance.)
 
-**Names on the Driver Station:** `TeleOp - Alpha 15`, and `Firing Sequence - Alpha` (un-hidden on 2026-11-25 to find the intake reverse time, issue #116). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Pinpoint - Alpha`, `Flower Picker Testing - Alpha`, `IMU - Alpha` (these four were hidden in issue #103), `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below. **Last checked against the code: 2026-11-24 (Issue #118), then changed on 2026-11-25 when `Firing Sequence - Alpha` was un-hidden (issue #116):** `TeleOp - Alpha 15` and `Firing Sequence - Alpha` are the only TeleOps left on the Driver Station, and the 11 OpModes above are all `@Disabled`. The Autonomous OpModes are on `biobuzz-driver-station-autos.md`.
+**Names on the Driver Station:** `TeleOp - RC 1`, and `Firing Sequence - Alpha` (un-hidden on 2026-11-25 to find the intake reverse time, issue #116). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Pinpoint - Alpha`, `Flower Picker Testing - Alpha`, `IMU - Alpha` (these four were hidden in issue #103), `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below. **Last checked against the code: 2026-11-24 (Issue #118), then changed on 2026-11-25 when `Firing Sequence - Alpha` was un-hidden (issue #116):** `TeleOp - RC 1` and `Firing Sequence - Alpha` are the only TeleOps left on the Driver Station, and the 11 OpModes above are all `@Disabled`. The Autonomous OpModes are on `biobuzz-driver-station-autos.md`.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
 ---
 
-## 1. TeleOp - Alpha 15 (the real TeleOp)
+## 1. TeleOp - RC 1 (the real TeleOp)
 
 Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, always ON, no switch). The drive starts **FIELD-centric**: the left stick's "forward" is **away from the driver** (the screen shows **DRIVE MODE** under the alliance). Details are on the printable sheet, `biobuzz-teleop-controls.md`.
 
@@ -261,7 +261,7 @@ A nudge only lasts while the OpMode runs. When a position is right, type the fou
 
 ## Quick "which OpMode am I in" differences
 
-| Job | TeleOp Alpha 15 | The test OpModes |
+| Job | TeleOp RC 1 | The test OpModes |
 |---|---|---|
 | Shoot | Operator **RT** (hold) = a whole volley (the driver's RT only in SOLO MODE) | **Y / X** hold (RPM and Power Alpha), **Y** on / **X** off (Ratio Alpha), **RT / LT** (Shot Table) |
 | Gate | Automatic during a volley. Between volleys, operator **X** closed / **B** (hold) forced shot / **Y** (hold) lifted. During a feed or while a volley waits, hold **Y** to lift. Operator **LT** (hold) = wall shot | Shooter RPM Alpha 2: **D-pad Left** closed / **D-pad Right** opened / **LT** lifted. Power and Ratio Alpha: **LT** toggles closed / opened. Shot Table: none |
