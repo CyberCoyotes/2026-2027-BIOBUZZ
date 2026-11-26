@@ -2,6 +2,30 @@
 
 *This text used to be the top of `BiobuzzTeleOp.java`. It was moved here, unchanged, so the file's header can describe how the TeleOp works **right now**. Each entry is what the code did when that Alpha was written: later Alphas may have replaced it (for example, the gentle gate close in Alpha 13 was removed later). When something here and the code disagree, the code wins. The current button map is in `biobuzz-teleop-controls.md`.*
 
+## PANELS GRAPHS ON BY DEFAULT, THROUGH PanelsGraphs (issue [#138], no new Alpha number)
+
+*The screen name stays "TeleOp - Alpha 15": nothing the driver or operator does has changed, and the Driver Station screen is unchanged (Panels has its own screen). Compiled against the real FTC SDK 12.0.0 and Panels jars on a laptop, and `PanelsGraphs` was run against the real Panels `TelemetryManager` in a throwaway test. **Not built with Gradle and not run on a robot.***
+
+```text
+WHAT CHANGED
+  1. NEW CLASS PanelsGraphs (utils/): the ONLY file that imports Panels, and the MASTER SWITCH
+     PANELS_ENABLED (true) for every OpMode: this TeleOp, all the Autos and all the test OpModes.
+     SHOW_PANELS_FIRING_GRAPHS is gone from BiobuzzTeleOp.
+  2. BiobuzzTeleOp: panelsGraphs.beginLoop() is the first line of loop() (right after the loop
+     timing) and panelsGraphs.send() is the last line. New graphs, through addPanelsGraphs(): the
+     driver's sticks, turret angle and target, the turret's spin push, intake power and speed,
+     Pinpoint x, y, heading and speeds, and the IMU heading, pitch and roll.
+  3. FiringMonitor no longer imports Panels. It adds its numbers through PanelsGraphs under the
+     same names, and update() lost its loopMs parameter ("Loop (ms)" is now added by PanelsGraphs).
+     The volley log is unchanged. New in its graphs: camera ty and result age, gate servo target.
+  4. THE OLD RULE "SET IT BACK TO FALSE BEFORE A MATCH" IS REPLACED by the question in [#138]: the
+     coach decides before Dec 10 whether Panels stays on for competition. To turn it off, change
+     PANELS_ENABLED to false in PanelsGraphs.java.
+  5. WHY: so every practice run can be graphed without editing code first, and so the Autos and the
+     test OpModes can be graphed too (issue #67). Panels only sends about every 75 ms, so
+     PanelsGraphs skips the work on the loops Panels would throw away, to keep the extra loop time small.
+```
+
 ## FIRING MONITOR AND PANELS GRAPHS (issue #122, no new Alpha number)
 
 *The screen name stays "TeleOp - Alpha 15": nothing the driver or operator does has changed. Compiled with `javac` against the real Panels library and stand-ins for the SDK, and run in a simulation. **Built with Gradle and deployed by the coach; on 2026-11-25 the Panels flywheel graph was seen working on a robot (the switch had to be set to `true` first). The volley log, the other graphs and the flywheel amps are not checked yet.***
