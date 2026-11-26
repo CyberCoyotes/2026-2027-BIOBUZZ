@@ -60,10 +60,6 @@ public class ShooterServoSubsystem {
     // 90 degree gate move is about 0.30 (90 / 300). That is only a rough guide, because
     // the SDK's default pulse range is not exactly goBILDA's.
     //
-    // TODO (issue #88): these three numbers are still being tuned. Find them with the Shooter Alpha OpModes:
-    // the D-pad moves the current position by a small step, so you can creep the gate to the
-    // right spot (the OpMode shows the number). Then type the numbers you found in here.
-    // (They used to be LOADING 0.30 and SHOOTING 0.0, before the gate had a third position.)
     private static final double CLOSED_POSITION = 0.80;
     private static final double OPENED_POSITION = 0.50;
     private static final double LIFTED_POSITION = 0.00;
