@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.BiobuzzTeleOp;
 import org.firstinspires.ftc.teamcode.utils.AutoHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
@@ -84,8 +85,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * Nothing moves during INIT (rule G403). The robot only moves after START. Stop it any time with
  * the Driver Station STOP button.
  */
-@Autonomous(name = "Blue - Drive Reverse 24in", group = "Auto",
-        preselectTeleOp = "TeleOp - Alpha 15")
+@Autonomous(name = "Blue - Drive Reverse 24in", group = "Auto - Blue",
+        preselectTeleOp = BiobuzzTeleOp.TELEOP_NAME)
 public class AutoBlueDriveReverse24 extends OpMode {
 
     // ------------------------------------------------------------------

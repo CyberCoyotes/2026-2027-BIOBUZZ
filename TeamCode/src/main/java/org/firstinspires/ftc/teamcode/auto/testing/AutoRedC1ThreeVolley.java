@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.auto.testing;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
+import org.firstinspires.ftc.teamcode.BiobuzzTeleOp;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
@@ -14,7 +15,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * All the code is in BiobuzzAuto. This file only picks the alliance, the start spot and the routine.
  */
 @Disabled
-@Autonomous(name = "Red C1 - 3 Volley", group = "Auto", preselectTeleOp = "TeleOp - Alpha 15")
+@Autonomous(name = "Red C1 - 3 Volley", group = "Auto - Red", preselectTeleOp = BiobuzzTeleOp.TELEOP_NAME)
 public class AutoRedC1ThreeVolley extends BiobuzzAuto {
     public AutoRedC1ThreeVolley() {
         super(VisionSubsystem.Alliance.RED, StartSpot.MAIN, Routine.THREE_VOLLEY);
