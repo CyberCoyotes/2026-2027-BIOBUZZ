@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 /*
- * Flower Picker Subsystem (issue #75)
+ * Flower Picker Subsystem
  * Owns the two FLOWER PICKER servos that move the "flower bar". Only this class touches those
  * servos. OpModes call its methods.
  *
@@ -57,7 +57,6 @@ public class FlowerPickerSubsystem {
     // If the bar moves the WRONG way (DOWN when you asked UP), swap the UP and DOWN numbers.
     // If only ONE side moves the wrong way, swap the numbers for that side only.
     //
-    // TODO (issue #75): STARTING GUESSES, never tried on the robot. Find the real numbers with
     // FlowerPickerAlpha: put the robot on blocks, creep each servo with the nudge buttons until the
     // bar is exactly where you want it (the OpMode shows the number), then type the numbers in here.
     // 11940 and 22091 may end up with different numbers. Per-robot numbers wait for the build
@@ -73,7 +72,6 @@ public class FlowerPickerSubsystem {
 
     // The servos do not tell us when they arrive. This is how long we assume a move takes.
     // Too short and isAtPosition() lies. Too long and we wait for nothing.
-    // TODO (issue #75): Starting guess. Time the bar with a phone stopwatch, then change this number.
     private static final double SERVO_TRAVEL_SECONDS = 0.50;
 
     // ------------------------------------------------------------------

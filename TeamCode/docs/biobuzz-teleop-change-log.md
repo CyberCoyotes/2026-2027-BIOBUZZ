@@ -8,7 +8,7 @@
 
 ```text
 WHAT CHANGED
-  1. NEW CLASS FiringMonitor (subsystems/): it only LOOKS at the shooter, the gate, the firing sequence,
+  1. NEW CLASS FiringMonitor (utils/): it only LOOKS at the shooter, the gate, the firing sequence,
      the camera and the battery. It moves nothing and changes no decision. BiobuzzTeleOp creates it in
      init() and calls update() once per loop, after the gate and the intake were set (step 3, just
      before the buttons are remembered).
@@ -100,7 +100,7 @@ Alpha 12). The three Autos' preselectTeleOp use the new name, so the Driver Stat
 this OpMode after Auto.
   Before, the driver held the Right Trigger to spin the wheels and the operator opened and closed
   the gate by hand, so a ball could go through before the wheels were at speed. Now FiringSequence
-  (a plain class, see subsystems/FiringSequence.java) runs a whole VOLLEY by itself:
+  (a plain class, see utils/FiringSequence.java) runs a whole VOLLEY by itself:
     HOLD the OPERATOR's Right Trigger (gamepad2) -> the wheels spin (if they are not already). The
     volley WAITS
     until the flywheel is at speed AND the camera says the turret is aimed (tx within 2 degrees for

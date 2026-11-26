@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
-import org.firstinspires.ftc.teamcode.subsystems.ShotTable;
+import org.firstinspires.ftc.teamcode.utils.ShotTable;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
