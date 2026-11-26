@@ -5,8 +5,8 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.subsystems.BiobuzzLog;
-import org.firstinspires.ftc.teamcode.subsystems.HiveBearingMemory;
+import org.firstinspires.ftc.teamcode.utils.BiobuzzLog;
+import org.firstinspires.ftc.teamcode.utils.HiveBearingMemory;
 import org.firstinspires.ftc.teamcode.subsystems.ImuSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PowerMonitorSubsystem;
