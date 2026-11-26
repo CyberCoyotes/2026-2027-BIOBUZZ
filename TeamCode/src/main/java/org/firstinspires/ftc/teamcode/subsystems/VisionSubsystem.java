@@ -68,12 +68,7 @@ public class VisionSubsystem {
     // Camera settings
     // ------------------------------------------------------------------
     // Which pipeline (0 to 9 in the Limelight's web page) finds the AprilTags.
-    // TODO (issue #64): Check each robot's camera. Change this if your AprilTag pipeline is not
-    // number 0.
     private static final int APRILTAG_PIPELINE_INDEX = 0;
-
-    // TODO (issue #88): We have not yet SEEN a restarted Limelight come back on a different
-    // pipeline. After a bump or a brownout, watch "Camera pipeline fixes" on the screen.
 
     // How often (in seconds) update() asks the camera "which pipeline are you on?". If it is not
     // the AprilTag one, update() tells it to switch back. WHY: the Limelight can restart in the
