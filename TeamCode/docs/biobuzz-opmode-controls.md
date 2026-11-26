@@ -5,7 +5,7 @@ Print this and keep it at the driver station. It lists **what every button does 
 **Controller:** Logitech F310 / F710, switch on the back set to **X** (XInput), not D.
 - Face buttons: **A, B, X, Y**. Bumpers: **LB / RB**. Triggers: **LT / RT**. Stick buttons: **LS / RS** (press the stick in).
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
-- **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In the TeleOp, **Start on either gamepad** switches the alliance, and gamepad 2's B starts a FORCED SHOT (wheels, gate and intake), so pair before START.)
+- **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In `TeleOp - Alpha 15`, Start no longer switches the alliance (issue #136: the driver holds X or B), but gamepad 2's B still starts a FORCED SHOT (wheels, gate and intake), so pair before START. In the test OpModes below, **Start** can still switch the alliance.)
 
 **Names on the Driver Station:** `TeleOp - Alpha 15`, and `Firing Sequence - Alpha` (un-hidden on 2026-11-25 to find the intake reverse time, issue #116). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Pinpoint - Alpha`, `Flower Picker Testing - Alpha`, `IMU - Alpha` (these four were hidden in issue #103), `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below. **Last checked against the code: 2026-11-24 (Issue #118), then changed on 2026-11-25 when `Firing Sequence - Alpha` was un-hidden (issue #116):** `TeleOp - Alpha 15` and `Firing Sequence - Alpha` are the only TeleOps left on the Driver Station, and the 11 OpModes above are all `@Disabled`. The Autonomous OpModes are on `biobuzz-driver-station-autos.md`.
 
@@ -28,12 +28,13 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **LB** | **Reverse the intake** (push balls out). Beats RB and a volley's feed. **The intake also reverses BY ITSELF for as long as the gate takes to close** (0.5 s, the same from OPEN or from LIFTED), after every volley, abort and operator X. The screen's intake line says "gate closing: REVERSE (automatic)" |
 | **RT** (hold) | **Does not fire.** The operator's RT fires. **Only in SOLO MODE** (LOGO) does the driver's RT fire a volley too |
 | **LOGO** (the center **guide** button) | **SOLO MODE** on / off, for a one-person match (starts OFF) |
-| **Y** (HOLD) | **Only in SOLO MODE:** gate **LIFTED**, the same as the operator's Y (pushes the last ball in). Does nothing with SOLO MODE off. Driver X does nothing |
-| **B** (HOLD) | **Only in SOLO MODE:** the **FORCED SHOT**, the same as the operator's B (issue #80). Does nothing with SOLO MODE off |
-| **START** | **Alliance** BLUE / RED, the same as the operator's Start (starts **BLUE**, check it on the screen) |
+| **Y** (HOLD) | **Only in SOLO MODE:** gate **LIFTED**, the same as the operator's Y (pushes the last ball in). Does nothing with SOLO MODE off. Driver X is not a gate button (it is the BLUE alliance button, below) |
+| **X** (HOLD) | **Alliance BLUE:** hold for 1 second (the blue button). Does nothing in SOLO MODE. The alliance starts **BLUE**, or the alliance of the Auto that just ran: check it on the screen (issue #136) |
+| **B** (HOLD) | **Alliance RED:** hold for 1 second (the red button). **In SOLO MODE** it is the **FORCED SHOT** instead, the same as the operator's B (issue #80), and does not change the alliance |
+| **START** | Not used in this OpMode (only for pairing: Start + A). It used to switch the alliance |
 | **BACK** | Drive **FIELD-centric / ROBOT-centric** toggle, the same as the operator's BACK |
 | **D-pad Up** | **PRE-REV** on / off: the wheels spin without firing (starts OFF) |
-| **A / X** | Not used (the gate is the operator's X / B / Y). **D-pad Down / Right** are not used either |
+| **A** | Not used. **D-pad Down / Right** are not used either |
 | **D-pad Left** | **Re-aim** (field-centric): the way the robot faces right now is "away from me". Does not touch the Pinpoint |
 
 ### Gamepad 2: OPERATOR
@@ -47,7 +48,7 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **D-pad Up / Down** | Flywheel target RPM **+ / - 100** (range 500 to 1450) |
 | **D-pad Right / Left** | Hood / flywheel **ratio + / - 0.05** (range 1.00 to 3.00, starts 2.00) |
 | **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the camera says the turret is aimed (within 2 degrees for 0.15 s), then opens the gate and **keeps feeding for as long as you hold** (no timer: the intake pauses by itself when the flywheel is not at speed or the turret is not aimed). **Let go to END it** (gate closes, intake stops). No one-volley limit. Unless PRE-REV is on, both wheels go to 0 power |
-| **Start** | **Alliance** BLUE / RED (starts **BLUE**, check it on the screen). The driver's Start does the same |
+| **Start** | Not used in this OpMode (only for pairing: Start + B). The **driver** sets the alliance (hold X = BLUE, hold B = RED): check it on the screen |
 | **Back** | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). The driver's **BACK** does the same. (The physical **MODE** button cannot be read by the code: see the controls sheet. The INIT screen has a **BUTTON TEST** to check your controller.) |
 | **LOGO** (the center **guide** button) | Flywheel speed source **TABLE / DIAL** (starts **TABLE**, the camera). (On the driver's controller the same button is the SOLO MODE toggle.) |
 | **RB** | **Flower picker UP** (issue #75): lifts the flower bar. One move per press. If both bumpers go down on the same loop, UP wins |

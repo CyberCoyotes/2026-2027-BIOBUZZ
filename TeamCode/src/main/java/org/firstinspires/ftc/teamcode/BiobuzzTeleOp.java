@@ -83,9 +83,9 @@ import java.util.List;
  *                       wheel at that x the ratio dial. Let go to ABORT: the gate closes, the
  *                       intake stops, and (unless PRE-REV is ON) both wheels go to 0 power. A (hold)
  *                       floats the turret, so then a volley waits (the screen says it is floating).
- *   Start            -> switch alliance BLUE <-> RED (starts as BLUE, or as the
- *                       alliance of the Auto that just ran). Check it on the screen!
- *                       (Gamepad1's START does the same.)
+ *   Start            -> NOT the alliance button any more (issue #136). On this controller START is only
+ *                       for pairing (Start + B). The DRIVER sets the alliance: HOLD X for BLUE or HOLD B
+ *                       for RED (see GAMEPAD 1 below). The alliance still shows on the screen.
  *   Back             -> switch the DRIVE FIELD-CENTRIC <-> ROBOT-CENTRIC (starts FIELD-CENTRIC).
  *                       (Gamepad1's BACK does the same.)
  *   LOGO             -> switch the flywheel speed source DIAL <-> TABLE (starts as TABLE, the camera)
@@ -123,7 +123,13 @@ import java.util.List;
  *   D-pad Left   -> RE-AIM: "the way the robot faces right now is away from me" (field-centric).
  *      It only changes which way "forward" means. It does not reset the IMU or the Pinpoint.
  *   D-pad Up     -> PRE-REV on / off: the wheels spin without firing (see the change log, Alpha 13).
- *   START        -> switch alliance BLUE <-> RED, the same as gamepad2's START.
+ *   HOLD X       -> set the ALLIANCE to BLUE (X is the blue button). HOLD B -> set it to RED (B is the red
+ *      button). (Issue #136.) Hold for ALLIANCE_HOLD_SECONDS: a quick tap does nothing, so a thumb
+ *      sliding off the right stick cannot flip it. Each button SETS the alliance (it does not toggle),
+ *      so holding longer, or doing it twice, never flips it back. Both held at once does nothing.
+ *      They do nothing in SOLO MODE (the driver's B is the forced shot there). The alliance starts as
+ *      BLUE, or as the alliance of the Auto that just ran. Check it on the screen before START!
+ *      Only the DRIVER has these buttons. (START is only for pairing now.)
  *   BACK         -> switch the drive FIELD-CENTRIC <-> ROBOT-CENTRIC, the same as gamepad2's BACK.
  *   Right Bumper -> INTAKE (pull balls in)      Left Bumper -> REVERSE (push balls out)
  *      (Left Bumper beats Right Bumper, so clearing a jam always works. Only the DRIVER has the
@@ -136,9 +142,10 @@ import java.util.List;
  *      hood wheel 2600 RPM (a ratio of 2.00).
  *   Y (HOLD)     -> ONLY in SOLO MODE (LOGO): shooter GATE LIFTED, the same as the operator's Y (see
  *      GAMEPAD 2 below, and issue #78). With SOLO MODE off, the driver's Y does nothing.
- *   B (HOLD)     -> ONLY in SOLO MODE (LOGO): the FORCED SHOT, the same as the operator's B (see GAMEPAD 2
- *      below, and issue #80). With SOLO MODE off, the driver's B does nothing.
- *   X            -> not used. (The shooter gate is the operator's X / Y.)
+ *   B (HOLD)     -> In SOLO MODE (LOGO): the FORCED SHOT, the same as the operator's B (see GAMEPAD 2
+ *      below, and issue #80). With SOLO MODE off, HOLD B sets the alliance to RED (see HOLD X above).
+ *   X (HOLD)     -> HOLD sets the alliance to BLUE (see above). It is not a gate button: the shooter gate
+ *      is the operator's X / Y.
  *
  * GAMEPAD 2 - OPERATOR, SHOOTER DIALS (SPEED CONTROL in RPM, read from the wheel encoders)
  *   D-pad Up / Down    -> flywheel target RPM UP / DOWN by FLYWHEEL_RPM_STEP
@@ -181,7 +188,7 @@ import java.util.List;
  *   - If the camera cannot see the hive, the turret HOLDS where it is. It does not search.
  *   - The operator's A (hold) floats the turret so it can be turned by hand. Let go of A and it
  *     goes back to tracking.
- *   - The ALLIANCE (START on either gamepad) must be right, or the turret tracks the OTHER team's hive.
+ *   - The ALLIANCE (the driver's HOLD X = BLUE, HOLD B = RED) must be right, or the turret tracks the OTHER team's hive.
  *     It starts as BLUE, or as the alliance of the Auto that just ran (see AutoHandoff).
  *     Check the alliance on the screen before you press START.
  *
@@ -250,6 +257,16 @@ public class BiobuzzTeleOp extends OpMode {
     // true for the Autos that never turn the robot, but not for the ones that do (3 Volley).
     private static final double ROBOT_FIELD_HEADING_AT_INIT_BLUE_DEGREES = -90.0;
     private static final double ROBOT_FIELD_HEADING_AT_INIT_RED_DEGREES = 90.0;
+
+    // ------------------------------------------------------------------
+    // The alliance buttons (issue #136)
+    // ------------------------------------------------------------------
+    // The DRIVER holds X (the blue button) for BLUE or B (the red button) for RED. The button has to
+    // be held this many seconds in a row before the alliance changes. WHY A HOLD: the driver's right
+    // thumb turns the robot, and it can slide off the stick onto a face button. A quick brush then
+    // does nothing. Longer = harder to hit by accident, but slower to fix a wrong alliance.
+    // TODO: 1.0 is a starting guess. Try it on the robot: it should feel deliberate, not slow.
+    private static final double ALLIANCE_HOLD_SECONDS = 1.0;
 
     // ------------------------------------------------------------------
     // Shooter dials (gamepad2). These are test-only numbers.
@@ -469,6 +486,13 @@ public class BiobuzzTeleOp extends OpMode {
     private boolean soloMode = false;
     private boolean wasSoloTogglePressed = false;
 
+    // The alliance buttons (issue #136): the driver's X (BLUE) and B (RED). Each timer counts how long
+    // its button has been held since it was pressed (see checkAllianceButtons()).
+    private ElapsedTime blueButtonHeldTimer = new ElapsedTime();
+    private ElapsedTime redButtonHeldTimer = new ElapsedTime();
+    private boolean wasBlueButtonHeld = false;
+    private boolean wasRedButtonHeld = false;
+
     // WALL SHOT (the operator's Left Trigger). wallShotTimer counts the seconds since the trigger was
     // pressed, so the gate can wait WALL_SHOT_GATE_DELAY_SECONDS before it opens.
     private ElapsedTime wallShotTimer = new ElapsedTime();
@@ -512,8 +536,6 @@ public class BiobuzzTeleOp extends OpMode {
     private boolean wasDpadRightPressed = false;
     private boolean wasDpadUpPressed = false;
     private boolean wasDpadDownPressed = false;
-    private boolean wasStartPressed = false;
-    private boolean wasDriverStartPressed = false;
     private boolean wasSpeedSourceTogglePressed = false;
     private boolean wasPickerUpPressed = false;
     private boolean wasPickerDownPressed = false;
@@ -600,10 +622,12 @@ public class BiobuzzTeleOp extends OpMode {
             telemetry.addLine("Y (HOLD) = gate LIFTED, SOLO MODE only (to push the last ball in)");
         }
         telemetry.addLine("D-pad Up = PRE-REV on / off (wheels spin without firing)");
-        telemetry.addLine("START = alliance BLUE / RED   BACK = drive FIELD-CENTRIC / ROBOT-CENTRIC");
+        telemetry.addLine(String.format("HOLD X = alliance BLUE   HOLD B = alliance RED   (%.1f s, not in SOLO MODE)",
+                ALLIANCE_HOLD_SECONDS));
+        telemetry.addLine("BACK = drive FIELD-CENTRIC / ROBOT-CENTRIC");
         telemetry.addLine("D-pad Left = RE-AIM (the way the robot faces now is away from me)");
         telemetry.addLine("--- GAMEPAD 2 (OPERATOR) ---");
-        telemetry.addLine("START = alliance BLUE / RED   BACK = drive FIELD-CENTRIC / ROBOT-CENTRIC");
+        telemetry.addLine("BACK = drive FIELD-CENTRIC / ROBOT-CENTRIC   (the alliance is the DRIVER's: HOLD X or B on gamepad 1)");
         telemetry.addLine("LOGO = flywheel speed DIAL / TABLE");
         telemetry.addLine("D-pad Up / Down = flywheel RPM up / down");
         telemetry.addLine("D-pad Right / Left = ratio up / down");
@@ -854,35 +878,77 @@ public class BiobuzzTeleOp extends OpMode {
     }
 
     /*
-     * START on either gamepad switches the alliance (BLUE <-> RED), and gamepad2 LOGO switches where
-     * the flywheel speed comes from (DIAL <-> TABLE). One switch per press. This works
-     * before and after START, so the operator can set both during INIT.
+     * The mode buttons: the DRIVER's alliance buttons (X = BLUE, B = RED, see checkAllianceButtons())
+     * and gamepad2 LOGO, which switches where the flywheel speed comes from (DIAL <-> TABLE, one
+     * switch per press). This works before and after START, so both can be set during INIT.
+     * START is NOT used here: it is the pairing button (Start + A, Start + B), so a controller that
+     * is paired while the TeleOp runs used to flip the alliance (issue #136).
      */
     private void checkModeButtons() {
-        boolean startPressed = gamepad2.start;
-        boolean driverStartPressed = gamepad1.start;
         boolean speedSourceTogglePressed = gamepad2.guide;   // gamepad2 LOGO
+
+        checkAllianceButtons();
 
         if (isNewPress(speedSourceTogglePressed, wasSpeedSourceTogglePressed)) {
             tableMode = !tableMode;
         }
-        // START on EITHER gamepad switches the alliance. Each gamepad is watched on its own, so
-        // holding one START down never hides a press on the other.
-        if (isNewPress(startPressed, wasStartPressed)
-                || isNewPress(driverStartPressed, wasDriverStartPressed)) {
-            if (visionSubsystem.getAlliance() == VisionSubsystem.Alliance.BLUE) {
-                visionSubsystem.setAlliance(VisionSubsystem.Alliance.RED);
-            } else {
-                visionSubsystem.setAlliance(VisionSubsystem.Alliance.BLUE);
+
+        wasSpeedSourceTogglePressed = speedSourceTogglePressed;
+    }
+
+    /*
+     * The DRIVER sets the alliance with two buttons that say what they do (issue #136):
+     *   HOLD X (the blue button) for ALLIANCE_HOLD_SECONDS -> BLUE
+     *   HOLD B (the red button)  for ALLIANCE_HOLD_SECONDS -> RED
+     * Each button SETS the alliance, it does not toggle. So pressing the same one twice, or holding it
+     * longer, can never flip the alliance the wrong way: the worst case is that nothing changes.
+     *
+     * The clock for a button starts on the loop where it goes down (a NEW press). Letting go and
+     * pressing again starts it over.
+     *
+     * Nothing happens (and both clocks start over) when:
+     *   - SOLO MODE is on: the driver's B is the forced shot there, and solo only happens at home.
+     *   - X and B are both held: that is not a clear choice, so we wait until only one is held.
+     */
+    private void checkAllianceButtons() {
+        boolean blueHeld = gamepad1.x;
+        boolean redHeld = gamepad1.b;
+
+        if (soloMode || (blueHeld && redHeld)) {
+            blueButtonHeldTimer.reset();
+            redButtonHeldTimer.reset();
+        } else {
+            if (isNewPress(blueHeld, wasBlueButtonHeld)) {
+                blueButtonHeldTimer.reset();
             }
-            // The remembered hive direction belongs to the OTHER hive now. (setAlliance also
-            // lets go of the vision's lock on a cell.)
-            hiveMemory.clear();
+            if (isNewPress(redHeld, wasRedButtonHeld)) {
+                redButtonHeldTimer.reset();
+            }
+            if (blueHeld && blueButtonHeldTimer.seconds() >= ALLIANCE_HOLD_SECONDS) {
+                setAllianceIfChanged(VisionSubsystem.Alliance.BLUE);
+            }
+            if (redHeld && redButtonHeldTimer.seconds() >= ALLIANCE_HOLD_SECONDS) {
+                setAllianceIfChanged(VisionSubsystem.Alliance.RED);
+            }
         }
 
-        wasStartPressed = startPressed;
-        wasDriverStartPressed = driverStartPressed;
-        wasSpeedSourceTogglePressed = speedSourceTogglePressed;
+        wasBlueButtonHeld = blueHeld;
+        wasRedButtonHeld = redHeld;
+    }
+
+    /*
+     * Switches the alliance, but only when it really is a change. A button that stays held after
+     * the switch comes here every loop, and it must not keep clearing the vision's lock and the
+     * hive memory.
+     */
+    private void setAllianceIfChanged(VisionSubsystem.Alliance newAlliance) {
+        if (visionSubsystem.getAlliance() == newAlliance) {
+            return;
+        }
+        visionSubsystem.setAlliance(newAlliance);
+        // The remembered hive direction belongs to the OTHER hive now. (setAlliance also
+        // lets go of the vision's lock on a cell.)
+        hiveMemory.clear();
     }
 
     /*
@@ -1209,7 +1275,7 @@ public class BiobuzzTeleOp extends OpMode {
         visionSubsystem = new VisionSubsystem(hardwareMap);
         // If an Auto just ran, start on the alliance it played. That also sets the field-centric
         // drive direction (INIT works it out from the alliance), so after a RED Auto the drive is
-        // already RED field-centric. The operator can still change it with START on either gamepad.
+        // already RED field-centric. The driver can still change it (HOLD X = BLUE, HOLD B = RED).
         // If no Auto ran lately (or the app was restarted), this does nothing and we start on BLUE.
         if (AutoHandoff.hasFreshAlliance()) {
             visionSubsystem.setAlliance(AutoHandoff.getAlliance());
@@ -1263,7 +1329,7 @@ public class BiobuzzTeleOp extends OpMode {
         // button map again here. That keeps it on the screen until START.
         // (FULL_TELEMETRY = false shows only the basics. See the constant at the top.)
         telemetry.addData("Status", "Ready to start!");
-        telemetry.addData("Alliance (START on either gamepad)", visionSubsystem.getAlliance());
+        telemetry.addData("Alliance (driver: HOLD X = BLUE, HOLD B = RED)", visionSubsystem.getAlliance());
         telemetry.addData("DRIVE MODE (BACK on either gamepad)", getDriveModeText());
         // SOLO MODE is only shown when it is switched ON (gamepad1 LOGO).
         if (soloMode) {
@@ -1790,7 +1856,7 @@ public class BiobuzzTeleOp extends OpMode {
             }
         }
         // Always on the screen: aiming at the wrong alliance's hive is not an obvious failure.
-        telemetry.addData("Alliance (START on either gamepad)", visionSubsystem.getAlliance());
+        telemetry.addData("Alliance (driver: HOLD X = BLUE, HOLD B = RED)", visionSubsystem.getAlliance());
         telemetry.addData("DRIVE MODE (BACK on either gamepad)", getDriveModeText());
         // SOLO MODE is only shown when it is switched ON (gamepad1 LOGO).
         if (soloMode) {

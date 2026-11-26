@@ -2,6 +2,41 @@
 
 *This text used to be the top of `BiobuzzTeleOp.java`. It was moved here, unchanged, so the file's header can describe how the TeleOp works **right now**. Each entry is what the code did when that Alpha was written: later Alphas may have replaced it (for example, the gentle gate close in Alpha 13 was removed later). When something here and the code disagree, the code wins. The current button map is in `biobuzz-teleop-controls.md`.*
 
+## THE ALLIANCE BUTTONS: HOLD X OR B (issue #136, no new Alpha number)
+
+*The screen name stays "TeleOp - Alpha 15". **The driver's buttons changed, so the printed controls sheet must be reprinted** (the coach can decide whether this should be called Alpha 16: if so, the three Autos' `preselectTeleOp` strings and the docs that name it have to change with it, as they did for Alpha 15). **Not built with Gradle and not run on a robot.** Checked on a laptop only: `javac` found no syntax errors in `BiobuzzTeleOp` and `AutoHandoff` (the SDK classes were missing, so that was all it could check), and the hold logic was copied into a small simulation with a fake clock (17 checks: taps, brushes, a long hold, both buttons, solo mode, a button already down at the first loop).*
+
+```text
+WHAT CHANGED
+  1. THE DRIVER SETS THE ALLIANCE with two buttons that say what they do: HOLD X (the blue button) for
+     ALLIANCE_HOLD_SECONDS = BLUE, HOLD B (the red button) for ALLIANCE_HOLD_SECONDS = RED. The clock
+     starts when the button goes down; letting go and pressing again starts it over. 1.0 s is a
+     starting guess (a TODO next to the constant): it should feel deliberate, not slow.
+  2. START NO LONGER TOUCHES THE ALLIANCE, on either gamepad. WHY: the pairing combos are Start + A and
+     Start + B, so re-pairing a controller while the TeleOp ran flipped the alliance (it was in
+     biobuzz-troubleshooting.md). Only the TeleOp changed: the test OpModes (Firing Sequence - Alpha and
+     the hidden ones) keep START.
+  3. EACH BUTTON SETS THE ALLIANCE, IT DOES NOT TOGGLE. Holding longer, or doing it twice, never flips it
+     the wrong way: the worst case is that nothing changes. The vision's lock on a cell and the hive
+     memory are only cleared when the alliance really changes (setAllianceIfChanged).
+  4. NOTHING HAPPENS in SOLO MODE (the driver's B is the forced shot there, and solo only happens at home
+     on BLUE: set the alliance first), or while BOTH buttons are held. In both cases the clocks start
+     over, so letting go of one button never switches the alliance instantly.
+  5. ONLY THE DRIVER has the buttons. The operator checks the alliance on the screen and tells the driver
+     (the 2026-11-12 code review, item 7, asked for one gamepad per function). The operator's LOGO
+     (DIAL / TABLE) is unchanged.
+  6. WHY HOLD X AND B: they are on the driver's gamepad, where X was free and B only worked in SOLO MODE,
+     and they match the controller's blue and red buttons. A tap was rejected because the right thumb
+     that turns the robot can brush the face buttons.
+  7. ONE LIMELIGHT PIPELINE STAYS. The alliance has to live in the code anyway (the field-centric drive and
+     AutoHandoff use it), so a pipeline per alliance would be a second copy to keep in sync, and the
+     camera's own filter would not make detection faster.
+
+NOT CHANGED
+  - AutoHandoff, the Autos, and VisionSubsystem (setAlliance and the tag filter work as before).
+  - How the TeleOp picks its first alliance: BLUE, or the alliance of the Auto that just ran.
+```
+
 ## FIRING MONITOR AND PANELS GRAPHS (issue #122, no new Alpha number)
 
 *The screen name stays "TeleOp - Alpha 15": nothing the driver or operator does has changed. Compiled with `javac` against the real Panels library and stand-ins for the SDK, and run in a simulation. **Built with Gradle and deployed by the coach; on 2026-11-25 the Panels flywheel graph was seen working on a robot (the switch had to be set to `true` first). The volley log, the other graphs and the flywheel amps are not checked yet.***
