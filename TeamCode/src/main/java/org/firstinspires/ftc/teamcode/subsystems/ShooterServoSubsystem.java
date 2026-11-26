@@ -67,6 +67,7 @@ public class ShooterServoSubsystem {
     // The servo does not tell us when it arrives. This is how long we assume a move takes.
     // (CLOSED to LIFTED is the whole travel, so it may need more time than a shorter move.)
     // Too short and isAtPosition() lies. Too long and we wait for nothing.
+    // Nothing relies on this value aside from telemetry status.
     private static final double SERVO_TRAVEL_SECONDS = 0.50;
 
     // How many SECONDS the intake should run in REVERSE after the gate starts to close from OPENED or
