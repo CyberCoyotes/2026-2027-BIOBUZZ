@@ -5,11 +5,11 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.subsystems.FiringSequence;
+import org.firstinspires.ftc.teamcode.utils.FiringSequence;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
-import org.firstinspires.ftc.teamcode.subsystems.ShotTable;
+import org.firstinspires.ftc.teamcode.utils.ShotTable;
 import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
@@ -17,6 +17,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * Firing Sequence Testing
  * An iterative OpMode for trying out FiringSequence (hold one button, and the robot waits until it
  * is ready, opens the gate and keeps feeding balls until you let go) and the PRE-REV toggle. It uses gamepad1 only.
+ * It is also where we FIND how long the intake should reverse after the gate closes (issue #116):
+ * D-pad Left / Right changes that time while the OpMode runs (see test step 11).
  *   FiringSequence        -> the steps (no hardware, it only gives orders)
  *   ShooterSubsystem      -> spins the flywheel and the hood wheel (isFlywheelAtSpeed() is the check)
  *   ShooterServoSubsystem -> the gate: CLOSED, OPENED, LIFTED
@@ -38,15 +40,26 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *                           the volley ends: the gate closes and the intake stops.
  *   D-pad Up (tap)       -> PRE-REV on / off. The wheels spin without firing, so the spin-up wait is
  *                           over before you fire. It is shown big on the screen. Starts OFF.
+ *   D-pad Right (tap)    -> the intake reverse after the gate closes gets LONGER by 0.05 s.
+ *   D-pad Left (tap)     -> the same reverse gets SHORTER by 0.05 s. (One tap = one step. The time is on
+ *                           the screen. It works before and after START, and it only lasts until the
+ *                           OpMode stops: type the number you find into CLOSE_REVERSE_SECONDS.)
  *   Right Bumper (hold)  -> INTAKE (pick up balls). The gate stays where it is. While a volley is
  *                           FEEDING, the sequence runs the intake instead.
  *   Left Bumper (hold)   -> REVERSE both wheels AND the intake (clearing a jam). Beats everything.
- *   X / B / Y            -> the gate by hand: X CLOSED, B OPENED (one move per press), and Y (HOLD)
- *                           LIFTED, which pushes the very last ball up into the flywheel (OPENED is
- *                           the position between LIFTED and CLOSED).
- *                           X and B work ONLY while no volley is running. Y: while a volley FEEDS,
- *                           hold it to lift and let go to go back to OPENED. Between volleys, let go
- *                           and the gate CLOSES. While a volley WAITS, Y does nothing.
+ *   X / B / Y            -> the gate by hand: X CLOSED (one move per press), B (HOLD) FORCED SHOT, and
+ *                           Y (HOLD) LIFTED, which pushes the very last ball up into the flywheel
+ *                           (OPENED is the position between LIFTED and CLOSED).
+ *                           X works ONLY while no volley is running.
+ *                           B (HOLD) = FORCED SHOT (issue #80), the same as the TeleOp's operator B.
+ *                           For when a READY check is wrong or broken. It skips the waiting: the wheels
+ *                           spin, the gate OPENS and the intake runs at once, whether or not the
+ *                           flywheel is at speed and the turret is aimed, and with or without the
+ *                           Right Trigger. Let go and the gate closes (the intake then reverses).
+ *                           A forced shot with slow wheels makes a weak shot.
+ *                           Y: while a volley FEEDS, hold it to lift and let go to go back to OPENED.
+ *                           While a volley WAITS, hold it to lift anyway (issue #92, the same as the
+ *                           TeleOp) and let go to close. Between volleys, let go and the gate CLOSES.
  *   Back                 -> switch the speed source TABLE <-> DIAL (one switch per press).
  *                           TABLE (starts here): the flywheel speed comes from the shot table while
  *                           the camera sees the hive. A volley will NOT start with no target.
@@ -55,9 +68,9 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      (Pairing the controller on the Driver Station is Start + A. If you do that while this
  *       OpMode is running, it also switches the alliance, so check it on the screen.)
  *
- * Priority for the intake, highest first: Left Bumper (jam), the gate closing (the intake reverses by
- * itself for as long as the gate walks toward CLOSED), the firing sequence (feeding), Right Bumper
- * (pick up).
+ * Priority for the intake, highest first: Left Bumper (jam), the gate closing (for the reverse time,
+ * CLOSE_REVERSE_SECONDS, after the gate closes from OPENED or LIFTED the intake reverses by itself),
+ * the firing sequence (feeding), Right Bumper (pick up).
  *
  * THE TEST ORDER (write the numbers in TeamCode/docs/biobuzz-test-and-match-log.md)
  *   1. INIT. Check "Vision State" says TARGET_VISIBLE and the alliance is right. The gate goes to
@@ -84,10 +97,29 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *      more than 2 degrees): the intake must PAUSE and the screen says "turret not aimed". Aim it
  *      back and the intake starts again.
  *  10. With no volley, hold Y: the gate LIFTS. Let go: it CLOSES, and the intake reverses for
- *      CLOSE_REVERSE_SECONDS (0.5 s to start with).
+ *      the reverse time on the screen (CLOSE_REVERSE_SECONDS, 0.5 s to start with).
+ *  11. FINDING THE INTAKE REVERSE TIME (the school test, issue #116). The screen shows "Intake
+ *      reverse after gate closes". D-pad Right makes it 0.05 s LONGER, D-pad Left 0.05 s SHORTER.
+ *      Film the throat with a phone in slow motion.
+ *      a. Load 1 ball. Hold Right Trigger until the ball is feeding, then let go with the ball in
+ *         the throat. The gate closes and the intake reverses for the time on the screen.
+ *      b. Is the ball clear of the gate? Try each time 10 times in a row. Go SHORTER until it
+ *         fails, then back up until 10 of 10 work. That is the SHORTEST time.
+ *      c. Go LONGER until a ball is pushed out the FRONT of the intake. That is the LONGEST time.
+ *      d. Repeat with 2 balls, then 3, and on a low battery.
+ *      e. Write both numbers in biobuzz-test-and-match-log.md (section 5). Type the number you pick
+ *         (a little above the SHORTEST) into CLOSE_REVERSE_SECONDS in ShooterServoSubsystem and
+ *         redeploy. A nudge only lasts until the OpMode stops.
+ *  12. FORCED SHOT (issue #80): cover the camera lens in TABLE mode (so a volley would not start)
+ *      and HOLD B. The wheels spin, the gate OPENS and the intake runs anyway. Let go: the gate
+ *      closes and the intake reverses for the reverse time.
+ *  13. Y while a volley WAITS (issue #92): cover the camera lens in TABLE mode, hold Right Trigger
+ *      (the volley waits), then HOLD Y: the gate LIFTS. Let go of Y: it closes and the intake
+ *      reverses. Let go of Right Trigger.
  *
  * SAFE USE: the wheels are fast. Keep hands, hair and loose clothing away from them, and from the
- * intake and the turret. Keep a hand near the Stop button.
+ * intake and the turret. Keep a hand near the Stop button. B (FORCED SHOT) starts the wheels and the
+ * intake at once with no checks, so the robot may shoot the moment you press it.
  *
  * Robot configuration (on the Driver Station):
  *   Motor name:           flywheel       (ShooterSubsystem, encoder plugged in)
@@ -97,12 +129,12 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   Servo name:           shooter_servo  (ShooterServoSubsystem)
  *   Ethernet Device name: limelight      (VisionSubsystem, Limelight 3A)
  *
- * HIDDEN FROM THE DRIVER STATION LIST
- *   Nobody is using this OpMode right now, so it is @Disabled to keep the list short (issue #103).
- *   The code is all still here. To bring it back, put // in front of the @Disabled line below
- *   and redeploy.
+ * ON THE DRIVER STATION LIST AGAIN (since 2026-11-25)
+ *   It was hidden with @Disabled in issue #103 because nobody was using it. It is back so we can
+ *   find the intake reverse time (issue #116). The @Disabled line below is commented out with //.
+ *   To hide it again, take the // off that line and redeploy.
  */
-@Disabled
+// @Disabled
 @TeleOp(name = "Firing Sequence - Alpha", group = "Testing")
 public class FiringSequenceAlpha extends OpMode {
 
@@ -154,6 +186,11 @@ public class FiringSequenceAlpha extends OpMode {
     // The triggers give a number from 0.0 to 1.0. Past this much counts as "pressed".
     private static final double TRIGGER_PRESSED_THRESHOLD = 0.5;
 
+    // How many SECONDS one tap of D-pad Right / Left changes the intake reverse time by. The reverse time
+    // itself lives in ShooterServoSubsystem (CLOSE_REVERSE_SECONDS), because the TeleOp uses it too.
+    // Smaller = a finer search but more taps. 0.05 s is about 1.5 frames of a 30 FPS video.
+    private static final double CLOSE_REVERSE_STEP_SECONDS = 0.05;
+
     // true = the control map stays on the Driver Station screen while the OpMode RUNS (at the
     // bottom, under the live data). false = it is only shown before START.
     private static final boolean SHOW_CONTROLS_WHILE_RUNNING = true;
@@ -197,8 +234,9 @@ public class FiringSequenceAlpha extends OpMode {
     private boolean wasSourcePressed = false;
     private boolean wasStartPressed = false;
     private boolean wasGateClosedPressed = false;
-    private boolean wasGateOpenedPressed = false;
     private boolean wasGateLiftedPressed = false;
+    private boolean wasReverseLongerPressed = false;
+    private boolean wasReverseShorterPressed = false;
 
     /*
      * True only on the loop where a button goes from "not pressed" to "pressed".
@@ -214,8 +252,10 @@ public class FiringSequenceAlpha extends OpMode {
         telemetry.addLine("--- CONTROLS ---");
         telemetry.addLine("Right Trigger (hold) = FIRE a volley (it feeds until you let go)");
         telemetry.addLine("D-pad Up = PRE-REV on / off");
+        telemetry.addLine(String.format("D-pad Right / Left = intake reverse after the gate closes LONGER / SHORTER (%.2f s per tap)",
+                CLOSE_REVERSE_STEP_SECONDS));
         telemetry.addLine("Right Bumper (hold) = INTAKE   Left Bumper (hold) = REVERSE (jam)");
-        telemetry.addLine("X / B = gate CLOSED / OPENED (only when no volley runs)   Y (HOLD) = gate LIFTED (last ball)");
+        telemetry.addLine("X = gate CLOSED (only when no volley runs)   B (HOLD) = FORCED SHOT (skips the checks)   Y (HOLD) = gate LIFTED (last ball)");
         telemetry.addLine("Back = speed source TABLE / DIAL   START = alliance BLUE / RED");
     }
 
@@ -254,6 +294,26 @@ public class FiringSequenceAlpha extends OpMode {
             preRevOn = !preRevOn;
         }
         wasPreRevPressed = preRevPressed;
+    }
+
+    /*
+     * D-pad Right makes the intake reverse after the gate closes LONGER, and D-pad Left makes it
+     * SHORTER, by CLOSE_REVERSE_STEP_SECONDS per tap. This is how we find the right
+     * CLOSE_REVERSE_SECONDS number (see test step 11). One tap is one step: holding a button does not
+     * repeat, because we only act on the loop where it goes from "not pressed" to "pressed".
+     * Works before and after START.
+     */
+    private void checkReverseTimeNudge() {
+        boolean longerPressed = gamepad1.dpad_right;
+        boolean shorterPressed = gamepad1.dpad_left;
+        if (isNewPress(longerPressed, wasReverseLongerPressed)) {
+            shooterServoSubsystem.nudgeCloseReverseSeconds(CLOSE_REVERSE_STEP_SECONDS);
+        }
+        if (isNewPress(shorterPressed, wasReverseShorterPressed)) {
+            shooterServoSubsystem.nudgeCloseReverseSeconds(-CLOSE_REVERSE_STEP_SECONDS);
+        }
+        wasReverseLongerPressed = longerPressed;
+        wasReverseShorterPressed = shorterPressed;
     }
 
     /*
@@ -369,8 +429,11 @@ public class FiringSequenceAlpha extends OpMode {
         visionSubsystem.update();
         checkAllianceToggle();
         checkSpeedSourceToggle();
+        checkReverseTimeNudge();
 
         telemetry.addData("Status", "Ready to start!");
+        telemetry.addData("Intake reverse after gate closes (D-pad Left / Right)", "%.2f s",
+                shooterServoSubsystem.getCloseReverseSeconds());
         telemetry.addData("Speed source (Back)", useTable ? "TABLE" : "DIAL");
         visionSubsystem.addTelemetry(telemetry);
         addControlsTelemetry();
@@ -402,21 +465,23 @@ public class FiringSequenceAlpha extends OpMode {
         checkAllianceToggle();
         checkSpeedSourceToggle();
         checkPreRevToggle();
+        checkReverseTimeNudge();
 
         boolean fireHeld = gamepad1.right_trigger > TRIGGER_PRESSED_THRESHOLD;
+        // B (HOLD) is the FORCED SHOT (issue #80), the same as the TeleOp's operator B. It skips the
+        // READY checks: the wheels spin, the gate OPENS and the intake runs at once. It is for when a
+        // check is wrong or broken (the camera is dead, or the turret says "not aimed" but it is).
+        boolean forcedShotHeld = gamepad1.b;
         boolean reverseHeld = gamepad1.left_bumper;
         boolean intakeHeld = gamepad1.right_bumper;
 
         // The manual gate buttons. We work out the presses every loop (so an old press never
         // waits around), and only use them below when the firing sequence is not in charge.
         boolean gateClosedNow = gamepad1.x;
-        boolean gateOpenedNow = gamepad1.b;
         boolean gateLiftedNow = gamepad1.y;
         boolean closedNewPress = isNewPress(gateClosedNow, wasGateClosedPressed);
-        boolean openedNewPress = isNewPress(gateOpenedNow, wasGateOpenedPressed);
         boolean liftedNewPress = isNewPress(gateLiftedNow, wasGateLiftedPressed);
         wasGateClosedPressed = gateClosedNow;
-        wasGateOpenedPressed = gateOpenedNow;
         boolean liftedReleased = wasGateLiftedPressed && !gateLiftedNow;
         wasGateLiftedPressed = gateLiftedNow;
 
@@ -424,8 +489,10 @@ public class FiringSequenceAlpha extends OpMode {
         // the target does not move while balls are going through.
         boolean hasTarget = visionSubsystem.hasTarget();
         FiringSequence.SequenceState sequenceStep = firingSequence.getState();
+        // FORCED counts too (the same as the TeleOp), so a forced shot keeps one speed too.
         boolean feedingOrLater = sequenceStep == FiringSequence.SequenceState.FEED
-                || sequenceStep == FiringSequence.SequenceState.DONE;
+                || sequenceStep == FiringSequence.SequenceState.DONE
+                || sequenceStep == FiringSequence.SequenceState.FORCED;
         double wantedRpm;
         if (feedingOrLater) {
             if (!rpmFrozen) {
@@ -446,15 +513,19 @@ public class FiringSequenceAlpha extends OpMode {
         // The turret tracks the hive all the time.
         aimTurretAtHive();
 
-        // The wheels spin when we are firing OR pre-revving. Reverse (a jam) beats everything.
-        boolean wheelsWanted = fireHeld || preRevOn;
+        // The wheels spin when we are firing, forcing a shot (B) OR pre-revving, so a forced shot is a
+        // real shot even with the trigger let go and PRE-REV off (the same as the TeleOp). Reverse (a
+        // jam) beats everything.
+        boolean wheelsWanted = fireHeld || forcedShotHeld || preRevOn;
         String shooterControl;
         if (reverseHeld) {
             shooterSubsystem.setPower(REVERSE_POWER, REVERSE_POWER);
             shooterControl = "Left Bumper (REVERSE)";
         } else if (wheelsWanted) {
             shooterSubsystem.setTargetRpm(commandedRpm);
-            if (fireHeld) {
+            if (forcedShotHeld) {
+                shooterControl = "B (FORCED SHOT, " + rpmSource + ")";
+            } else if (fireHeld) {
                 shooterControl = "FIRE (" + rpmSource + ")";
             } else {
                 shooterControl = "PRE-REV (" + rpmSource + ")";
@@ -489,16 +560,27 @@ public class FiringSequenceAlpha extends OpMode {
             turretReady = turretErrorDegrees <= NO_CAMERA_TURRET_READY_DEGREES;
         }
         boolean readyToStart = shooterSubsystem.isFlywheelAtSpeed() && turretReady;
-        firingSequence.update(fireHeld, readyToStart, shooterSubsystem.isFlywheelAtSpeed(), turretReady);
+        // forcedShotHeld (B) skips the readiness checks: the sequence opens the gate and runs the intake
+        // at once, and closes the gate when B is let go.
+        firingSequence.update(fireHeld, forcedShotHeld, readyToStart, shooterSubsystem.isFlywheelAtSpeed(), turretReady);
 
         // The gate. Every move is instant (at the servo's top speed), like the TeleOp. The sequence is in charge while a volley
         // runs. Otherwise the manual buttons work. If more than one is pressed on the same loop,
-        // CLOSED wins, then OPENED, then LIFTED.
+        // CLOSED wins, then LIFTED. (B is not a gate press any more: it is the FORCED SHOT.)
         FiringSequence.GateCommand gateCommand = firingSequence.getGateCommand();
+        // WAITING + Y (issue #92), the same as the TeleOp: while the sequence waits for its checks it
+        // only holds the gate CLOSED, so held Y is allowed to override that. We look at the sequence's
+        // STEP, not only at its gate order, because the sequence also orders CLOSE once when a volley
+        // ENDS, and Y must not hold the gate up then. (If the trigger is let go while Y is still held,
+        // the gate closes once: press Y again to lift.)
+        boolean volleyWaiting = firingSequence.getState() == FiringSequence.SequenceState.WAIT_FOR_READY;
         String gateControl;
-        if (gateCommand == FiringSequence.GateCommand.CLOSE) {
+        if (gateCommand == FiringSequence.GateCommand.CLOSE && volleyWaiting && gateLiftedNow) {
+            shooterServoSubsystem.goToLifted();
+            gateControl = "volley WAITING, Y HELD: LIFTED (override)";
+        } else if (gateCommand == FiringSequence.GateCommand.CLOSE) {
             shooterServoSubsystem.goToClosed();
-            gateControl = "firing sequence";
+            gateControl = "firing sequence (CLOSED)";
         } else if (gateCommand == FiringSequence.GateCommand.OPEN) {
             // Feeding: the gate stays OPENED until the trigger is let go, except that holding Y LIFTS it
             // (to push the last ball up into the flywheel). Let go of Y and it goes back to OPENED.
@@ -507,14 +589,15 @@ public class FiringSequenceAlpha extends OpMode {
                 gateControl = "firing sequence feeding, Y HELD: LIFTED";
             } else {
                 shooterServoSubsystem.goToOpened();
-                gateControl = "firing sequence";
+                if (forcedShotHeld) {
+                    gateControl = "FORCED SHOT (B held): OPENED, checks skipped";
+                } else {
+                    gateControl = "firing sequence (OPENED)";
+                }
             }
         } else if (closedNewPress) {
             shooterServoSubsystem.goToClosed();
             gateControl = "manual (X)";
-        } else if (openedNewPress) {
-            shooterServoSubsystem.goToOpened();
-            gateControl = "manual (B)";
         } else if (liftedNewPress) {
             shooterServoSubsystem.goToLifted();
             gateControl = "manual (Y held: LIFTED)";
@@ -529,7 +612,7 @@ public class FiringSequenceAlpha extends OpMode {
         }
 
         // The intake. Reverse goes first, so clearing a jam always works. Then, any time the gate is
-        // closing from OPENED or from LIFTED, the intake runs in REVERSE for CLOSE_REVERSE_SECONDS, on its own
+        // closing from OPENED or from LIFTED, the intake runs in REVERSE for the reverse time (the number on the screen, D-pad Left / Right), on its own
         // (the same as the TeleOp), so a ball in the gate's way is pushed back out
         // instead of pulled in against the closing gate. Then the sequence (while it is feeding). Then
         // the driver's own intake button.
@@ -567,6 +650,9 @@ public class FiringSequenceAlpha extends OpMode {
         telemetry.addData("Shooter control", shooterControl);
         telemetry.addData("Gate control", gateControl);
         telemetry.addData("Intake control", intakeControl);
+        // The number we are looking for (issue #116). Type it into CLOSE_REVERSE_SECONDS when it is right.
+        telemetry.addData("Intake reverse after gate closes (D-pad Left / Right)", "%.2f s",
+                shooterServoSubsystem.getCloseReverseSeconds());
 
         if (firingSequence.getState() == FiringSequence.SequenceState.WAIT_FOR_READY) {
             telemetry.addData("Waiting for", getWaitingText(hasTarget, aimedNow, aimedAtHive));

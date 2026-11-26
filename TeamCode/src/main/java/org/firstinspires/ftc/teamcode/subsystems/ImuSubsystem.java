@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.IMU;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.teamcode.utils.BiobuzzLog;
 
 /*
  * IMU Subsystem
@@ -74,9 +75,6 @@ public class ImuSubsystem {
     //       hub on the RIGHT side of the robot  -> the logo faces LEFT
     //       hub at the BACK of the robot        -> the logo faces FORWARD
     //       hub at the FRONT of the robot       -> the logo faces BACKWARD
-    // TODO (issue #88): Not yet run on the robot. ImuAlpha will tell you if it is wrong: with the robot
-    // flat, pitch and roll are about 0, and turning the robot LEFT makes the heading go UP. If
-    // "left wall" meant the VIEWER's left and not the robot's, the logo would be LEFT instead.
     // ------------------------------------------------------------------
     private static final RevHubOrientationOnRobot.LogoFacingDirection LOGO_FACING_DIRECTION =
             RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;

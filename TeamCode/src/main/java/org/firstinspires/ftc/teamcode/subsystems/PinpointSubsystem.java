@@ -9,6 +9,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
+import org.firstinspires.ftc.teamcode.utils.BiobuzzLog;
+import org.firstinspires.ftc.teamcode.utils.HiveBearingMemory;
 
 /*
  * Pinpoint Subsystem
@@ -75,12 +77,6 @@ public class PinpointSubsystem {
     // ONE place: here. Change them here and both TeleOp and Auto get the change.
     // ------------------------------------------------------------------
     public static final String PINPOINT_NAME = "pinpoint";
-
-    // ------------------------------------------------------------------
-    // Where the pods are. These numbers are copied from last season's code (same chassis), and
-    // were measured then. TODO (issue #48): Measure them again with a tape measure if either pod has
-    // been moved. Wrong numbers do NOT hurt the heading, but the X and Y readings drift sideways
-    // whenever the robot turns.
     // ------------------------------------------------------------------
     // Measured from the robot's center of turning, to the middle of each pod's wheel.
     //

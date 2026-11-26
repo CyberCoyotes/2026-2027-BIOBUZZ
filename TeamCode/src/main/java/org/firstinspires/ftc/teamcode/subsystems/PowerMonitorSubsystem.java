@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.VoltageUnit;
+import org.firstinspires.ftc.teamcode.utils.BiobuzzLog;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +55,7 @@ public class PowerMonitorSubsystem {
     private static final double SAMPLE_INTERVAL_SECONDS = 0.10;
 
     // A hub reading below this many volts counts as a DIP. A healthy battery at rest reads
-    // about 13 V. TODO (issue #88): Drive a normal match first and look at the lowest voltage the screen
+    // about 13 V. Drive a normal match first and look at the lowest voltage the screen
     // shows. Then set this a little BELOW the lowest "normal" number, so only real sags count.
     private static final double DIP_THRESHOLD_VOLTS = 10.0;
 
