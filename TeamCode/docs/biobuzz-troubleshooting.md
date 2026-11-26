@@ -19,7 +19,7 @@
 
 | Symptom | Likely cause | Check |
 |---|---|---|
-| Turret tracks the wrong hive | Alliance is wrong. TeleOp **starts BLUE**, or on the alliance of the Auto that just ran (it falls back to BLUE if the Auto was never STARTed, the app restarted, more than 5 minutes passed, or `AutoEmergencyLeave` ran). | Screen alliance line. The **driver holds X (BLUE) or B (RED) for 1 second** until the line changes. |
+| Turret tracks the wrong hive | Alliance is wrong. TeleOp **starts BLUE**, or on the alliance of the Auto that just ran (it falls back to BLUE if the Auto was never STARTed, the app restarted, or more than 5 minutes passed). | Screen alliance line. The **driver holds X (BLUE) or B (RED) for 1 second** until the line changes. |
 | The driver held X or B and the alliance did not change | **SOLO MODE is on** (the alliance buttons are off there, because B is the forced shot), or **both** X and B were held, or the button was let go before 1 second. | Turn SOLO MODE off (gamepad 1 **LOGO**), then hold **one** button (X = BLUE, B = RED) until the screen line changes. In a solo match at home, set the alliance **before** turning SOLO MODE on. |
 | Turret does not move on its own | No target (the turret holds when it sees nothing), or gamepad 2's **A** is being held (it floats the turret). | Screen says **NO TARGET**? Point the robot at the hive. Is someone holding gamepad 2 **A**? (ALWAYS-TRACK has no off switch any more.) |
 | Turret hits a limit in the wrong place, or the zero is off | Power-up position was not "on the home switch, pointing straight ahead". 0 degrees is wherever the turret sat at power-up if the switch did not re-zero it. | Reset the turret by hand on the switch and power cycle. |

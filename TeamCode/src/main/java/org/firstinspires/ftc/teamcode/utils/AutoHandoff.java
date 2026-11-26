@@ -31,7 +31,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   - The Robot Controller app was restarted, or the Control Hub was power cycled, between the
  *     Auto and the TeleOp. The statics start empty again.
  *   - The Auto was never started (INIT only). Autos save the alliance at START, not at INIT.
- *   - The Auto does not know the alliance (AutoEmergencyLeave). It calls clear() instead.
+ *   - The Auto does not know the alliance (AutoEmergencyLeave, now hidden: every Auto on the Driver
+ *     Station names its alliance, issue #136). Such an Auto calls clear() instead.
  *   - Too much time has passed. See MAX_AGE_SECONDS.
  *
  * HOW THE OPMODES USE IT

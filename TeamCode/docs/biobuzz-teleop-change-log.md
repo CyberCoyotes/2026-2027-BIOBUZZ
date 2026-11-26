@@ -2,6 +2,29 @@
 
 *This text used to be the top of `BiobuzzTeleOp.java`. It was moved here, unchanged, so the file's header can describe how the TeleOp works **right now**. Each entry is what the code did when that Alpha was written: later Alphas may have replaced it (for example, the gentle gate close in Alpha 13 was removed later). When something here and the code disagree, the code wins. The current button map is in `biobuzz-teleop-controls.md`.*
 
+## PLAIN "DRIVE FORWARD" HIDDEN: EVERY AUTO NAMES ITS ALLIANCE (issue #136)
+
+*`AutoEmergencyLeave` (the Driver Station name "Drive Forward") is now `@Disabled`, so the Autonomous list has **12** OpModes (it had 13). Only `Blue - Drive Forward 24in` and `Red - Drive Forward 24in` are left as the "drive forward" Autos. The two Drive Reverse 24in Autos were not part of the request and are unchanged. **Not built with Gradle and not run on a robot.** Checked on a laptop only: the sheet's own `grep` now lists 12 names, and `javac` found no syntax errors.*
+
+```text
+WHAT CHANGED
+  1. AutoEmergencyLeave has @Disabled (and a note in its header on how to bring it back, the same as the
+     other hidden Autos). The file is not deleted.
+  2. WHY: it does not know the alliance, so after it the TeleOp falls back to BLUE and a RED team
+     aims at the wrong hive. The coach decided that only the Blue and Red Drive Forward 24in Autos
+     are allowed.
+  3. A NEW RULE (ARCHITECTURE.md, "Autonomous"): every Auto on the Driver Station names its alliance and
+     saves it with AutoHandoff.save(alliance). No Auto without an alliance.
+  4. The sheets (Autos on the Driver Station, match-day checklist, troubleshooting, TeleOp controls,
+     the Pedro guide, the strategy doc and the Autos README) no longer list plain Drive Forward as a
+     backup or as a reason the TeleOp starts on BLUE.
+
+NOT CHANGED
+  - The four 24in Autos, AutoHandoff.clear() (still there for any Auto that cannot know its alliance).
+  - The four 24in Autos' header comments still say they are copies of AutoEmergencyLeave. That is
+    true (the code was copied from it), so a fix in one should still be made in the others.
+```
+
 ## RENAMED "TELEOP - RC 1", NEW GROUPS, ONE NAME CONSTANT (issue #136)
 
 *The TeleOp is now **"TeleOp - RC 1"** (it was "TeleOp - Alpha 15"). The behavior is the same as the alliance-button entry below. **Not built with Gradle and not run on a robot.** Checked on a laptop only: `javac` found no syntax errors, and a small test with stand-ins for the SDK showed that an annotation can use the shared name constant (also on the TeleOp's own class).*
@@ -19,10 +42,11 @@ WHAT CHANGED
      "Testing" (today that is Firing Sequence - Alpha). The test Autos in testingOps/ keep "Testing".
   4. AUTO GROUPS: an Auto with an alliance in its name is in group "Auto - Blue" or "Auto - Red"
      (also the hidden 3 Volley ones, so un-hiding one keeps the scheme). Plain Drive Forward has no
-     alliance and stays in "Auto".
+     alliance and stayed in "Auto" (it was hidden right after, see the entry above).
   5. WHAT A GROUP DOES: as far as we know the Driver Station only SORTS by group (then by name) and shows no
      group headings. The names already start with Blue or Red, so the list looks almost the same. The one
-     change we expect: Drive Forward (group Auto) moves to the top, out from between Blue and Red. This
+     change we expected was plain Drive Forward (group Auto) moving to the top; it was hidden right
+     after (see the entry above), so the list should now be the Blue Autos, then the Red ones. This
      is NOT checked on the real Driver Station yet: look once, and fix biobuzz-driver-station-autos.md.
 
 NOT CHANGED
