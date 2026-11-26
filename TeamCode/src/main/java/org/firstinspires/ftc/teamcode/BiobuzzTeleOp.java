@@ -6,20 +6,20 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.subsystems.AutoHandoff;
-import org.firstinspires.ftc.teamcode.subsystems.BiobuzzLog;
+import org.firstinspires.ftc.teamcode.utils.AutoHandoff;
+import org.firstinspires.ftc.teamcode.utils.BiobuzzLog;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
-import org.firstinspires.ftc.teamcode.subsystems.FiringMonitor;
-import org.firstinspires.ftc.teamcode.subsystems.FiringSequence;
+import org.firstinspires.ftc.teamcode.utils.FiringMonitor;
+import org.firstinspires.ftc.teamcode.utils.FiringSequence;
 import org.firstinspires.ftc.teamcode.subsystems.FlowerPickerSubsystem;
-import org.firstinspires.ftc.teamcode.subsystems.HiveBearingMemory;
+import org.firstinspires.ftc.teamcode.utils.HiveBearingMemory;
 import org.firstinspires.ftc.teamcode.subsystems.ImuSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PowerMonitorSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
-import org.firstinspires.ftc.teamcode.subsystems.ShotTable;
+import org.firstinspires.ftc.teamcode.utils.ShotTable;
 import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
@@ -50,7 +50,7 @@ import java.util.List;
  * the gate closes and the intake reverses for a moment (CLOSE_REVERSE_SECONDS in
  * ShooterServoSubsystem). Holding Y lifts the gate to push the last ball in. The driver's D-pad Up is
  * PRE-REV (wheels on without firing). The driver's Right Trigger, Y and B (forced shot) only work in SOLO MODE
- * (gamepad1 LOGO), for a match with one person. The steps live in subsystems/FiringSequence.java.
+ * (gamepad1 LOGO), for a match with one person. The steps live in utils/FiringSequence.java.
  *
  * GAMEPAD 2 (the operator) has NO layers. Every button always does the same thing:
  *   X -> shooter GATE CLOSED (holds the ball back)
