@@ -15,6 +15,7 @@ import org.firstinspires.ftc.teamcode.utils.FiringSequence;
 import org.firstinspires.ftc.teamcode.subsystems.FlowerPickerSubsystem;
 import org.firstinspires.ftc.teamcode.utils.HiveBearingMemory;
 import org.firstinspires.ftc.teamcode.subsystems.ImuSubsystem;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PowerMonitorSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
@@ -419,15 +420,17 @@ public class BiobuzzTeleOp extends OpMode {
     // when you are debugging something and want everything back.
     private static final boolean FULL_TELEMETRY = false;
 
-    // PANELS GRAPHS (issue #122). true = send live numbers about the firing sequence to Panels: the
-    // flywheel's RPM against its target, the "ready" answers (flywheel, turret), the camera, the
-    // battery, and what the driver and operator are pressing. A laptop on the robot's wifi can then
-    // graph them. This is for PRACTICE ONLY: a laptop cannot be connected during a match, and the
-    // flywheel current graph asks the hub for one extra number every loop.
-    // false = nothing is sent to Panels. SET IT BACK TO FALSE BEFORE A MATCH.
+    // PANELS GRAPHS (issues #122 and [#138]). Panels is the live dashboard you open in a browser on a
+    // laptop that is on the robot's wifi. This TeleOp sends it the firing numbers (FiringMonitor:
+    // the flywheel against its target, the "ready" answers, the camera, the battery, and what the
+    // driver and operator are pressing) plus the drive, turret, intake, odometry and gyro numbers
+    // (addPanelsGraphs() below).
+    // THE ON/OFF SWITCH IS NOT IN THIS FILE ANY MORE. It is the ONE master switch at the top of
+    // utils/PanelsGraphs.java (PANELS_ENABLED), so every OpMode turns on and off together. It is ON
+    // for practice. A laptop cannot be connected during a match, so the coach re-checks it before
+    // Dec 10 (issue [#138]).
     // The "VOLLEY WAIT" and "VOLLEY FEED" lines in the Robot Controller log are written either way
     // (see FiringMonitor). How to open Panels: TeamCode/docs/biobuzz-panels-how-to.md.
-    private static final boolean SHOW_PANELS_FIRING_GRAPHS = true; // Change to true for practices
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
@@ -457,6 +460,8 @@ public class BiobuzzTeleOp extends OpMode {
     private HiveBearingMemory hiveMemory;
     private ShotTable shotTable;
     private FiringSequence firingSequence;
+    // The one connection to Panels (it has the master switch). Every graph number goes through it.
+    private PanelsGraphs panelsGraphs;
     // Watches the firing sequence (the volley log, and the Panels graphs when they are switched on).
     private FiringMonitor firingMonitor;
 
@@ -613,6 +618,23 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addLine("Left Trigger (hold) = WALL SHOT: turret straight ahead, fixed RPM, gate opens after a delay (let go = gate closes, wheels stop)");
         telemetry.addLine("Right Bumper = FLOWER PICKER UP   Left Bumper = FLOWER PICKER DOWN");
         telemetry.addLine("A (hold) = float the turret by hand (it tracks again when you let go)");
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). FiringMonitor adds the firing numbers. This adds the rest,
+    // so the drive, turret, intake, odometry and gyro can be graphed too. It only READS, and each
+    // call returns at once on a loop that Panels will not send (see PanelsGraphs).
+    //   forward, strafe, turn = the driver's sticks this loop (what we ASKED the drivetrain for;
+    //                           the wheel powers themselves are private inside DriveSubsystem).
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs(double forward, double strafe, double turn) {
+        panelsGraphs.addDriveInputs(forward, strafe, turn);
+        panelsGraphs.addTurret(turretSubsystem);
+        // The push that makes the turret follow the robot's spin (0 when the robot is not turning).
+        panelsGraphs.add("Turret spin push (power)", turretFeedforward);
+        panelsGraphs.addIntake(intakeSubsystem);
+        panelsGraphs.addPinpoint(pinpointSubsystem);
+        panelsGraphs.addImu(imuSubsystem);
     }
 
     // ------------------------------------------------------------------
@@ -1232,9 +1254,12 @@ public class BiobuzzTeleOp extends OpMode {
         hiveMemory = new HiveBearingMemory();
         shotTable = new ShotTable();
         firingSequence = new FiringSequence();
+        // Panels graphs. It only LOOKS at the subsystems (it moves nothing). The master switch is
+        // inside PanelsGraphs, so there is nothing to pass in.
+        panelsGraphs = new PanelsGraphs();
         // The monitor only LOOKS at the subsystems above (it moves nothing), so it comes last.
         firingMonitor = new FiringMonitor(shooterSubsystem, shooterServoSubsystem, firingSequence,
-                visionSubsystem, powerMonitorSubsystem, AIMED_TOLERANCE_DEGREES, SHOW_PANELS_FIRING_GRAPHS);
+                visionSubsystem, powerMonitorSubsystem, AIMED_TOLERANCE_DEGREES, panelsGraphs);
 
         telemetry.addData("Status", "Initialized");
         addControlsTelemetry();
@@ -1350,6 +1375,10 @@ public class BiobuzzTeleOp extends OpMode {
                 worstLoopMs = thisLoopMs;
             }
         }
+
+        // Open this loop's Panels frame (it also times the loop for the "Loop (ms)" graph). The
+        // matching panelsGraphs.send() is the LAST line of loop(), after every graph number is added.
+        panelsGraphs.beginLoop();
 
         // 1. Read sensors. (The drive has none. The intake reads its own encoder in update().
         //    The shooter reads its wheel encoders in its own update(), in step 3 below.)
@@ -1757,16 +1786,20 @@ public class BiobuzzTeleOp extends OpMode {
         // The operator's bumpers move the flower picker (it has nothing to do with the intake above).
         checkFlowerPickerButtons();
 
-        // The FIRING MONITOR (issue #122). It only LOOKS: it writes the volley log, and when
-        // SHOW_PANELS_FIRING_GRAPHS is true it sends the graph numbers to Panels. It comes after the
-        // sequence, the gate and the intake were set, so every answer is fresh. The "waiting for"
-        // words are only needed while a volley waits, so they are only built then.
+        // The FIRING MONITOR (issue #122). It only LOOKS: it writes the volley log, and when Panels
+        // is on (the master switch in PanelsGraphs) it adds the firing numbers to this loop's
+        // Panels frame. It comes after the sequence, the gate and the intake were set, so every
+        // answer is fresh. The "waiting for" words are only needed while a volley waits, so they
+        // are only built then.
         String waitingForText = "";
         if (firingSequence.getState() == FiringSequence.SequenceState.WAIT_FOR_READY) {
             waitingForText = getWaitingText(flywheelAtSpeed, hasTarget, aimedNow, aimedAtHive, turretHeld);
         }
         firingMonitor.update(fireHeld, forcedShotHeld, gateLiftedPressed, turretReady, readyToStart,
-                tableMode, preRevOn, thisLoopMs, waitingForText);
+                tableMode, preRevOn, waitingForText);
+
+        // The rest of the Panels graph numbers (drive, turret, intake, odometry, gyro).
+        addPanelsGraphs(forward, strafe, turn);
 
         // Remember this loop's buttons for the next loop.
         wasDpadUpPressed = dpadUpPressed;
@@ -1984,6 +2017,11 @@ public class BiobuzzTeleOp extends OpMode {
         if (SHOW_CONTROLS_WHILE_RUNNING) {
             addControlsTelemetry();
         }
+
+        // 6. Send this loop's Panels frame. It is the LAST line of loop(), after every graph number
+        //    was added (FiringMonitor and addPanelsGraphs() above). Panels has its own screen, so
+        //    this does not change the Driver Station.
+        panelsGraphs.send();
     }
 
     /*

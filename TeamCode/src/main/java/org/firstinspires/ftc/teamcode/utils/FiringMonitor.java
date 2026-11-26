@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.utils;
 
-import com.bylazar.telemetry.PanelsTelemetry;
-import com.bylazar.telemetry.TelemetryManager;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.PowerMonitorSubsystem;
@@ -32,12 +30,12 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *                            how long the intake was paused, and the lowest flywheel RPM and battery
  *                            voltage during the feed.
  *      A wait that ends in "ABORTED" means the trigger was let go before the volley was ready.
- *   2. LIVE GRAPHS IN PANELS (only when the TeleOp turns it on, practice only). It sends numbers to
- *      Panels every loop, so a laptop on the robot's wifi can show them as graphs. Panels sends them
- *      to the browser about 13 times a second (its own limit), so very short blips can be missed.
- *      Panels draws a number as a graph when it is sent as "name: number", so every graph number
- *      here is a plain number with NO units in it (the units are in the name). Yes/no answers are
- *      sent as 1 (yes) and 0 (no) so they draw as steps.
+ *   2. LIVE GRAPHS IN PANELS (practice). It hands numbers to PanelsGraphs every loop, so a laptop
+ *      on the robot's wifi can show them as graphs. PanelsGraphs has the master switch that turns
+ *      Panels on or off for every OpMode (issue #138), and it owns the one Panels connection.
+ *      Panels sends to the browser about 13 times a second (its own limit), so very short blips can
+ *      be missed. Every graph number here is a plain number with NO units in it (the units are in
+ *      the name). Yes/no answers are sent as 1 (yes) and 0 (no) so they draw as steps.
  *
  * WHAT TO LOOK FOR IN THE GRAPHS
  *   - "Flywheel RPM" against "Flywheel target": does it sit BELOW the target while it is running
@@ -54,22 +52,25 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *     halves was still 0?
  *
  * HOW TO USE IT (once per loop, AFTER the firing sequence, the gate and the intake have been
- * updated, so every answer is fresh):
+ * updated, so every answer is fresh. It must come AFTER panelsGraphs.beginLoop() and BEFORE
+ * panelsGraphs.send(), because the graph numbers go out through PanelsGraphs):
  *   firingMonitor.update(fireHeld, forcedShotHeld, liftHeld, turretReady, readyToStart,
- *                        tableMode, preRevOn, loopMs, waitingText);
+ *                        tableMode, preRevOn, waitingText);
  *
- * WHY IT IS ITS OWN CLASS: it is the ONLY file that uses the Panels library. If Panels ever causes
- * trouble, delete this file's Panels lines (or turn the switch off in BiobuzzTeleOp) and nothing
- * else in the robot code changes.
+ * WHY IT DOES NOT TALK TO PANELS ITSELF: PanelsGraphs is the ONLY file that uses the Panels
+ * library. Panels throws away a second update() in the same loop, so two classes must not each
+ * send their own. If Panels ever causes trouble, turn the master switch off in PanelsGraphs
+ * and the volley log (job 1) keeps working.
  */
 public class FiringMonitor {
 
     // ------------------------------------------------------------------
     // Tunable numbers
     // ------------------------------------------------------------------
-    // true  = also graph the flywheel's current (amps). This ASKS THE HUB every loop while the
-    //         wheels are running, so it makes the loop a little slower (see "Loop (ms)" in the
-    //         graphs to measure how much). It only happens when Panels is on, which is practice only.
+    // true  = also graph the flywheel's current (amps). This ASKS THE HUB while the wheels are
+    //         running, so it makes the loop a little slower (see "Loop (ms)" in the graphs to
+    //         measure how much). It only happens when Panels is on (the master switch in
+    //         PanelsGraphs), and only on the loops Panels will really send (about 13 a second).
     // false = leave the current out.
     private static final boolean GRAPH_FLYWHEEL_CURRENT = true;
 
@@ -90,9 +91,8 @@ public class FiringMonitor {
     // number (AIMED_TOLERANCE_DEGREES), handed in once so we draw the same limit.
     private final double aimToleranceDegrees;
 
-    // The Panels telemetry. null means "not sending to Panels" (it was switched off, or Panels
-    // could not be started).
-    private TelemetryManager panels = null;
+    // Where the graph numbers go. (It owns the one Panels connection and the master switch.)
+    private final PanelsGraphs panelsGraphs;
 
     // ------------------------------------------------------------------
     // The answers for THIS loop. update() fills them in first, so the helper methods can read them.
@@ -155,9 +155,8 @@ public class FiringMonitor {
     // ==================================================================
 
     /*
-     * sendToPanels = true turns the live graphs on (practice only). false keeps only the volley log.
-     * If Panels cannot be started for any reason, we say so in the log and carry on without it:
-     * the robot must never stop because of a graph.
+     * panelsGraphs is the OpMode's one PanelsGraphs (it decides whether the graphs are on, see its
+     * master switch). The volley log is written either way.
      */
     public FiringMonitor(ShooterSubsystem shooterSubsystem,
                          ShooterServoSubsystem shooterServoSubsystem,
@@ -165,28 +164,14 @@ public class FiringMonitor {
                          VisionSubsystem visionSubsystem,
                          PowerMonitorSubsystem powerMonitorSubsystem,
                          double aimToleranceDegrees,
-                         boolean sendToPanels) {
+                         PanelsGraphs panelsGraphs) {
         this.shooterSubsystem = shooterSubsystem;
         this.shooterServoSubsystem = shooterServoSubsystem;
         this.firingSequence = firingSequence;
         this.visionSubsystem = visionSubsystem;
         this.powerMonitorSubsystem = powerMonitorSubsystem;
         this.aimToleranceDegrees = aimToleranceDegrees;
-
-        if (sendToPanels) {
-            try {
-                // PanelsTelemetry is a Kotlin "object", so in Java we reach it through INSTANCE.
-                panels = PanelsTelemetry.INSTANCE.getTelemetry();
-            } catch (Exception e) {
-                panels = null;
-                BiobuzzLog.warning("FiringMonitor: Panels could not be started (%s). Graphs are OFF.", e.toString());
-            }
-        }
-    }
-
-    // true = the numbers are going to Panels.
-    public boolean isSendingToPanels() {
-        return panels != null;
+        this.panelsGraphs = panelsGraphs;
     }
 
     // ==================================================================
@@ -202,13 +187,13 @@ public class FiringMonitor {
      *   readyToStart    - the TeleOp's "flywheel at speed AND turret ready" answer
      *   tableMode       - true = the flywheel speed comes from the shot table, false = the dial
      *   preRevOn        - is PRE-REV on?
-     *   loopMs          - how long the last loop took, in milliseconds (the TeleOp measures it)
      *   waitingText     - the TeleOp's words for what the volley is waiting for. Only needed while
      *                     the sequence is in WAIT_FOR_READY. Pass "" at any other time.
+     * (The "Loop (ms)" graph is added by PanelsGraphs itself, so it is not passed in any more.)
      */
     public void update(boolean fireHeld, boolean forcedShotHeld, boolean liftHeld,
                        boolean turretReady, boolean readyToStart, boolean tableMode,
-                       boolean preRevOn, double loopMs, String waitingText) {
+                       boolean preRevOn, String waitingText) {
         // Time since the last call. Cap it so one hiccup cannot add a wait that never happened.
         loopSeconds = Math.min(loopTimer.seconds(), MAX_COUNTED_LOOP_SECONDS);
         loopTimer.reset();
@@ -227,8 +212,9 @@ public class FiringMonitor {
         trackWait();
         trackFeed();
 
-        if (panels != null) {
-            sendToPanels(fireHeld, forcedShotHeld, loopMs);
+        // Only build the graph numbers on a loop that Panels will really send (see PanelsGraphs).
+        if (panelsGraphs.isFrameOpen()) {
+            addGraphNumbers(fireHeld, forcedShotHeld);
         }
 
         previousStep = step;
@@ -354,73 +340,50 @@ public class FiringMonitor {
     }
 
     // ==================================================================
-    // PANELS (practice only)
+    // THE GRAPH NUMBERS (for Panels, through PanelsGraphs)
     // ==================================================================
 
-    // Panels shows each addData(name, value) as a line "name: value", and graphs the ones that are
+    // PanelsGraphs sends each number to Panels as "name: value", and Panels graphs the ones that are
     // plain numbers. So: NO units inside the value (put them in the name), 1 and 0 for yes and no,
-    // and the SAME names every loop (a graph follows a name over time).
-    private void sendToPanels(boolean fireHeld, boolean forcedShotHeld, double loopMs) {
-        double flywheelRpm = shooterSubsystem.getFlywheelRpm();
-        double flywheelTarget = shooterSubsystem.getTargetFlywheelRpm();
-        double tolerance = shooterSubsystem.getAtSpeedToleranceRpm();
+    // and the SAME names every loop (a graph follows a name over time). The shared sets (the
+    // flywheel, the camera, the gate) live in PanelsGraphs, so every OpMode uses the same names.
+    // This only runs on a loop that PanelsGraphs will really send. The OpMode itself calls
+    // panelsGraphs.send() once at the end of loop(), so we never call it here.
+    private void addGraphNumbers(boolean fireHeld, boolean forcedShotHeld) {
+        // --- THE FLYWHEEL (and the hood wheel) ---
+        panelsGraphs.addShooter(shooterSubsystem, GRAPH_FLYWHEEL_CURRENT);
 
-        // --- THE FLYWHEEL ---
-        panels.addData("Flywheel RPM", round1(flywheelRpm));
-        panels.addData("Flywheel RPM (raw)", round1(shooterSubsystem.getFlywheelRawRpm()));
-        panels.addData("Flywheel target", round1(flywheelTarget));
-        // Negative = too slow.
-        panels.addData("Flywheel error (RPM)", round1(flywheelRpm - flywheelTarget));
-        panels.addData("At-speed band +", round1(tolerance));
-        panels.addData("At-speed band -", round1(-tolerance));
-        // The current is only asked for while the wheels run, because asking costs loop time.
-        if (GRAPH_FLYWHEEL_CURRENT && shooterSubsystem.getState() != ShooterSubsystem.ShooterState.IDLE) {
-            panels.addData("Flywheel amps", round1(shooterSubsystem.getFlywheelCurrentAmps()));
-        }
-        // The hood wheel runs about twice as fast, so it gets its own names (and its own graph).
-        panels.addData("Hood wheel RPM", round1(shooterSubsystem.getHoodWheelRpm()));
-        panels.addData("Hood wheel target", round1(shooterSubsystem.getTargetHoodWheelRpm()));
-
-        // --- THE BATTERY AND THE LOOP ---
-        panels.addData("Battery (V)", round2(batteryVolts));
-        panels.addData("Loop (ms)", round1(loopMs));
+        // --- THE BATTERY ---
+        panelsGraphs.add("Battery (V)", batteryVolts);
 
         // --- THE GREEN LIGHT: both halves, and the sequence (1 = yes, 0 = no) ---
-        panels.addData("At speed (1=yes)", flag(flywheelAtSpeed));
-        panels.addData("Turret ready (1=yes)", flag(turretReady));
-        panels.addData("Ready to start (1=yes)", flag(readyToStart));
-        panels.addData("Sequence step (0 idle, 1 wait, 2 feed, 3 done, 4 forced)", getStepNumber());
-        panels.addData("Gate (0 closed, 1 opened, 2 lifted)", getGateNumber());
-        panels.addData("Intake wanted by sequence (1=yes)", flag(firingSequence.ownsIntake() && firingSequence.wantsIntake()));
+        panelsGraphs.addFlag("At speed (1=yes)", flywheelAtSpeed);
+        panelsGraphs.addFlag("Turret ready (1=yes)", turretReady);
+        panelsGraphs.addFlag("Ready to start (1=yes)", readyToStart);
+        panelsGraphs.add("Sequence step (0 idle, 1 wait, 2 feed, 3 done, 4 forced)", getStepNumber());
+        panelsGraphs.addGate(shooterServoSubsystem);
+        panelsGraphs.addFlag("Intake wanted by sequence (1=yes)",
+                firingSequence.ownsIntake() && firingSequence.wantsIntake());
 
         // --- THE CAMERA ---
-        boolean hasTarget = visionSubsystem.hasTarget();
-        panels.addData("Camera sees hive (1=yes)", flag(hasTarget));
-        // tx only means something while the camera sees the hive, so no tx number without it.
-        if (hasTarget) {
-            panels.addData("Camera tx (deg)", round1(visionSubsystem.getTxDegrees()));
-        }
-        panels.addData("Aim limit +", round1(aimToleranceDegrees));
-        panels.addData("Aim limit -", round1(-aimToleranceDegrees));
+        panelsGraphs.addVision(visionSubsystem);
+        panelsGraphs.add("Aim limit +", aimToleranceDegrees);
+        panelsGraphs.add("Aim limit -", -aimToleranceDegrees);
 
         // --- THE PEOPLE (what the driver and operator are doing) ---
-        panels.addData("Trigger held (1=yes)", flag(fireHeld));
-        panels.addData("Y lift held (1=yes)", flag(liftHeld));
-        panels.addData("Forced shot held (1=yes)", flag(forcedShotHeld));
-        panels.addData("PRE-REV on (1=yes)", flag(preRevOn));
-        panels.addData("TABLE mode (1=table, 0=dial)", flag(tableMode));
+        panelsGraphs.addFlag("Trigger held (1=yes)", fireHeld);
+        panelsGraphs.addFlag("Y lift held (1=yes)", liftHeld);
+        panelsGraphs.addFlag("Forced shot held (1=yes)", forcedShotHeld);
+        panelsGraphs.addFlag("PRE-REV on (1=yes)", preRevOn);
+        panelsGraphs.addFlag("TABLE mode (1=table, 0=dial)", tableMode);
 
-        // --- WORDS ---
-        panels.addData("Step", step.toString());
+        // --- WORDS (they show on Panels' Telemetry widget, they are not graphed) ---
+        panelsGraphs.addText("Step", step.toString());
         if (!waitingText.isEmpty()) {
-            panels.addData("Waiting for", waitingText.trim());
+            panelsGraphs.addText("Waiting for", waitingText.trim());
         }
-        panels.addData("Last wait", lastWaitText);
-        panels.addData("Last feed", lastFeedText);
-
-        // Send it. (This is Panels' own screen, so it does NOT touch the Driver Station's telemetry.
-        // Panels keeps its own pace and may skip a call if the last send was very recent.)
-        panels.update();
+        panelsGraphs.addText("Last wait", lastWaitText);
+        panelsGraphs.addText("Last feed", lastFeedText);
     }
 
     // The step as a number, so it can be drawn as a graph.
@@ -438,34 +401,5 @@ public class FiringMonitor {
             return 4;
         }
         return 0;
-    }
-
-    // The gate as a number, so it can be drawn as a graph. (What we COMMANDED: a servo cannot say
-    // where it really is.)
-    private int getGateNumber() {
-        ShooterServoSubsystem.GateState gate = shooterServoSubsystem.getState();
-        if (gate == ShooterServoSubsystem.GateState.OPENED) {
-            return 1;
-        }
-        if (gate == ShooterServoSubsystem.GateState.LIFTED) {
-            return 2;
-        }
-        return 0;
-    }
-
-    private int flag(boolean value) {
-        if (value) {
-            return 1;
-        }
-        return 0;
-    }
-
-    // Round to one decimal place, so Panels does not send 1299.8765432.
-    private double round1(double value) {
-        return Math.round(value * 10.0) / 10.0;
-    }
-
-    private double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
     }
 }
