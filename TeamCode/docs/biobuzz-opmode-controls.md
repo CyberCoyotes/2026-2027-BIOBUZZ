@@ -7,7 +7,7 @@ Print this and keep it at the driver station. It lists **what every button does 
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
 - **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In `TeleOp - RC 1`, Start no longer switches the alliance (issue #136: the driver holds X or B), but gamepad 2's B still starts a FORCED SHOT (wheels, gate and intake), so pair before START. In the test OpModes below, **Start** can still switch the alliance.)
 
-**Names on the Driver Station:** `TeleOp - RC 1`, and `Firing Sequence - Alpha` (un-hidden on 2026-11-25 to find the intake reverse time, issue #116). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Pinpoint - Alpha`, `Flower Picker Testing - Alpha`, `IMU - Alpha` (these four were hidden in issue #103), `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below. **Last checked against the code: 2026-11-24 (Issue #118), then changed on 2026-11-25 when `Firing Sequence - Alpha` was un-hidden (issue #116):** `TeleOp - RC 1` and `Firing Sequence - Alpha` are the only TeleOps left on the Driver Station, and the 11 OpModes above are all `@Disabled`. The Autonomous OpModes are on `biobuzz-driver-station-autos.md`.
+**Names on the Driver Station:** `TeleOp - RC 1`, `Firing Sequence - Alpha` (un-hidden on 2026-11-25 to find the intake reverse time, issue #116), and `Chute Sensor - Alpha` (new on 2026-11-27, issue #144; the coach hides it with `@Disabled` when Phase 1 testing is done). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Pinpoint - Alpha`, `Flower Picker Testing - Alpha`, `IMU - Alpha` (these four were hidden in issue #103), `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below. **Last checked against the code: 2026-11-24 (Issue #118), then changed on 2026-11-25 when `Firing Sequence - Alpha` was un-hidden (issue #116):** `TeleOp - RC 1` and `Firing Sequence - Alpha` were the only TeleOps left on the Driver Station then (`Chute Sensor - Alpha` was added on 2026-11-27, and its controls are in section 12), and the 11 OpModes above are all `@Disabled`. The Autonomous OpModes are on `biobuzz-driver-station-autos.md`.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
@@ -256,6 +256,21 @@ Letting go of RB or the stick holds the turret.
 | **Y / A** | Nudge the **RIGHT** servo **+ / - 0.01** |
 
 A nudge only lasts while the OpMode runs. When a position is right, type the four numbers from the screen into `FlowerPickerSubsystem` (`LEFT_UP_POSITION`, `LEFT_DOWN_POSITION`, `RIGHT_UP_POSITION`, `RIGHT_DOWN_POSITION`). The TeleOp uses the same bumpers on gamepad 2.
+
+---
+
+## 12. Chute Sensor - Alpha (gamepad 1 only)
+
+**22091 only** (the only robot with the sensor). Shows what the REV Color Sensor V3 named `chute_sensor` reads: the distance and the color (issue #144, Phase 1). It decides nothing and does not move the gate. The test order is in the OpMode's header; write the numbers in `biobuzz-test-and-match-log.md`, table 2b. **The intake runs on the bumpers**, so keep hands and cables clear of the chute.
+
+| Control | What it does |
+|---|---|
+| **A** (tap) | **Reset** the min and max distance. Press it, run a ball past, and the screen keeps the closest and farthest reading it saw |
+| **X** (tap) | Color reading **ON / OFF**. Off reads only the distance, so you can see what the color read costs (the "Sensor read time" and "Loop time" lines). Starts ON |
+| **RB** (hold) | **INTAKE** (pull balls in and up the chute) |
+| **LB** (hold) | **REVERSE** (push balls back out). Beats RB, so clearing a jam always works |
+
+"Out of range" means nothing is close to the sensor. It is shown on its own line so it cannot spoil the max. If the screen says **NOT FOUND**, add a REV Color Sensor V3 named `chute_sensor` to the robot config and check the cable first.
 
 ---
 
