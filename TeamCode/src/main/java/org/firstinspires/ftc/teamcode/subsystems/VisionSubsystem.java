@@ -43,6 +43,22 @@ import java.util.List;
  *      center. The average lands near the middle of the cluster, which is the middle of the cell
  *      opening side to side. (The arm can hide some tags, so we use whatever is visible.)
  
+ * THE AUDIENCE CELL STATUS (getAudienceCellStatus(), issue #134):
+ *   Is the AUDIENCE-side cell of OUR hive raised (UP) or lowered (DOWN)?
+ *   The tag NUMBERS cannot tell us: tags 34-37 are the red audience cell whether it is up or
+ *   down. HEIGHT can. The raised cell's tags are higher than the lowered cell's tags (about
+ *   50 in versus 34 in), so when BOTH of our cells are in view we compare them:
+ *     audience cell higher by CELL_SWITCH_MARGIN_DEGREES or more  -> UP
+ *     audience cell lower by CELL_SWITCH_MARGIN_DEGREES or more   -> DOWN
+ *     anything else                                               -> UNKNOWN
+ *   UNKNOWN is a real answer, not an error. It means only one of our cells is in view (ty alone
+ *   cannot say how high a cell is, because ty also depends on distance), or the two cells look
+ *   about the same height (the hive is in the middle of a tip).
+ *   WHERE YOU STAND MATTERS: the tags face the side of the RAISED cell. From the audience side
+ *   with the audience cell DOWN, the tags may face away from the camera, and then we see nothing
+ *   at all. That is UNKNOWN, not DOWN. To see DOWN you will probably need to stand on the FAR
+ *   side of the hive. This only REPORTS. It does not change which cell we aim at.
+ *
  * STATE (what we last saw) is NO_TARGET or TARGET_VISIBLE.
  * STATUS (what the camera says) is the numbers above, plus getResultAgeMs() and isCameraConnected().
  *
@@ -106,6 +122,11 @@ public class VisionSubsystem {
     private static final int RED_FAR_CELL = 0;
     private static final int BLUE_FAR_CELL = 3;
 
+    // The AUDIENCE cell of each hive: the other cell of the same hive. Red: cell 1 (tags 34-37).
+    // Blue: cell 2 (tags 38-41). Used by the audience cell status (issue #134).
+    private static final int RED_AUDIENCE_CELL = 1;
+    private static final int BLUE_AUDIENCE_CELL = 2;
+
     // This means "no cell". Real cells are numbered 0 to 3.
     private static final int NO_CELL = -1;
 
@@ -156,10 +177,21 @@ public class VisionSubsystem {
         TARGET_VISIBLE   // At least one of OUR tags is in view.
     }
 
+    // Is our AUDIENCE-side cell raised or lowered? See "THE AUDIENCE CELL STATUS" at the top.
+    // TODO (issue #134): test on the real blue hive. Check that UP and DOWN come out right when
+    // the hive is flipped, and that the 3 degree margin (CELL_SWITCH_MARGIN_DEGREES) is not so
+    // big that it says UNKNOWN too often. Test from the audience side and from the far side.
+    public enum CellStatus {
+        UP,       // Both of our cells are in view and the audience cell is the higher one.
+        DOWN,     // Both of our cells are in view and the audience cell is the lower one.
+        UNKNOWN   // We cannot tell: only one cell in view, or the two look the same height.
+    }
+
     private final Limelight3A limelight;
 
     private Alliance alliance = DEFAULT_ALLIANCE;
     private VisionState state = VisionState.NO_TARGET;
+    private CellStatus audienceCellStatus = CellStatus.UNKNOWN;
 
     // The newest answers. They are zero when there is no target.
     // txDegrees is the camera's tx PLUS AIM_OFFSET_DEGREES. rawTxDegrees is the camera's own tx.
@@ -306,6 +338,10 @@ public class VisionSubsystem {
             }
         }
 
+        // Is our audience cell raised or lowered? This reads the same cell heights that Pass 1 just
+        // filled in. It only REPORTS: it does not touch the lock or the target below.
+        audienceCellStatus = findAudienceCellStatus();
+
         // The highest of OUR cells in view is the one we would pick with no lock at all.
         int highestCell = NO_CELL;
         for (int cell = 0; cell < TOTAL_CELLS; cell++) {
@@ -400,6 +436,15 @@ public class VisionSubsystem {
         return "AUDIENCE";
     }
 
+    /*
+     * Is our AUDIENCE-side cell UP (raised), DOWN (lowered) or UNKNOWN? Only UP and DOWN when the
+     * camera sees BOTH of our cells (see "THE AUDIENCE CELL STATUS" at the top). UNKNOWN is a real
+     * answer: do not treat it as DOWN.
+     */
+    public CellStatus getAudienceCellStatus() {
+        return audienceCellStatus;
+    }
+
     public Alliance getAlliance() {
         return alliance;
     }
@@ -450,6 +495,8 @@ public class VisionSubsystem {
         }
 
         telemetry.addData("Vision State", state);
+        telemetry.addData("Audience cell", "%s   (UP or DOWN needs BOTH of our cells in view)",
+                audienceCellStatus);
         if (state == VisionState.TARGET_VISIBLE) {
             telemetry.addData("Aiming at", "%s %s side   (cell %d, %d tags used)",
                     alliance, getTargetSideText(), targetCell, tagCount);
@@ -501,7 +548,44 @@ public class VisionSubsystem {
         return lockedCell;
     }
 
+    /*
+     * Decides whether our AUDIENCE cell is UP, DOWN or UNKNOWN, from the cell heights that Pass 1
+     * of update() just filled in. See "THE AUDIENCE CELL STATUS" at the top for the rule.
+     */
+    private CellStatus findAudienceCellStatus() {
+        // Which two cells are ours depends on the alliance.
+        int audienceCell = RED_AUDIENCE_CELL;
+        int farCell = RED_FAR_CELL;
+        if (alliance == Alliance.BLUE) {
+            audienceCell = BLUE_AUDIENCE_CELL;
+            farCell = BLUE_FAR_CELL;
+        }
+
+        // A height only means something next to the other cell. With only one cell in view, ty
+        // could be a raised cell far away or a lowered cell up close, so we cannot tell.
+        if (!cellVisible[audienceCell] || !cellVisible[farCell]) {
+            return CellStatus.UNKNOWN;
+        }
+
+        // Positive means the audience cell is HIGHER than the far cell (a bigger ty is higher).
+        double audienceHeightAdvantage = highestTyInCell[audienceCell] - highestTyInCell[farCell];
+
+        if (audienceHeightAdvantage >= CELL_SWITCH_MARGIN_DEGREES) {
+            return CellStatus.UP;
+        }
+        if (audienceHeightAdvantage <= -CELL_SWITCH_MARGIN_DEGREES) {
+            return CellStatus.DOWN;
+        }
+
+        // The two cells look about the same height, which is what a hive in the middle of a tip
+        // looks like. Say so instead of guessing.
+        return CellStatus.UNKNOWN;
+    }
+
     private void clearTarget() {
+        // With no fresh result, or fewer than two of our cells in view, we cannot compare heights.
+        audienceCellStatus = CellStatus.UNKNOWN;
+
         state = VisionState.NO_TARGET;
         txDegrees = 0.0;
         rawTxDegrees = 0.0;
