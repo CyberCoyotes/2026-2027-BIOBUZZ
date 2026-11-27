@@ -32,6 +32,7 @@ These are plain subsystem classes (in the `subsystems/` folder) used by iterativ
 | `VisionSubsystem` | Limelight wrapper: `tx`, `ty`, visible tag IDs, alliance filtering |
 | `IntakeSubsystem` | Collect balls and move them through the transfer / feeder chute to the shooter; max 4 held |
 | `DriveSubsystem` | Mecanum drive for TeleOp (robot-centric first); Pedro Pathing drives in Auto |
+| `ChuteSensorSubsystem` | Reads the REV Color Sensor V3 near the top of the chute (distance and color). 22091 only for now. Phase 1 only reads; "is there a Pollen" comes later (issue #144) |
 
 The specific classes, states, and methods are decided one session at a time, proposal first.
 

@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.utils.AutoHandoff;
 import org.firstinspires.ftc.teamcode.utils.BiobuzzLog;
+import org.firstinspires.ftc.teamcode.subsystems.ChuteSensorSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.utils.FiringMonitor;
@@ -49,8 +50,10 @@ import java.util.List;
  * a volley. The wheels spin, and the volley WAITS until the flywheel is at speed AND the turret is
  * aimed. Then the gate OPENS and STAYS OPEN, and the intake feeds balls until the trigger is let go:
  * the gate closes and the intake reverses for a moment (CLOSE_REVERSE_SECONDS in
- * ShooterServoSubsystem). Holding Y lifts the gate to push the last ball in. The driver's D-pad Up is
- * PRE-REV (wheels on without firing). The driver's Right Trigger, Y and B (forced shot) only work in SOLO MODE
+ * ShooterServoSubsystem). Holding Y lifts the gate to push the last ball in. The driver's D-pad Up turns
+ * PRE-REV on (the wheels spin at a low preset speed without firing, so the spin-up before a shot is
+ * short) and D-pad Down turns it off. Any shot (Right Trigger, forced shot B, wall shot) turns PRE-REV
+ * off by itself (issue #143). The driver's Right Trigger, Y and B (forced shot) only work in SOLO MODE
  * (gamepad1 LOGO), for a match with one person. The steps live in utils/FiringSequence.java.
  *
  * GAMEPAD 2 (the operator) has NO layers. Every button always does the same thing:
@@ -82,7 +85,8 @@ import java.util.List;
  *                       already tracking the hive (ALWAYS-TRACK). The wheels run at the flywheel
  *                       speed from the DIAL or the TABLE (see THE SHOT TABLE below), and the hood
  *                       wheel at that x the ratio dial. Let go to ABORT: the gate closes, the
- *                       intake stops, and (unless PRE-REV is ON) both wheels go to 0 power. A (hold)
+ *                       intake stops, and both wheels go to 0 power (pressing the trigger already turned
+ *                       PRE-REV off, issue #143). A (hold)
  *                       floats the turret, so then a volley waits (the screen says it is floating).
  *   Start            -> NOT the alliance button any more (issue #136). On this controller START is only
  *                       for pairing (Start + B). The DRIVER sets the alliance: HOLD X for BLUE or HOLD B
@@ -95,8 +99,9 @@ import java.util.List;
  *                       fixed speeds (WALL_SHOT_FLYWHEEL_RPM, WALL_SHOT_HOOD_WHEEL_RPM) right away. After
  *                       WALL_SHOT_GATE_DELAY_SECONDS the gate OPENS and the intake runs, the same as the
  *                       FORCED SHOT (B): no camera, no READY checks. Let go and the gate CLOSES (with the
- *                       intake reversing for that moment) and the wheels go to 0 power (unless PRE-REV is
- *                       on). While it is held, B and the Right Trigger do nothing. A still floats the
+ *                       intake reversing for that moment) and the wheels go to 0 power (pressing the Left
+ *                       Trigger already turned PRE-REV off). While it is held, B and the Right Trigger
+ *                       do nothing. A still floats the
  *                       turret. There is no SOLO MODE copy: the driver's Left Trigger is SLOW MODE.
  *   Right Bumper     -> FLOWER PICKER UP (issue #75): the flower bar lifts. One move per press.
  *   Left Bumper      -> FLOWER PICKER DOWN: the flower bar lowers, ready to pick a flower. One move
@@ -123,7 +128,10 @@ import java.util.List;
  *   HOLD the Left Trigger -> SLOW MODE for careful lining up
  *   D-pad Left   -> RE-AIM: "the way the robot faces right now is away from me" (field-centric).
  *      It only changes which way "forward" means. It does not reset the IMU or the Pinpoint.
- *   D-pad Up     -> PRE-REV on / off: the wheels spin without firing (see the change log, Alpha 13).
+ *   D-pad Up     -> PRE-REV ON: the wheels spin at a low preset speed (PRE_REV_FLYWHEEL_RPM and
+ *      PRE_REV_HOOD_WHEEL_RPM) without firing, so the spin-up before a shot is short (issue #143).
+ *   D-pad Down   -> PRE-REV OFF. It also turns itself off the moment any shot is attempted (Right
+ *      Trigger, forced shot B or wall shot). Press D-pad Up again when more balls are loaded.
  *   HOLD X       -> set the ALLIANCE to BLUE (X is the blue button). HOLD B -> set it to RED (B is the red
  *      button). (Issue #136.) Hold for ALLIANCE_HOLD_SECONDS: a quick tap does nothing, so a thumb
  *      sliding off the right stick cannot flip it. Each button SETS the alliance (it does not toggle),
@@ -224,6 +232,10 @@ import java.util.List;
  *                                      have it, or this OpMode stops at INIT.)
  *   I2C Device name: pinpoint         (PinpointSubsystem, goBILDA Pinpoint Odometry Computer. If it
  *                                      is missing, the screen says so and the OpMode still runs.)
+ *   I2C Device name: chute_sensor     (ChuteSensorSubsystem, REV Color Sensor V3 near the top of the
+ *                                      chute. ONLY the 22091 has it. If it is missing the OpMode still
+ *                                      runs, and the screen only mentions it at INIT. It only SHOWS the
+ *                                      "Pollen at top" answer (issue #144, Phase 3a): it moves nothing.)
  */
 @TeleOp(name = BiobuzzTeleOp.TELEOP_NAME, group = "Competition")
 public class BiobuzzTeleOp extends OpMode {
@@ -427,6 +439,23 @@ public class BiobuzzTeleOp extends OpMode {
     // to ready" is a starting point. Too short = a weak first ball. Too long = we wait for nothing.
     private static final double WALL_SHOT_GATE_DELAY_SECONDS = 1.5;
 
+    // ------------------------------------------------------------------
+    // PRE-REV (the driver's D-pad Up = on, D-pad Down = off, issue #143). The wheels spin at a LOW preset
+    // speed while the robot drives to the shooting spot, so the spin-up before a shot is short.
+    // It does not use the dial or the table, so it does not depend on the camera.
+    // ------------------------------------------------------------------
+    // Why 1200: it is BELOW every shot in the table (1250 to 1425), so the flywheel only has to speed UP
+    // to shoot. Speeding up is quick because the motor pushes. Slowing down is slow because the heavy
+    // flywheel just coasts (FLOAT). A lower speed is also easier on the battery. If you ever dial a
+    // shot BELOW this number, the flywheel has to coast down first.
+    // The hood wheel is 2 x the flywheel, the same ratio the dial starts at (see RATIO_HUNDREDTHS_START).
+    // The Autos have their own PRE_REV_FLYWHEEL_RPM (1300). That one is also the shot speed when the
+    // camera never locks, so it is NOT changed here.
+    // TODO (issue #143): time the spin-up from 1200 to the shot speed on the robot (the "VOLLEY WAIT"
+    // line in the log shows it). Raise it if the wait is still long, lower it if the battery sags.
+    private static final double PRE_REV_FLYWHEEL_RPM = 1200.0;
+    private static final double PRE_REV_HOOD_WHEEL_RPM = 2400.0;
+
     // BULK READS. Every time the code asks a motor for its speed or position, the Robot Controller
     // makes a separate trip to the hub. This TeleOp asks four times per loop (the intake, the
     // flywheel, the hood wheel and the turret), so that is four trips. With bulk reads on, the hub
@@ -483,6 +512,9 @@ public class BiobuzzTeleOp extends OpMode {
     private TurretSubsystem turretSubsystem;
     private VisionSubsystem visionSubsystem;
     private PinpointSubsystem pinpointSubsystem;
+    // The REV Color Sensor V3 near the top of the chute (issue #144). Only the 22091 has it. The TeleOp
+    // only SHOWS what it says (the screen and the Panels graphs). Nothing here acts on it yet.
+    private ChuteSensorSubsystem chuteSensorSubsystem;
     // The Control Hub's built-in gyro. The field-centric DRIVE takes its heading from here.
     private ImuSubsystem imuSubsystem;
     // The battery black box (see PowerMonitorSubsystem). It only reads and writes the log.
@@ -495,9 +527,9 @@ public class BiobuzzTeleOp extends OpMode {
     // Watches the firing sequence (the volley log, and the Panels graphs when they are switched on).
     private FiringMonitor firingMonitor;
 
-    // PRE-REV (the driver's D-pad Up): are the wheels spinning even though nobody is firing?
+    // PRE-REV (the driver's D-pad Up = on, D-pad Down = off): are the wheels held at the low preset
+    // speed even though nobody is firing? It turns itself off when a shot is attempted (issue #143).
     private boolean preRevOn = false;
-    private boolean wasPreRevPressed = false;
 
     // SOLO MODE (gamepad1 LOGO): for a match with ONE person. false (the start) = only the OPERATOR's
     // Right Trigger fires. true = the driver's Right Trigger fires too.
@@ -639,7 +671,7 @@ public class BiobuzzTeleOp extends OpMode {
         if (soloMode) {
             telemetry.addLine("Y (HOLD) = gate LIFTED, SOLO MODE only (to push the last ball in)");
         }
-        telemetry.addLine("D-pad Up = PRE-REV on / off (wheels spin without firing)");
+        telemetry.addLine("D-pad Up = PRE-REV ON (wheels spin at a low preset speed)   D-pad Down = PRE-REV OFF   (a shot turns it off too)");
         telemetry.addLine(String.format("HOLD X = alliance BLUE   HOLD B = alliance RED   (%.1f s, not in SOLO MODE)",
                 ALLIANCE_HOLD_SECONDS));
         telemetry.addLine("BACK = drive FIELD-CENTRIC / ROBOT-CENTRIC");
@@ -672,6 +704,32 @@ public class BiobuzzTeleOp extends OpMode {
         panelsGraphs.addIntake(intakeSubsystem);
         panelsGraphs.addPinpoint(pinpointSubsystem);
         panelsGraphs.addImu(imuSubsystem);
+        addChuteSensorGraphs();
+    }
+
+    // The chute sensor's numbers (issue #144), with the same names as "Chute Sensor - Alpha" so one
+    // Panels layout works for both. A robot with no sensor sends nothing, so a flat "100 cm" line
+    // cannot be mistaken for a real reading. The color graphs only appear when the color is being
+    // read (FULL_TELEMETRY).
+    private void addChuteSensorGraphs() {
+        if (!chuteSensorSubsystem.isConnected()) {
+            return;
+        }
+        panelsGraphs.add("Chute distance (cm, 100 = out of range)", chuteSensorSubsystem.getDistanceCm());
+        panelsGraphs.addFlag("Chute distance real reading (1=yes)", chuteSensorSubsystem.isDistanceInRange());
+        panelsGraphs.addFlag("Chute pollen at top (1=yes)", chuteSensorSubsystem.hasPollenAtTop());
+        // The two lines the answer uses, so the distance trace can be read against them.
+        panelsGraphs.add("Chute ENTER (cm)", chuteSensorSubsystem.getPollenAtTopEnterCm());
+        panelsGraphs.add("Chute EXIT (cm)", chuteSensorSubsystem.getPollenAtTopExitCm());
+        // What the sensor costs every loop (compare with the "Loop (ms)" graph).
+        panelsGraphs.add("Chute sensor read (ms)", chuteSensorSubsystem.getReadMillis());
+        if (chuteSensorSubsystem.isColorReadingOn()) {
+            panelsGraphs.add("Chute red", chuteSensorSubsystem.getRed());
+            panelsGraphs.add("Chute green", chuteSensorSubsystem.getGreen());
+            panelsGraphs.add("Chute blue", chuteSensorSubsystem.getBlue());
+            panelsGraphs.add("Chute light level", chuteSensorSubsystem.getLightLevel());
+            panelsGraphs.add("Chute hue (deg)", chuteSensorSubsystem.getHueDegrees());
+        }
     }
 
     // ------------------------------------------------------------------
@@ -703,6 +761,21 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addData("Pose", "X %.1f in   Y %.1f in   Heading %.1f deg",
                 pinpointSubsystem.getXInches(), pinpointSubsystem.getYInches(),
                 pinpointSubsystem.getHeadingDegrees());
+    }
+
+    // The chute sensor (22091 only). The caller checks isConnected() first. It only SHOWS the answer:
+    // nothing in the TeleOp acts on it yet (issue #144, Phase 3a).
+    private void addBasicChuteTelemetry() {
+        telemetry.addLine("--- CHUTE SENSOR ---");
+        String pollenText = "no";
+        if (chuteSensorSubsystem.hasPollenAtTop()) {
+            pollenText = "YES";
+        }
+        if (chuteSensorSubsystem.isDistanceInRange()) {
+            telemetry.addData("Pollen at top", "%s   (%.1f cm)", pollenText, chuteSensorSubsystem.getDistanceCm());
+        } else {
+            telemetry.addData("Pollen at top", "%s   (nothing close)", pollenText);
+        }
     }
 
     private void addBasicShooterTelemetry() {
@@ -832,16 +905,19 @@ public class BiobuzzTeleOp extends OpMode {
     }
 
     /*
-     * The driver's D-pad Up switches PRE-REV on and off. One switch per press. PRE-REV spins the
-     * wheels (at the speed a shot would use) while you drive to the shooting spot, so the spin-up
-     * is not paid at every volley. It does not touch the gate or the intake. It starts OFF.
+     * The driver's D-pad Up turns PRE-REV ON and D-pad Down turns it OFF (issue #143). These are two
+     * separate buttons, not a toggle, because PRE-REV also turns itself off when a shot is attempted
+     * (see the end of loop()). With a toggle the driver could not tell what the next press would do.
+     * If both are pressed on the same loop, OFF wins. PRE-REV spins the wheels at the low preset speeds
+     * (PRE_REV_FLYWHEEL_RPM and PRE_REV_HOOD_WHEEL_RPM) while you drive to the shooting spot, so the
+     * spin-up before a shot is short. It does not touch the gate or the intake. It starts OFF.
      */
-    private void checkPreRevToggle() {
-        boolean preRevPressed = gamepad1.dpad_up;
-        if (isNewPress(preRevPressed, wasPreRevPressed)) {
-            preRevOn = !preRevOn;
+    private void checkPreRevButtons() {
+        if (gamepad1.dpad_down) {
+            preRevOn = false;
+        } else if (gamepad1.dpad_up) {
+            preRevOn = true;
         }
-        wasPreRevPressed = preRevPressed;
     }
 
     /*
@@ -1328,6 +1404,12 @@ public class BiobuzzTeleOp extends OpMode {
         // The Control Hub's own gyro. The drive's heading comes from here. Heading zero is the way
         // the robot faces now, at INIT. If the config has no "imu", this does not stop the OpMode.
         imuSubsystem = new ImuSubsystem(hardwareMap);
+        // The chute sensor. Only the 22091 has one: on any other robot this does not stop the OpMode,
+        // the sensor just says it is not connected. The color is the slower of its two I2C reads and
+        // nothing in the TeleOp uses it, so it is only read when FULL_TELEMETRY shows it. That keeps
+        // the loop fast.
+        chuteSensorSubsystem = new ChuteSensorSubsystem(hardwareMap);
+        chuteSensorSubsystem.setColorReadingOn(FULL_TELEMETRY);
         // The battery black box. It only reads the hubs, so it is safe at INIT.
         powerMonitorSubsystem = new PowerMonitorSubsystem(hardwareMap);
         hiveMemory = new HiveBearingMemory();
@@ -1354,6 +1436,7 @@ public class BiobuzzTeleOp extends OpMode {
         visionSubsystem.update();
         pinpointSubsystem.update();
         imuSubsystem.update();
+        chuteSensorSubsystem.update();
         powerMonitorSubsystem.update();
         checkModeButtons();
 
@@ -1384,6 +1467,8 @@ public class BiobuzzTeleOp extends OpMode {
             visionSubsystem.addTelemetry(telemetry);
             // Check that the Pinpoint says READY before START. (The robot must be still until then.)
             pinpointSubsystem.addTelemetry(telemetry);
+            // The chute sensor (22091 only). It says NOT FOUND on a robot without one.
+            chuteSensorSubsystem.addTelemetry(telemetry);
             addButtonTestTelemetry();
             addRawGamepadTelemetry();
         } else {
@@ -1394,6 +1479,13 @@ public class BiobuzzTeleOp extends OpMode {
             addBasicVisionTelemetry();
             // Check that the Pinpoint says READY before START. (The robot must be still until then.)
             addBasicOdometryTelemetry();
+            // One line, so you can check the chute sensor is plugged in before START. (While the
+            // OpMode runs, a robot without the sensor shows nothing about it.)
+            if (chuteSensorSubsystem.isConnected()) {
+                addBasicChuteTelemetry();
+            } else {
+                telemetry.addData("Chute sensor", "not in this robot's config (only the 22091 has one)");
+            }
         }
         addControlsTelemetry();
 
@@ -1465,13 +1557,14 @@ public class BiobuzzTeleOp extends OpMode {
         visionSubsystem.update();
         pinpointSubsystem.update();
         imuSubsystem.update();
+        chuteSensorSubsystem.update();
         powerMonitorSubsystem.update();
         checkPinpointHealth();
 
         // 2. Read the gamepads and decide what to do.
         checkModeButtons();
         checkDriveModeButtons();
-        checkPreRevToggle();
+        checkPreRevButtons();
         checkSoloModeToggle();
 
         // ---- Gamepad 1 (driver) ----
@@ -1666,18 +1759,23 @@ public class BiobuzzTeleOp extends OpMode {
             driveControl = driveControl + ", ROBOT-CENTRIC";
         }
 
-        // Shooter wheels. They spin while the driver HOLDS the Right Trigger (to fire) or while PRE-REV
-        // is ON, at the same speed either way: the DIAL or the TABLE, frozen during a volley (see
-        // above). (There is no wheel reverse in this OpMode any more.)
-        // The FORCED SHOT (operator B, held) spins them too, so a forced shot is a real shot even with
-        // the trigger let go and PRE-REV off.
-        // The WALL SHOT (operator Left Trigger, held) spins them from the moment it is pressed, at the
-        // fixed wall shot speeds (set above). Let go and, with PRE-REV off, they go to 0 power.
-        boolean wheelsWanted = fireHeld || forcedShotHeld || preRevOn || wallShotHeld;
+        // Shooter wheels. Three cases, checked in this order (issue #143):
+        //   1. A SHOT is being attempted: the Right Trigger held (to fire), the FORCED SHOT (operator B,
+        //      held) or the WALL SHOT (operator Left Trigger, held). The wheels go to the real shot
+        //      speed: the DIAL or the TABLE, frozen during a volley (see above), or the fixed wall
+        //      shot speeds (set above). A shot always beats PRE-REV, even if PRE-REV is ON.
+        //      (The forced shot is a real shot even with the trigger let go. The wall shot spins the
+        //      wheels from the moment it is pressed.)
+        //   2. PRE-REV is ON: the wheels are held at the low preset speeds, PRE_REV_FLYWHEEL_RPM and
+        //      PRE_REV_HOOD_WHEEL_RPM. NOT the dial or the table.
+        //   3. Otherwise both wheels get 0 power and coast down.
+        // (There is no wheel reverse in this OpMode any more.)
+        boolean shotAttempted = fireHeld || forcedShotHeld || wallShotHeld;
         String shooterControl;
-        if (wheelsWanted) {
+        if (shotAttempted) {
             // The shooter's speed control holds each wheel at its target, even when a ball slows it
-            // down or the battery drains.
+            // down or the battery drains. When PRE-REV was on, this is a NEW target, so the shooter
+            // starts its "at speed" check over and nothing is fed until the wheels get there.
             shooterSubsystem.setTargetRpms(flywheelTargetRpm, hoodWheelTargetRpm);
             if (wallShotHeld) {
                 shooterControl = "Operator Left Trigger (WALL SHOT)";
@@ -1687,11 +1785,13 @@ public class BiobuzzTeleOp extends OpMode {
                 shooterControl = "Driver B (FORCED SHOT, SOLO MODE)";
             } else if (fireHeld && operatorFireHeld) {
                 shooterControl = "Operator Right Trigger (FIRE)";
-            } else if (fireHeld) {
-                shooterControl = "Driver Right Trigger (FIRE, SOLO MODE)";
             } else {
-                shooterControl = "PRE-REV";
+                // Only the driver's Right Trigger is left (SOLO MODE).
+                shooterControl = "Driver Right Trigger (FIRE, SOLO MODE)";
             }
+        } else if (preRevOn) {
+            shooterSubsystem.setTargetRpms(PRE_REV_FLYWHEEL_RPM, PRE_REV_HOOD_WHEEL_RPM);
+            shooterControl = "PRE-REV (preset speeds)";
         } else {
             // Not firing and not pre-revving, so both wheels get 0 power and coast down.
             shooterSubsystem.stop();
@@ -1877,6 +1977,16 @@ public class BiobuzzTeleOp extends OpMode {
         firingMonitor.update(fireHeld, forcedShotHeld, gateLiftedPressed, turretReady, readyToStart,
                 tableMode, preRevOn, waitingForText);
 
+        // PRE-REV turns itself off the moment a shot is attempted (issue #143). The Right Trigger,
+        // the forced shot and the wall shot all count, and so does a quick tap that is let go before
+        // the volley is ready. This is at the END of the loop on purpose: the monitor above has just
+        // logged "PRE-REV was on at the trigger pull", and the wheels block already sent the real
+        // shot speed this loop. From now on preRevOn is false, so when the shot ends the wheels
+        // stop. The driver presses D-pad Up again when more balls are loaded.
+        if (shotAttempted) {
+            preRevOn = false;
+        }
+
         // The rest of the Panels graph numbers (drive, turret, intake, odometry, gyro).
         addPanelsGraphs(forward, strafe, turn);
 
@@ -1910,11 +2020,13 @@ public class BiobuzzTeleOp extends OpMode {
         } else if (FULL_TELEMETRY) {
             telemetry.addData("SOLO MODE (gamepad1 LOGO)", "off (only the operator's Right Trigger fires)");
         }
-        // PRE-REV is only shown while it is ON (the wheels are spinning without a shot).
+        // PRE-REV is only shown while it is ON (the wheels are held at the preset speeds without a shot).
         if (preRevOn) {
-            telemetry.addData("PRE-REV (driver D-pad Up)", "ON  (the wheels are spinning)");
+            telemetry.addData("PRE-REV (driver D-pad Up = on, Down = off)",
+                    "ON  (wheels held at %.0f / %.0f RPM, a shot turns it off)",
+                    PRE_REV_FLYWHEEL_RPM, PRE_REV_HOOD_WHEEL_RPM);
         } else if (FULL_TELEMETRY) {
-            telemetry.addData("PRE-REV (driver D-pad Up)", "off");
+            telemetry.addData("PRE-REV (driver D-pad Up = on, Down = off)", "off");
         }
 
         if (FULL_TELEMETRY) {
@@ -1947,8 +2059,9 @@ public class BiobuzzTeleOp extends OpMode {
             // robot's position (X, Y, heading) and its speeds. Nothing uses the position yet.
             pinpointSubsystem.addTelemetry(telemetry);
 
-            // The dials: what the operator has asked for. (They take effect while the driver holds the
-            // Right Trigger, or while PRE-REV is ON.)
+            // The dials: what the operator has asked for. (They take effect when a shot is attempted.
+            // PRE-REV does NOT use them: it has its own preset speeds, PRE_REV_FLYWHEEL_RPM and
+            // PRE_REV_HOOD_WHEEL_RPM.)
             telemetry.addLine("--- SHOOTER DIALS (RPM) ---");
             telemetry.addData("Flywheel speed source (gamepad2 LOGO)", getModeText());
             telemetry.addData("Using", rpmSource);
@@ -2010,6 +2123,10 @@ public class BiobuzzTeleOp extends OpMode {
             // The firing sequence prints its own "--- FIRING SEQUENCE ---" heading and the last volley's
             // log.
             firingSequence.addTelemetry(telemetry);
+
+            // The chute sensor prints its own "--- CHUTE SENSOR ---" heading (22091 only: it says NOT
+            // FOUND on a robot without one).
+            chuteSensorSubsystem.addTelemetry(telemetry);
         } else {
             // The basics: where the robot is, and the state of each mechanism.
             addBasicOdometryTelemetry();
@@ -2029,6 +2146,11 @@ public class BiobuzzTeleOp extends OpMode {
             addBasicGateTelemetry();
             addBasicFlowerPickerTelemetry();
             addBasicFiringTelemetry();
+
+            // The chute sensor: only on a robot that has one, so the other robots' screens stay short.
+            if (chuteSensorSubsystem.isConnected()) {
+                addBasicChuteTelemetry();
+            }
         }
 
         // While a volley waits, say what it is waiting for. (This is a basic: it explains why the

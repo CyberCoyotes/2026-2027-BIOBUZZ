@@ -7,7 +7,7 @@ Print this and keep it at the driver station. It lists **what every button does 
 - **Start** and **Back** are in the middle. (The old PS5 "Share" button is **Back**.)
 - **Pairing:** **Start + A** pairs gamepad 1. **Start + B** pairs gamepad 2. Pairing while an OpMode is running also presses Start and A or B in that OpMode, so check the alliance and any saved rows afterward. (In `TeleOp - RC 1`, Start no longer switches the alliance (issue #136: the driver holds X or B), but gamepad 2's B still starts a FORCED SHOT (wheels, gate and intake), so pair before START. In the test OpModes below, **Start** can still switch the alliance.)
 
-**Names on the Driver Station:** `TeleOp - RC 1`, and `Firing Sequence - Alpha` (un-hidden on 2026-11-25 to find the intake reverse time, issue #116). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Pinpoint - Alpha`, `Flower Picker Testing - Alpha`, `IMU - Alpha` (these four were hidden in issue #103), `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below. **Last checked against the code: 2026-11-24 (Issue #118), then changed on 2026-11-25 when `Firing Sequence - Alpha` was un-hidden (issue #116):** `TeleOp - RC 1` and `Firing Sequence - Alpha` are the only TeleOps left on the Driver Station, and the 11 OpModes above are all `@Disabled`. The Autonomous OpModes are on `biobuzz-driver-station-autos.md`.
+**Names on the Driver Station:** `TeleOp - RC 1`, `Firing Sequence - Alpha` (un-hidden on 2026-11-25 to find the intake reverse time, issue #116), and `Chute Sensor - Alpha` (new on 2026-11-27, issue #144; the coach hides it with `@Disabled` when Phase 1 testing is done). **Hidden** (`@Disabled`, put `//` in front of that line and redeploy to bring them back): `Drive Alpha`, `Pinpoint - Alpha`, `Flower Picker Testing - Alpha`, `IMU - Alpha` (these four were hidden in issue #103), `Shooter RPM - Alpha 2`, `Shooter Ratio - Alpha`, `Shot Table - Alpha`, `Intake Testing - Alpha`, `Shooter Power - Alpha`, `Turret Testing`, `Vision - Alpha`. Their controls are still listed below. **Last checked against the code: 2026-11-24 (Issue #118), then changed on 2026-11-25 when `Firing Sequence - Alpha` was un-hidden (issue #116):** `TeleOp - RC 1` and `Firing Sequence - Alpha` were the only TeleOps left on the Driver Station then (`Chute Sensor - Alpha` was added on 2026-11-27, and its controls are in section 12), and the 11 OpModes above are all `@Disabled`. The Autonomous OpModes are on `biobuzz-driver-station-autos.md`.
 
 **The same button does different jobs in different OpModes.** Check the OpMode name before you press anything.
 
@@ -33,8 +33,9 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **B** (HOLD) | **Alliance RED:** hold for 1 second (the red button). **In SOLO MODE** it is the **FORCED SHOT** instead, the same as the operator's B (issue #80), and does not change the alliance |
 | **START** | Not used in this OpMode (only for pairing: Start + A). It used to switch the alliance |
 | **BACK** | Drive **FIELD-centric / ROBOT-centric** toggle, the same as the operator's BACK |
-| **D-pad Up** | **PRE-REV** on / off: the wheels spin without firing (starts OFF) |
-| **A** | Not used. **D-pad Down / Right** are not used either |
+| **D-pad Up** | **PRE-REV ON:** the wheels spin at a low preset speed (1200 / 2400 RPM) without firing (starts OFF) |
+| **D-pad Down** | **PRE-REV OFF.** It also turns itself off when any shot starts (RT, forced shot, wall shot), issue #143 |
+| **A** | Not used. **D-pad Right** is not used either |
 | **D-pad Left** | **Re-aim** (field-centric): the way the robot faces right now is "away from me". Does not touch the Pinpoint |
 
 ### Gamepad 2: OPERATOR
@@ -47,16 +48,16 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **A** (hold) | **Float** the turret so you can turn it by hand. Let go and it tracks the hive again |
 | **D-pad Up / Down** | Flywheel target RPM **+ / - 100** (range 500 to 1450) |
 | **D-pad Right / Left** | Hood / flywheel **ratio + / - 0.05** (range 1.00 to 3.00, starts 2.00) |
-| **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the camera says the turret is aimed (within 2 degrees for 0.15 s), then opens the gate and **keeps feeding for as long as you hold** (no timer: the intake pauses by itself when the flywheel is not at speed or the turret is not aimed). **Let go to END it** (gate closes, intake stops). No one-volley limit. Unless PRE-REV is on, both wheels go to 0 power |
+| **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the camera says the turret is aimed (within 2 degrees for 0.15 s), then opens the gate and **keeps feeding for as long as you hold** (no timer: the intake pauses by itself when the flywheel is not at speed or the turret is not aimed). **Let go to END it** (gate closes, intake stops). No one-volley limit. Pressing RT already turned PRE-REV off, so both wheels go to 0 power |
 | **Start** | Not used in this OpMode (only for pairing: Start + B). The **driver** sets the alliance (hold X = BLUE, hold B = RED): check it on the screen |
 | **Back** | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). The driver's **BACK** does the same. (The physical **MODE** button cannot be read by the code: see the controls sheet. The INIT screen has a **BUTTON TEST** to check your controller.) |
 | **LOGO** (the center **guide** button) | Flywheel speed source **TABLE / DIAL** (starts **TABLE**, the camera). (On the driver's controller the same button is the SOLO MODE toggle.) |
 | **RB** | **Flower picker UP** (issue #75): lifts the flower bar. One move per press. If both bumpers go down on the same loop, UP wins |
 | **LB** | **Flower picker DOWN**: lowers the flower bar, ready to pick a flower. One move per press. Works at any time, also during a volley |
-| **LT** (HOLD) | **WALL SHOT** (issue #9): a dumb shot from a known spot, up against the wall. The turret goes straight ahead (0) and the wheels run at fixed speeds (flywheel 1300, hood wheel 2600 RPM) with no camera and no READY checks. After 1.5 s the gate **OPENS** and the intake runs. Let go and the gate **CLOSES** (with the auto-reverse) and the wheels go to 0 power (unless PRE-REV is on). While LT is held, B and RT do nothing. A still floats the turret. The driver's LT is SLOW MODE, so there is no SOLO MODE copy |
+| **LT** (HOLD) | **WALL SHOT** (issue #9): a dumb shot from a known spot, up against the wall. The turret goes straight ahead (0) and the wheels run at fixed speeds (flywheel 1300, hood wheel 2600 RPM) with no camera and no READY checks. After 1.5 s the gate **OPENS** and the intake runs. Let go and the gate **CLOSES** (with the auto-reverse) and the wheels go to 0 power (pressing LT already turned PRE-REV off). While LT is held, B and RT do nothing. A still floats the turret. The driver's LT is SLOW MODE, so there is no SOLO MODE copy |
 | **Sticks** | Not used. The turret has no manual control, the intake is the driver's, and the shooter wheels cannot be reversed from this OpMode |
 
-**Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen is **minimal** (`FULL_TELEMETRY = false` in `BiobuzzTeleOp.java`): run time, the alliance, drive mode, and the basics for each mechanism (vision, odometry, shooter RPMs, gate, flower picker, intake, turret), plus the firing sequence step and what it is **Waiting for**. **SOLO MODE** and **PRE-REV** show only when ON. Set `FULL_TELEMETRY = true` to get every diagnostic line back (loop time, the dials, **OK to shoot?**, battery, gyro, and so on).
+**Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen is **minimal** (`FULL_TELEMETRY = false` in `BiobuzzTeleOp.java`): run time, the alliance, drive mode, and the basics for each mechanism (vision, odometry, shooter RPMs, gate, flower picker, intake, turret), plus the firing sequence step and what it is **Waiting for**. **SOLO MODE** and **PRE-REV** show only when ON. The **CHUTE SENSOR** line (`Pollen at top: YES / no`, with the distance) shows only on a robot that has the sensor (the 22091); at INIT every robot shows one line saying whether it is there (issue #144, Phase 3a: it only shows the answer, nothing acts on it yet). Set `FULL_TELEMETRY = true` to get every diagnostic line back (loop time, the dials, **OK to shoot?**, battery, gyro, and so on).
 
 ---
 
@@ -256,6 +257,23 @@ Letting go of RB or the stick holds the turret.
 | **Y / A** | Nudge the **RIGHT** servo **+ / - 0.01** |
 
 A nudge only lasts while the OpMode runs. When a position is right, type the four numbers from the screen into `FlowerPickerSubsystem` (`LEFT_UP_POSITION`, `LEFT_DOWN_POSITION`, `RIGHT_UP_POSITION`, `RIGHT_DOWN_POSITION`). The TeleOp uses the same bumpers on gamepad 2.
+
+---
+
+## 12. Chute Sensor - Alpha (gamepad 1 only)
+
+**22091 only** (the only robot with the sensor). Shows what the REV Color Sensor V3 named `chute_sensor` reads: the distance and the color, plus the **Pollen at top** answer and a count of how often it changes (issue #144, Phases 1 and 2). It does not move the gate. The test order is in the OpMode's header; write the numbers in `biobuzz-test-and-match-log.md`, tables 2b and 2c. **The intake runs on the bumpers**, so keep hands and cables clear of the chute.
+
+| Control | What it does |
+|---|---|
+| **A** (tap) | **Reset** the min and max distance and the **answer changes** count. Press it, run a ball past, and the screen keeps the closest and farthest reading it saw |
+| **X** (tap) | Color reading **ON / OFF**. Off reads only the distance, so you can see what the color read costs (the "Sensor read time" and "Loop time" lines). Starts ON |
+| **RB** (hold) | **INTAKE** (pull balls in and up the chute) |
+| **LB** (hold) | **REVERSE** (push balls back out). Beats RB, so clearing a jam always works |
+
+**Pollen at top (Phase 2):** the screen says **YES** when a Pollen sits at the top of the chute. It uses the distance only, with a gap so it does not flicker: at or below **3.0 cm** it turns YES, at or above **3.8 cm** (or out of range) it turns no, and in between (the **BETWEEN** band) it keeps its last answer. The reading must hold for **0.10 s** before it flips. These three numbers are starting values (in `ChuteSensorSubsystem`). **Answer changes** should be **1** when a Pollen arrives and **2** when it leaves: more means the answer flickered. If there is no sensor the answer is always no. The test order is steps 8 to 14 in the header, and the results go in the test log, table 2c.
+
+"Out of range" means nothing is close to the sensor. It is shown on its own line so it cannot spoil the max. If the screen says **NOT FOUND**, add a REV Color Sensor V3 named `chute_sensor` to the robot config and check the cable first.
 
 ---
 

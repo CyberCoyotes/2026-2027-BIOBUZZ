@@ -19,6 +19,7 @@ The code is the source of truth. This table only tells you **where to look and w
 | Turret spin-follow gain (`TURRET_FEEDFORWARD_GAIN`) | `BiobuzzTeleOp` | The turret or its controller changes | Spin steadily while aligned and watch `tx` |
 | Intake power, direction | `IntakeSubsystem` | The motor or the chute changes | `IntakeAlpha` |
 | Intake reverse time after the gate closes (`CLOSE_REVERSE_SECONDS`): clears a ball out of the throat | `ShooterServoSubsystem` | The gate speed, the chute, the intake power, the battery, or the balls change | `FiringSequenceAlpha` (D-pad Left / Right nudges the time by 0.05 s, test step 11), or `BiobuzzTeleOp` (fire, let go with a ball left in the chute). Needs the slow-mo video test in section 5 |
+| Chute sensor color gain (`COLOR_GAIN`), and the "Pollen at the top" numbers `POLLEN_AT_TOP_ENTER_CM` 3.0, `POLLEN_AT_TOP_EXIT_CM` 3.8 and `POLLEN_AT_TOP_DEBOUNCE_SECONDS` 0.10 (issue #144; starting values, not yet checked on the robot) | `ChuteSensorSubsystem` | The sensor moves, or the room light changes | `ChuteSensorAlpha` (tables 2b and 2c) |
 | Drive directions, slow-mode scale | `DriveSubsystem` | Wiring changes | `DriveAlpha` |
 | Pinpoint pod offsets, directions, distance multiplier | `PinpointSubsystem` | A pod moves | `PinpointAlpha` |
 | Drive Forward / Drive Reverse: drive power, coast allowance (`COAST_DISTANCE_INCHES`), safety timeout, backup seconds | Each of the four `AutoBlueDriveForward24`, `AutoRedDriveForward24`, `AutoBlueDriveReverse24`, `AutoRedDriveReverse24` (and `AutoEmergencyLeave`), tuned on its own | The wheels, battery or floor change, or `DRIVE_POWER` changes (a faster robot coasts farther). Tune the coast, not `DRIVE_DISTANCE_INCHES` (the name says `24in`) | The Auto itself: run it 5 times, measure with a tape from the start spot (issue #114) |
@@ -35,11 +36,54 @@ The code is the source of truth. This table only tells you **where to look and w
 
 *Why: the gate does not always open on time and the operator presses Y or B by hand. Two robots, TABLE mode with the camera, PRE-REV off, battery 12.5 V no load (fresh off the charger it is 13.5 to 14 V). **Write your guess before you test**, then compare. How to see the numbers: `biobuzz-panels-how-to.md`.*
 
-Test 5 volleys each, same robot, same spot: **(1)** TABLE, PRE-REV off. **(2)** TABLE, PRE-REV on (D-pad Up, wait for the wheels, then pull the trigger). **(3)** the same as (1) with a fresh battery. Copy the two `VOLLEY` lines from the log (or `Last wait` and `Last feed` in Panels) into each row.
+Test 5 volleys each, same robot, same spot: **(1)** TABLE, PRE-REV off. **(2)** TABLE, PRE-REV on (D-pad Up, wait for the wheels, then pull the trigger; since issue #143 PRE-REV holds 1200 / 2400 RPM, so the `At the pull` part of the log line should say about 1200 RPM, and the wait is the climb from there to the table RPM). **(3)** the same as (1) with a fresh battery. Copy the two `VOLLEY` lines from the log (or `Last wait` and `Last feed` in Panels) into each row.
 
 | Date | Robot | Battery V (no load) | Test (1, 2 or 3) | Flywheel RPM at the pull | Seconds to ready | Waited on (flywheel / turret / both, s) | Y or B pressed? | Flywheel low during feed | Peak amps | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | | | | | | | | | | | |
+
+### 2b. Chute sensor readings (issue #144, Phase 1)
+
+*Why: before we write any rule for "there is a Pollen at the top of the chute" (Phase 2), we have to see what the REV Color Sensor V3 really reads. **22091 only.** Test with a real Pollen (it has holes), in `Chute Sensor - Alpha`. The test order is in its header. Press A to reset the min/max before each try, and write the **Panels graph** picture or numbers for the "feeding past" rows. Write your guess first.*
+
+Rows to fill (add more rows for each lighting). The **"stall spot"** row matters most: if the last ball that stops with nothing behind it is **not** in the sensor's view, tell the coach, because the plan for Phase 3 changes.
+
+| Date | Lighting (gym / pit / field) | Situation | Distance min (cm) | Distance max (cm) | Out of range seen? | Hue (deg) | Light level | Notes (steady? flickers? hole facing the sensor?) |
+|---|---|---|---|---|---|---|---|---|
+| | | Empty chute | | | | | | |
+| | | Pollen at the top, a HOLE facing the sensor | | | | | | |
+| | | Pollen at the top, a solid side facing the sensor | | | | | | |
+| | | Pollen at the top, slowly turning | | | | | | |
+| | | **Stall spot**: Pollen where the LAST ball stops after a volley | | | | | | |
+| | | 1 ball feeding past (RB held) | | | | | | |
+| | | 3 balls feeding past (RB held) | | | | | | |
+
+| Date | Color reading | "Sensor read time" (ms) | "Loop time" (ms) |
+|---|---|---|---|
+| | ON | | |
+| | OFF | | |
+
+### 2c. Chute sensor "Pollen at top" answer (issue #144, Phase 2)
+
+*Why: Phase 2 turns the distance into one yes / no answer, `hasPollenAtTop()`, using the coach's hand readings: it turns YES at or below **3.0 cm**, turns no at or above **3.8 cm**, keeps its last answer in between, and waits **0.10 s** before it flips. These are starting values. **22091 only.** Test in `Chute Sensor - Alpha` (steps 8 to 14 in its header). Press A before each try so "answer changes" starts at 0. Write your guess first.*
+
+| Date | Lighting (gym / pit / field) | Situation | Answer (YES / no) | Answer changes (1 = in, 2 = out) | Notes (which side of the ball? blips? how long?) |
+|---|---|---|---|---|---|
+| | | Empty chute, 10 s (expect no, 0 changes) | | | |
+| | | Pollen staged, a solid side facing the sensor (expect YES, 1) | | | |
+| | | Pollen staged, a HOLE facing the sensor (expect YES, 1) | | | |
+| | | Pollen staged, slowly turning (expect YES, 1) | | | |
+| | | Pollen taken away (expect no, 2) | | | |
+| | | Slide a Pollen in and out slowly (band CLEAR, BETWEEN, STAGED; it should flip only at the two ends) | | | |
+| | | 1 ball feeding past (RB held): any blip? | | | |
+| | | 3 balls feeding past (RB held): any blips? how long? | | | |
+| | | **Stall spot**: Pollen where the LAST ball stops (expect YES and it stays) | | | |
+
+| Number | Starting value | Value after testing | Why it changed |
+|---|---|---|---|
+| `POLLEN_AT_TOP_ENTER_CM` | 3.0 | | |
+| `POLLEN_AT_TOP_EXIT_CM` | 3.8 | | If the answer stays YES after the ball is gone, try 3.5 |
+| `POLLEN_AT_TOP_DEBOUNCE_SECONDS` | 0.10 | | Raise it if balls feeding past blip the answer |
 
 ## 3. Match log
 
