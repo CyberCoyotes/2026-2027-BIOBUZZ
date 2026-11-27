@@ -76,23 +76,26 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   so it lands on the real blue flowers, is exactly this plan from the MAIN spot.
  *   GARDEN_D1    : (issue #156. The MAIN start spot only: tile D6 for blue. BLUE numbers, red is
  *                  turned 180, but only the blue Auto is on the Driver Station.)
- *     1. SHOT 1               : from the start spot, the same shot as SHOOT_PARK.
- *     2. DRIVE_TO_GARDEN      : along the rear wall to the blue GARDEN in the top-right corner. The
- *                               robot turns around on the way (a 180 degree turn, started only after
- *                               it is clear of the wall) so the INTAKE faces the rear wall.
- *     3. GARDEN               : the intake starts a little before the stop. At the stop the robot
- *                               creeps GARDEN_CREEP_INCHES toward the wall, then sits there with the
- *                               intake on for GARDEN_PICK_SECONDS to take in the POLLEN. The flower
- *                               bar stays UP the whole time (the POLLEN are on the floor).
- *     4. DRIVE_TO_SHOT_2      : backs down the right side of the hive (between the hive and the
- *                               flower on the right wall) and across to tile D1. It keeps FACING UP
- *                               the whole drive: it never turns, it backs up and slides.
- *     5. SHOT 2               : from tile D1 (D1_SHOT_X/Y), facing up at the hive.
+ *     1. SHOT 1               : from the start spot, like SHOOT_PARK, but FASTER (see "FASTER SHOTS"
+ *                               below). The flywheel is stopped when the shot ends.
+ *     2. DRIVE_TO_GARDEN      : the robot ROTATES LEFT while it leaves the wall, then drives toward
+ *                               the right side along the rear wall, facing right, with its LEFT
+ *                               bumper running along the rear wall (GARDEN_WALL_GAP_INCHES away).
+ *                               It stops GARDEN_APPROACH_X_INCHES from the left wall, just before the
+ *                               line of POLLEN. (The coach's plan from the issue #156 comment.)
+ *     3. GARDEN               : the intake starts a little before that stop. Then the robot SWEEPS
+ *                               slowly down the line of POLLEN into the corner with the intake on
+ *                               (the line is straight ahead of the intake), and sits there for
+ *                               GARDEN_PICK_SECONDS. The flower bar stays UP the whole time.
+ *     4. DRIVE_TO_SHOT_2      : AFTER LEAVING THE GARDEN the flywheel revs up to
+ *                               GARDEN_LEAVE_FLYWHEEL_RPM. The robot goes down the right side of the
+ *                               hive and under it to tile D1, turning left from facing right to
+ *                               FACING UP (so it ends up backing down the field).
+ *     5. SHOT 2               : from tile D1 (D1_SHOT_X/Y), facing up at the hive, also faster.
  *     6. DRIVE_TO_PARK        : straight to the loading zone, still facing up.
  *   If the robot is out of time after the garden, it skips the D1 drive and the shot, and drives
  *   straight from the garden to the loading zone (so it still parks).
- *   Estimated time: about 22 s with a camera lock, 26 s without one (see README.md). The garden
- *   numbers are starting guesses.
+ *   Estimated time: see README.md. The garden numbers are starting guesses.
  *
  * INIT BUTTONS (gamepad 1). The screen shows what is picked.
  *   B = NONSTOP (the default): runs like a match.   A = STEP: stops after each drive, press A.
@@ -111,6 +114,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *                    bar goes back UP here if it was still down from a flower.
  *   LIFT_LAST_BALL : gate LIFTED to push the last ball in, then gate CLOSED.
  *   Between shots the flywheel keeps spinning at PRE_REV_FLYWHEEL_RPM. It stops after the last one.
+ *   (GARDEN_D1 is different: it stops the flywheel after shot 1 and revs it again when it leaves
+ *   the garden, see GARDEN_FLYWHEEL_OFF_AT_GARDEN.)
  *
  * ONE FLOWER (THREE_VOLLEY)
  *   On the way in, FLOWER_x_BAR_DOWN_INCHES before the stop, the bar goes DOWN and the intake starts.
@@ -122,10 +127,18 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  *   The blue GARDEN is a strip in the top-right corner, along the rear wall. Its 4 POLLEN (2.8 inch
  *   balls) sit in a line from the corner: X about 130 to 141 on Pedro's map, touching the rear wall.
  *   Unlike a flower there is no bar: the balls are on the floor and the INTAKE takes them in. The
- *   robot faces the rear wall, so the whole line is in front of the intake at once. Like a flower:
- *   drive to the stop, creep in, sit with the intake on, then drive on. The gate stays CLOSED, so
- *   the balls wait at the gate. The rules say a robot may hold no more than 4 balls (G407), so
- *   shot 1 has to empty the robot first (FEED_SECONDS is what makes sure of that).
+ *   robot faces right with its left bumper along the rear wall, so the line of balls is straight
+ *   ahead of the intake and the robot takes them in one after another as it drives down the line.
+ *   Like a flower: drive to a stop, move in (here: sweep along the wall), sit with the intake on,
+ *   then drive on. The gate stays CLOSED, so the balls wait at the gate. The rules say a robot may
+ *   hold no more than 4 balls (G407), so shot 1 has to empty the robot first.
+ *
+ * FASTER SHOTS (GARDEN_D1 only)
+ *   The coach saw the 4th POLLEN leave late, after the robot had already started to move (issue
+ *   #156 comment). So the GARDEN_D1 shots use GARDEN_FAST_FEED (the intake runs the whole feed
+ *   instead of waiting for the flywheel to recover after each ball) and GARDEN_FEED_SECONDS. The
+ *   robot does not start to drive until the shot (feed, then lift) is over. The other Autos still
+ *   use FEED_SECONDS and INTAKE_WAITS_FOR_SPEED, so they shoot exactly as before.
  *
  * THE 30 SECOND LIMIT: once the robot has run SKIP_ACTIONS_AFTER_SECONDS (not counting time
  * waiting for A in step mode), shots and flowers are skipped or cut short so the robot still parks.
@@ -199,20 +212,44 @@ public class BiobuzzAuto extends OpMode {
     private static final double FLOWER_A_CREEP_INCHES = 5.0;
     private static final double FLOWER_B_CREEP_INCHES = 8.0;
     // The most time a creep may take before the pick starts anyway (it may stop against the flower).
-    // The garden creep uses this too.
     private static final double CREEP_TIMEOUT_SECONDS = 1.5;
 
     // --- Garden (GARDEN_D1) ---
-    // How long the robot sits at the garden with the intake on, after the creep (seconds).
+    // How long the robot sits in the corner with the intake on, after the sweep (seconds). The balls
+    // are mostly taken in during the sweep, so this is only to catch the last one.
     // TODO: starting guess. Time how long the intake really needs to take in all the POLLEN.
-    private static final double GARDEN_PICK_SECONDS = 2.0;
-    // How far before the garden stop the intake starts (inches).
+    private static final double GARDEN_PICK_SECONDS = 1.0;
+    // How far before the sweep starts (the approach stop) the intake turns on (inches).
     // TODO: starting guess. The intake only needs to be on before it reaches the first ball.
     private static final double GARDEN_INTAKE_ON_INCHES = 12.0;
-    // How far the robot creeps straight toward the rear wall once it has stopped (inches). 5.5 puts
-    // the front of the robot about 1 inch from the wall, in the middle of the line of POLLEN.
-    // TODO: starting guess. Too short and the balls are not reached, too long and it pushes the wall.
-    private static final double GARDEN_CREEP_INCHES = 5.5;
+    // The most time the sweep down the line of POLLEN may take before the pick starts anyway (it
+    // may stop against the right wall). The sweep is a short drive, so the robot never gets fast.
+    // TODO: starting guess. If the balls get PUSHED instead of taken in, the sweep is too fast:
+    // we would need a speed limit for Pedro, which our code does not use anywhere yet (ask first).
+    private static final double GARDEN_SWEEP_TIMEOUT_SECONDS = 3.0;
+
+    // --- Faster shots (GARDEN_D1 only, issue #156 comment) ---
+    // The coach saw the 4th POLLEN leave late, with the robot already starting to move.
+    // true  = the intake runs the WHOLE feed, so the balls follow each other quickly.
+    // false = like the other Autos (INTAKE_WAITS_FOR_SPEED): after each ball the intake waits for
+    //         the flywheel to get back to speed, which is slower. Set it false if the flywheel
+    //         dips so much that the later balls fall short.
+    private static final boolean GARDEN_FAST_FEED = true;
+    // How long the gate stays OPENED while the intake feeds, for the GARDEN_D1 shots (seconds).
+    // The other Autos use FEED_SECONDS (3.0). The robot does not move until the feed AND the
+    // lift (GATE_LIFT_SECONDS) are over.
+    // TODO: starting guess. Watch the 4th ball: still late, raise it. All 4 out early, lower it.
+    private static final double GARDEN_FEED_SECONDS = 2.5;
+
+    // --- Flywheel during GARDEN_D1 (issue #156 comment) ---
+    // true  = the flywheel stops when shot 1 ends, and revs up to GARDEN_LEAVE_FLYWHEEL_RPM as the
+    //         robot LEAVES the garden, so it is close to shooting speed when it reaches D1.
+    // false = like the other Autos: it keeps spinning at PRE_REV_FLYWHEEL_RPM the whole time.
+    private static final boolean GARDEN_FLYWHEEL_OFF_AT_GARDEN = true;
+    // The flywheel speed as the robot leaves the garden (the drive to D1). The shot at D1 then
+    // takes over (PRE_REV_FLYWHEEL_RPM while it looks for the hive, then the shot table's RPM).
+    // Only used when GARDEN_FLYWHEEL_OFF_AT_GARDEN is true. 1458 or lower.
+    private static final double GARDEN_LEAVE_FLYWHEEL_RPM = 1200.0;
 
     // --- Time ---
     // Once the robot has run this long, shots and flowers are skipped or cut short so it can park.
@@ -299,33 +336,42 @@ public class BiobuzzAuto extends OpMode {
     private static final double FLOWER_SHOT_3_HEADING_DEGREES = 90.0;
 
     // ---- GARDEN_D1 (issue #156) ----
-    // The GARDEN stop. The blue GARDEN is a strip in the TOP-RIGHT corner along the rear wall, and
-    // its POLLEN are in a line from the corner, X about 130.3 to 141.5 (4 balls, 2.8 inches each).
-    // The robot stops FACING THE REAR WALL (heading 90, the intake leads), then creeps in.
-    //   X: the robot is 16.5 in wide, so X 132 puts its right side about 1.25 in from the right wall
-    //      and its left side at 123.75, which covers most of the line.
-    //   Y: the front of the robot ends up about 4 in from the nearest edge of the POLLEN.
-    // TODO: starting guesses, from the manual's drawing, not measured. Check on the robot which
-    // balls the intake reaches. The ball in the very corner is the hard one. If the robot scrapes
-    // the right wall, lower X. If the corner ball is missed, raise X (the robot may touch the wall).
-    private static final double GARDEN_X_INCHES = 132.0;
-    private static final double GARDEN_Y_INCHES = 126.0;
-    private static final double GARDEN_HEADING_DEGREES = 90.0;
+    // THE GARDEN. The blue GARDEN is a strip in the TOP-RIGHT corner along the rear wall. Its 4 POLLEN
+    // (2.8 inch balls) sit in a line from the corner: X about 130.3 to 141.5, touching the rear wall.
+    // The robot faces RIGHT (heading 0, the intake leads), with its LEFT bumper running along the
+    // rear wall, so the line of balls is straight ahead of the intake. It stops at the APPROACH
+    // spot, just before the first ball, then SWEEPS down the line into the corner.
+    //   Y: the rear wall is at 141.5 and the robot is 16.5 in wide, so its left side is
+    //      GARDEN_WALL_GAP_INCHES from the wall. The robot is not exactly 16.5 in wide (issue #55)
+    //      and the Pinpoint drifts, so a small gap means it may rub the wall. That is OK.
+    //   Sweep end: the front of the robot ends GARDEN_CORNER_GAP_INCHES from the right wall.
+    //   Approach X 118: the front of the robot is then about 3 in before the first ball (X 130.3).
+    // TODO: starting guesses, from the manual's drawing, not measured. Check on the robot that the
+    // intake takes in all 4 balls, the one in the very corner included. If the robot scrapes or
+    // jams on the rear wall, raise GARDEN_WALL_GAP_INCHES. If it misses the balls on the wall
+    // side, lower it.
+    private static final double GARDEN_WALL_GAP_INCHES = 0.25;
+    private static final double GARDEN_CORNER_GAP_INCHES = 0.6;
+    private static final double GARDEN_APPROACH_X_INCHES = 118.0;
+    private static final double GARDEN_HEADING_DEGREES = 0.0;
+    private static final double GARDEN_Y_INCHES = FieldConstants.FIELD_SIZE_INCHES
+            - FieldConstants.ROBOT_WIDTH_INCHES / 2.0 - GARDEN_WALL_GAP_INCHES;
+    private static final double GARDEN_SWEEP_END_X_INCHES = FieldConstants.FIELD_SIZE_INCHES
+            - FieldConstants.ROBOT_LENGTH_INCHES / 2.0 - GARDEN_CORNER_GAP_INCHES;
 
-    // Start (D6) -> garden stop: a gentle curve along the rear wall. It dips about 12 inches off the
-    // wall first, so the robot has room to turn around.
-    private static final double TO_GARDEN_CONTROL1_X = 95.0;
-    private static final double TO_GARDEN_CONTROL1_Y = 118.0;
-    private static final double TO_GARDEN_CONTROL2_X = 125.0;
-    private static final double TO_GARDEN_CONTROL2_Y = 118.0;
-    // The turn around (from facing down, to facing right, to facing the rear wall: -90 -> 0 -> 90,
-    // counterclockwise for blue). It waits until the robot is clear of the wall (TURN_START), is half
-    // done at TURN_MIDDLE, and is finished at TURN_END. After that the heading stays put.
-    // These are fractions of the way along the path. 0.25 and 0.85 keep the robot's corners at least
-    // 6 in from the wall during the turn (checked by a geometry script, not on the robot).
-    private static final double TO_GARDEN_TURN_START_FRACTION = 0.25;
-    private static final double TO_GARDEN_TURN_MIDDLE_FRACTION = 0.50;
-    private static final double TO_GARDEN_TURN_END_FRACTION = 0.85;
+    // Start (D6) -> approach spot. The robot ROTATES LEFT (from facing down, to facing right: -90 ->
+    // 0, counterclockwise) while it leaves the wall. It cannot turn in place: it starts with its
+    // back on the wall, and its corners would hit the wall. So the path first dips down away from
+    // the wall, turns there (between TURN_START and TURN_END, as fractions of the way along the
+    // path), then rises back up to the wall and ends driving right, along it. These numbers keep the
+    // robot's corners at least 9 in from the wall during the turn and 17 in from the hive (checked
+    // by a geometry script, not on the robot).
+    private static final double TO_GARDEN_CONTROL1_X = 100.0;
+    private static final double TO_GARDEN_CONTROL1_Y = 104.0;
+    private static final double TO_GARDEN_CONTROL2_X = 104.0;
+    private static final double TO_GARDEN_CONTROL2_Y = 130.0;
+    private static final double TO_GARDEN_TURN_START_FRACTION = 0.35;
+    private static final double TO_GARDEN_TURN_END_FRACTION = 0.62;
 
     // The D1 SHOT spot (GARDEN_D1 shot 2): in tile D1, facing up at the hive, the same way the robot
     // faces when it starts from D1.
@@ -338,20 +384,27 @@ public class BiobuzzAuto extends OpMode {
     private static final double D1_SHOT_X_INCHES = 80.0;
     private static final double D1_SHOT_Y_INCHES = 20.0;
     private static final double D1_SHOT_HEADING_DEGREES = 90.0;
-    // Garden -> D1 shot: starts with the robot backing straight off the rear wall, then curves down
-    // the right side of the hive, then goes left under the hive to the D1 spot. The robot keeps
-    // FACING UP the whole way (it backs up and slides, it never turns). Checked by a geometry
-    // script to stay at least 4 in from the hive, the flowers and the walls (not on the robot).
+    // Garden corner -> D1 shot spot: it leaves the corner sideways (the robot still faces right, so
+    // it slides down along the right side of the hive), then goes left under the hive to the D1
+    // spot. It turns LEFT from facing right to FACING UP (0 -> 90, counterclockwise) between
+    // TURN_START and TURN_END, so it ends up backing down the field. The turn waits until the robot
+    // is well clear of the rear wall. Checked by a geometry script to stay at least 4 in from the
+    // hive and the flowers, and 13 in from the walls during the turn (not on the robot).
     private static final double GARDEN_TO_D1_CONTROL1_X = 104.0;
-    private static final double GARDEN_TO_D1_CONTROL1_Y = 68.0;
-    private static final double GARDEN_TO_D1_CONTROL2_X = 128.0;
-    private static final double GARDEN_TO_D1_CONTROL2_Y = 36.0;
-    // Garden -> park, used only when the robot is out of time and skips the D1 shot. It keeps about
-    // 6 in away from the flower on the right wall (around Y 94).
-    private static final double GARDEN_TO_PARK_CONTROL1_X = 112.0;
-    private static final double GARDEN_TO_PARK_CONTROL1_Y = 104.0;
-    private static final double GARDEN_TO_PARK_CONTROL2_X = 120.0;
-    private static final double GARDEN_TO_PARK_CONTROL2_Y = 60.0;
+    private static final double GARDEN_TO_D1_CONTROL1_Y = 80.0;
+    private static final double GARDEN_TO_D1_CONTROL2_X = 130.0;
+    private static final double GARDEN_TO_D1_CONTROL2_Y = 38.0;
+    private static final double GARDEN_TO_D1_TURN_START_FRACTION = 0.30;
+    private static final double GARDEN_TO_D1_TURN_END_FRACTION = 0.80;
+    // Garden corner -> park, used only when the robot is out of time and skips the D1 shot. The same
+    // kind of path: leave the corner, turn left to face up, then go down to the loading zone. It stays
+    // at least 7 in from the flower on the right wall (around Y 94) and the hive.
+    private static final double GARDEN_TO_PARK_CONTROL1_X = 118.0;
+    private static final double GARDEN_TO_PARK_CONTROL1_Y = 117.0;
+    private static final double GARDEN_TO_PARK_CONTROL2_X = 110.0;
+    private static final double GARDEN_TO_PARK_CONTROL2_Y = 55.0;
+    private static final double GARDEN_TO_PARK_TURN_START_FRACTION = 0.18;
+    private static final double GARDEN_TO_PARK_TURN_END_FRACTION = 0.36;
 
     // ==================================================================
     // The steps. The robot is always in exactly one of these.
@@ -363,7 +416,7 @@ public class BiobuzzAuto extends OpMode {
     private enum AutoState {
         SHOT_PAUSE, SHOT_FIND_HIVE, SHOT_WAIT_FOR_SPEED, SHOT_FEED_BALLS, SHOT_LIFT_LAST_BALL,
         FLOWER_BAR_DOWN, FLOWER_CREEP, FLOWER_PICK, FLOWER_BAR_UP,
-        GARDEN_CREEP, GARDEN_PICK,   // GARDEN_D1 only
+        GARDEN_SWEEP, GARDEN_PICK,   // GARDEN_D1 only
         DRIVE_TO_FLOWER_A, DRIVE_TO_SHOT_2, DRIVE_TO_FLOWER_B, DRIVE_TO_SHOT_3, DRIVE_TO_GARDEN,
         DRIVE_TO_PARK,
         WAIT_FOR_BUTTON,   // STEP mode only: stopped after a drive, waiting for A
@@ -398,8 +451,8 @@ public class BiobuzzAuto extends OpMode {
     private Pose hivePose;
     // GARDEN_D1 only (these stay null for the other routines). For GARDEN_D1, shot2Pose (above) is
     // the D1 shot spot instead of the spot behind flower A.
-    private Pose gardenPose;
-    private Pose gardenCreepPose;
+    private Pose gardenPose;      // the approach spot, just before the line of POLLEN
+    private Pose gardenEndPose;   // the end of the sweep, in the corner
 
     // Paths, built once in init().
     private Path startToParkPath;
@@ -411,8 +464,8 @@ public class BiobuzzAuto extends OpMode {
     private Path flowerBToShot3Path;
     private Path shot3ToParkPath;
     // GARDEN_D1 only (null for the other routines).
-    private Path startToGardenPath;
-    private Path gardenCreepPath;
+    private Path startToGardenPath;   // start -> the approach spot, turning left on the way
+    private Path gardenSweepPath;     // the approach spot -> the corner, down the line of POLLEN
     private Path gardenToShot2Path;    // garden -> the D1 shot spot
     private Path gardenToParkPath;     // garden -> park, only when out of time
     private Path shot2ToParkPath;      // the D1 shot spot -> park
@@ -486,8 +539,10 @@ public class BiobuzzAuto extends OpMode {
                 : makePose(FLOWER_SHOT_3_X_INCHES, FLOWER_SHOT_3_Y_INCHES, FLOWER_SHOT_3_HEADING_DEGREES);
         hivePose = makePose(HIVE_X_INCHES, HIVE_Y_INCHES, 0.0);
         if (routine == Routine.GARDEN_D1) {
-            gardenPose = makePose(GARDEN_X_INCHES, GARDEN_Y_INCHES, GARDEN_HEADING_DEGREES);
-            gardenCreepPose = poseAhead(gardenPose, GARDEN_CREEP_INCHES);
+            // The approach spot (just before the line of POLLEN) and the end of the sweep (in the
+            // corner). Both face right, with the left bumper along the rear wall.
+            gardenPose = makePose(GARDEN_APPROACH_X_INCHES, GARDEN_Y_INCHES, GARDEN_HEADING_DEGREES);
+            gardenEndPose = makePose(GARDEN_SWEEP_END_X_INCHES, GARDEN_Y_INCHES, GARDEN_HEADING_DEGREES);
             // Shot 2 is taken from tile D1, not from the spot behind flower A.
             shot2Pose = makePose(D1_SHOT_X_INCHES, D1_SHOT_Y_INCHES, D1_SHOT_HEADING_DEGREES);
         }
@@ -663,7 +718,7 @@ public class BiobuzzAuto extends OpMode {
                 break;
 
             case SHOT_FEED_BALLS:
-                if (flywheelReady || !INTAKE_WAITS_FOR_SPEED) {
+                if (flywheelReady || !isFeedPaced()) {
                     intakeSubsystem.intake();
                 } else {
                     intakeSubsystem.stop();
@@ -672,7 +727,7 @@ public class BiobuzzAuto extends OpMode {
                     flywheelDipCount = flywheelDipCount + 1;   // about one per ball
                 }
                 feedWasReady = flywheelReady;
-                if (stateTimer.seconds() >= FEED_SECONDS) {
+                if (stateTimer.seconds() >= feedSeconds()) {
                     shooterServoSubsystem.goToLifted();
                     stateTimer.reset();
                     autoState = AutoState.SHOT_LIFT_LAST_BALL;
@@ -743,13 +798,14 @@ public class BiobuzzAuto extends OpMode {
                 break;
 
             // ---------------- ONE GARDEN PICK (GARDEN_D1) ----------------
-            case GARDEN_CREEP:
-                // Creep toward the rear wall with the intake on. No flower bar: the POLLEN are on
-                // the floor. (The bar stays UP because of the goToUp() at the top of loop().)
+            case GARDEN_SWEEP:
+                // Sweep down the line of POLLEN into the corner with the intake on, the left bumper
+                // along the rear wall. No flower bar: the POLLEN are on the floor. (The bar stays UP
+                // because of the goToUp() at the top of loop().)
                 if (actionsOn) {
                     intakeSubsystem.intake();
                 }
-                if (!follower.isBusy() || legTimer.seconds() >= CREEP_TIMEOUT_SECONDS) {
+                if (!follower.isBusy() || legTimer.seconds() >= GARDEN_SWEEP_TIMEOUT_SECONDS) {
                     if (!HOLD_AT_STOPS) {
                         follower.stop();
                     }
@@ -967,13 +1023,36 @@ public class BiobuzzAuto extends OpMode {
             shooterServoSubsystem.goToClosed();
             intakeSubsystem.stop();
             turretSubsystem.holdCurrentAngle();
-            if (shotNumber < lastShotNumber) {
+            if (shotNumber < lastShotNumber && !stopsFlywheelAfterThisShot()) {
                 shooterSubsystem.setTargetRpm(PRE_REV_FLYWHEEL_RPM);   // keep it spinning
             } else {
-                shooterSubsystem.stop();                               // last shot
+                shooterSubsystem.stop();                               // last shot (or GARDEN_D1 shot 1)
             }
         }
         afterShot();
+    }
+
+    // GARDEN_D1 stops the flywheel after shot 1, and revs it again as the robot leaves the garden
+    // (afterGarden). Every other routine keeps it spinning between shots, like before.
+    private boolean stopsFlywheelAfterThisShot() {
+        return routine == Routine.GARDEN_D1 && GARDEN_FLYWHEEL_OFF_AT_GARDEN;
+    }
+
+    // true = the intake only runs while the flywheel is at speed (balls go one at a time, slower).
+    // GARDEN_D1 can turn that off (GARDEN_FAST_FEED) so its shots are faster.
+    private boolean isFeedPaced() {
+        if (routine == Routine.GARDEN_D1 && GARDEN_FAST_FEED) {
+            return false;
+        }
+        return INTAKE_WAITS_FOR_SPEED;
+    }
+
+    // How long the gate stays OPENED while the intake feeds. GARDEN_D1 uses its own, shorter number.
+    private double feedSeconds() {
+        if (routine == Routine.GARDEN_D1) {
+            return GARDEN_FEED_SECONDS;
+        }
+        return FEED_SECONDS;
     }
 
     // The turret angle that points at the hive from where the robot is now (0 straight ahead,
@@ -1086,8 +1165,8 @@ public class BiobuzzAuto extends OpMode {
     // The garden (GARDEN_D1)
     // ==================================================================
     // ACTIONS ON: while driving TO the garden, start the intake once the robot is within
-    // GARDEN_INTAKE_ON_INCHES of the stop. The gate is already CLOSED from the shot, so the balls
-    // wait at the gate. The flower bar is not used: the POLLEN are on the floor.
+    // GARDEN_INTAKE_ON_INCHES of the approach spot. The gate is already CLOSED from the shot, so the
+    // balls wait at the gate. The flower bar is not used: the POLLEN are on the floor.
     private void turnIntakeOnNearGarden() {
         if (!actionsOn) {
             return;
@@ -1098,7 +1177,8 @@ public class BiobuzzAuto extends OpMode {
         }
     }
 
-    // The robot has stopped at the garden. Creep in, unless there is no time left.
+    // The robot has stopped at the approach spot. Sweep down the line of POLLEN, unless there is no
+    // time left.
     private void startGarden() {
         stateTimer.reset();
         if (actionsOn && isOutOfTime()) {
@@ -1110,8 +1190,8 @@ public class BiobuzzAuto extends OpMode {
             shooterServoSubsystem.goToClosed();   // the balls wait at the gate
         }
         legTimer.reset();
-        follower.follow(gardenCreepPath);
-        autoState = AutoState.GARDEN_CREEP;
+        follower.follow(gardenSweepPath);
+        autoState = AutoState.GARDEN_SWEEP;
     }
 
     private void finishGarden() {
@@ -1128,6 +1208,11 @@ public class BiobuzzAuto extends OpMode {
             shotResults[1] = "SKIPPED: out of time, went straight to park";
             startDrive(gardenToParkPath, AutoState.DRIVE_TO_PARK);
         } else {
+            if (actionsOn && GARDEN_FLYWHEEL_OFF_AT_GARDEN) {
+                // The robot is leaving the garden: rev the flywheel up now, so it is already close
+                // to shooting speed when the robot gets to D1.
+                shooterSubsystem.setTargetRpm(GARDEN_LEAVE_FLYWHEEL_RPM);
+            }
             startDrive(gardenToShot2Path, AutoState.DRIVE_TO_SHOT_2);
         }
     }
@@ -1165,9 +1250,9 @@ public class BiobuzzAuto extends OpMode {
                 }
                 autoState = AutoState.FLOWER_BAR_UP;
                 break;
-            case GARDEN_CREEP:
+            case GARDEN_SWEEP:
             case GARDEN_PICK:
-                // No bar to bring up here, so stop the creep and go. finishGarden() sees there is
+                // No bar to bring up here, so stop the sweep and go. finishGarden() sees there is
                 // no time left and drives straight to park.
                 gardenResult = "CUT SHORT: out of time";
                 if (!HOLD_AT_STOPS) {
@@ -1348,42 +1433,49 @@ public class BiobuzzAuto extends OpMode {
 
     // The GARDEN_D1 paths. Built only for that routine, so the other 12 Autos never touch them.
     private void buildGardenPaths() {
-        // Start (D6, facing down) -> garden stop (facing the rear wall). The robot turns around on
-        // the way, counterclockwise: down (-90) -> right (0) -> up the field (90) for blue. The
-        // turn is made in two quarter turns, passing through "facing right" in the middle, because
-        // -90 to 90 is exactly half a turn and Pedro could pick either way to go. (It does not
-        // stop at "facing right": it just passes through it.)
-        // The heading rule is "one rule until a point on the path, then another" (piecewise):
+        // A "piecewise" heading is one rule until a point on the path, then another rule. The points
+        // are fractions of the way along the path (0 = the start, 1.0 = the end). Every turn here is
+        // a quarter turn to the LEFT (counterclockwise), so there is no doubt which way Pedro turns.
+
+        // Start (D6, facing down) -> the approach spot (facing right, left bumper by the rear wall).
+        // The robot ROTATES LEFT while it leaves the wall:
         //   until TURN_START : keep facing down while the robot backs away from the wall,
-        //   until TURN_MIDDLE: turn from down to right,
-        //   until TURN_END   : turn from right to the rear wall,
-        //   until 1.0        : keep facing the rear wall.
-        Pose sideways = makePose(0.0, 0.0, 0.0);   // only its heading is used: facing right
-        Interpolator turnAroundOnTheWay = Interpolator.piecewise()
+        //   until TURN_END   : turn from facing down to facing right,
+        //   until 1.0        : keep facing right while it drives along the wall to the approach spot.
+        Interpolator turnLeftOnTheWay = Interpolator.piecewise()
                 .until(TO_GARDEN_TURN_START_FRACTION, Interpolator.constant(startPose))
-                .until(TO_GARDEN_TURN_MIDDLE_FRACTION, Interpolator.linear(startPose, sideways))
-                .until(TO_GARDEN_TURN_END_FRACTION, Interpolator.linear(sideways, gardenPose))
+                .until(TO_GARDEN_TURN_END_FRACTION, Interpolator.linear(startPose, gardenPose))
                 .until(1.0, Interpolator.constant(gardenPose));
         startToGardenPath = Paths.curve(startPose,
                 makePoint(TO_GARDEN_CONTROL1_X, TO_GARDEN_CONTROL1_Y),
                 makePoint(TO_GARDEN_CONTROL2_X, TO_GARDEN_CONTROL2_Y),
-                gardenPose).heading(turnAroundOnTheWay);
+                gardenPose).heading(turnLeftOnTheWay);
 
-        // Short straight creep toward the rear wall, into the line of POLLEN.
-        gardenCreepPath = Paths.line(gardenPose, gardenCreepPose).constant(gardenPose);
+        // The sweep: a short straight line down the line of POLLEN into the corner, still facing
+        // right. It is short on purpose, so the robot never gets fast on it.
+        gardenSweepPath = Paths.line(gardenPose, gardenEndPose).constant(gardenPose);
 
-        // Garden (end of the creep) -> D1 shot spot. The robot faces up the whole way (the same
-        // heading at both ends), so it backs off the wall and slides, with no turn.
-        gardenToShot2Path = Paths.curve(gardenCreepPose,
+        // Garden corner -> D1 shot spot. The robot leaves the corner facing right, then turns LEFT
+        // to face up (0 -> 90), so it ends up backing down the field to the D1 spot.
+        Interpolator turnToFaceUpForD1 = Interpolator.piecewise()
+                .until(GARDEN_TO_D1_TURN_START_FRACTION, Interpolator.constant(gardenEndPose))
+                .until(GARDEN_TO_D1_TURN_END_FRACTION, Interpolator.linear(gardenEndPose, shot2Pose))
+                .until(1.0, Interpolator.constant(shot2Pose));
+        gardenToShot2Path = Paths.curve(gardenEndPose,
                 makePoint(GARDEN_TO_D1_CONTROL1_X, GARDEN_TO_D1_CONTROL1_Y),
                 makePoint(GARDEN_TO_D1_CONTROL2_X, GARDEN_TO_D1_CONTROL2_Y),
-                shot2Pose).constant(gardenCreepPose);
+                shot2Pose).heading(turnToFaceUpForD1);
 
-        // Garden -> park, only used when the robot is out of time. Also facing up the whole way.
-        gardenToParkPath = Paths.curve(gardenCreepPose,
+        // Garden corner -> park, only used when the robot is out of time. The same kind of turn: it
+        // leaves the corner facing right, turns left to face up, then goes down to the loading zone.
+        Interpolator turnToFaceUpForPark = Interpolator.piecewise()
+                .until(GARDEN_TO_PARK_TURN_START_FRACTION, Interpolator.constant(gardenEndPose))
+                .until(GARDEN_TO_PARK_TURN_END_FRACTION, Interpolator.linear(gardenEndPose, parkPose))
+                .until(1.0, Interpolator.constant(parkPose));
+        gardenToParkPath = Paths.curve(gardenEndPose,
                 makePoint(GARDEN_TO_PARK_CONTROL1_X, GARDEN_TO_PARK_CONTROL1_Y),
                 makePoint(GARDEN_TO_PARK_CONTROL2_X, GARDEN_TO_PARK_CONTROL2_Y),
-                parkPose).constant(parkPose);
+                parkPose).heading(turnToFaceUpForPark);
 
         // D1 shot spot -> park: a short straight line, still facing up.
         shot2ToParkPath = Paths.line(shot2Pose, parkPose).constant(parkPose);
