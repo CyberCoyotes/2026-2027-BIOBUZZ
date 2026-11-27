@@ -477,7 +477,7 @@ public class BiobuzzTeleOp extends OpMode {
     // and button tests, and so on). All of those lines are still in this file inside
     // "if (FULL_TELEMETRY)" blocks, and the test OpModes still show them too. Set this to true
     // when you are debugging something and want everything back.
-    private static final boolean FULL_TELEMETRY = false;
+    private static final boolean FULL_TELEMETRY = true; // TODO Change this back
 
     // PANELS GRAPHS (issues #122 and [#138]). Panels is the live dashboard you open in a browser on a
     // laptop that is on the robot's wifi. This TeleOp sends it the firing numbers (FiringMonitor:
