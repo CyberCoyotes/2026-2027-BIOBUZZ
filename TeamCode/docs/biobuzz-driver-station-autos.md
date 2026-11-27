@@ -1,22 +1,23 @@
 # BIOBUZZ Autons on the Driver Station
 
-**Print this and keep it by the Driver Station.** **Page 1** is the list you pick from, with what each Auto does. **Page 2** is the check before a match, the Autos that are hidden, and what is still open. **Checked against the code on 2026-11-24 (Issue #118), then plain Drive Forward was hidden on 2026-11-26 (Issue #136).**
+**Print this and keep it by the Driver Station.** **Page 1** is the list you pick from, with what each Auto does. **Page 2** is the check before a match, the Autos that are hidden, and what is still open. **Checked against the code on 2026-11-24 (Issue #118), then plain Drive Forward was hidden on 2026-11-26 (Issue #136), then `Blue D6 - Garden D1` was added on 2026-11-27 (Issue #156).**
 
 The names below are copied letter for letter from the `name = "..."` text in each `@Autonomous` line, so what you see on the Driver Station should match them exactly.
 
 **About the order:** we expect the Driver Station to sort the Autonomous list by **group, then name** (see the groups below), so the **Blue** Autos come first, then the **Red** Autos. The real Driver Station app has not been checked: **look at the real screen once. If the order is different, fix it here.** (Groups were changed on 2026-11-26, issue #136.)
 
-## What you pick from: 12 Autos
+## What you pick from: 13 Autos
 
 Every Auto on the list has its alliance in the name, and is in group **Auto - Blue** or **Auto - Red**. There is no Auto without an alliance any more (issue #136). Every one loads **TeleOp - RC 1** after it ends (`preselectTeleOp`, set in one place: `BiobuzzTeleOp.TELEOP_NAME`).
 
 ```
- Autonomous                         (12 on the list)
+ Autonomous                         (13 on the list)
  ----------------------------------------------------
  Blue - Drive Forward 24in          (group Auto - Blue)
  Blue - Drive Reverse 24in
  Blue D1 - Move Park                [#112]
  Blue D1 - Shoot Park               [#112]
+ Blue D6 - Garden D1                (new, issue #156, not run on a robot yet)
  Blue D6 - Move Park
  Blue D6 - Shoot Park
  Red - Drive Forward 24in           (group Auto - Red)
@@ -29,7 +30,7 @@ Every Auto on the list has its alliance in the name, and is in group **Auto - Bl
 
 **`[#112]` means the coach flagged it "Remove or fix heading" and has not decided yet.** Do not pick one of those for a match until #112 is settled.
 
-### Match Autos (8): the robot follows a path with Pedro Pathing
+### Match Autos (9): the robot follows a path with Pedro Pathing
 
 Pick the one for **our alliance and the tile we start on**. Wrong alliance means it aims at the other hive and parks on the wrong side. Blue parks in the blue loading zone (F2), red in the red loading zone (A5).
 
@@ -39,6 +40,7 @@ Pick the one for **our alliance and the tile we start on**. Wrong alliance means
 | **Blue D6 - Shoot Park** | Tile D6, rear wall | down, at the hive | Shoots the 4 preloaded POLLEN, then parks | **8**, plus any score from the shots | about 8 to 10 s |
 | **Red C1 - Move Park** | Tile C1, audience wall | up, at the hive | Same as Blue D6, turned 180 degrees | **8** | about 4 s |
 | **Red C1 - Shoot Park** | Tile C1, audience wall | up, at the hive | Same as Blue D6 - Shoot Park, turned 180 degrees | **8**, plus shots | about 8 to 10 s |
+| **Blue D6 - Garden D1** (new) | Tile D6, rear wall | down, at the hive | Shoots the 4 preloaded POLLEN, drives along the rear wall to our GARDEN in the top-right corner (turning around so the intake faces the wall) and takes in the POLLEN there, backs down the right side of the hive to tile D1 and shoots again facing up, then parks. If it is out of time after the garden it skips the D1 shot and parks | **8**, plus any score from the two volleys | about 22 to 26 s (the 26 s is from a simulation with a camera that never locks, the 22 s is worked out; **close to the 30 s limit**) |
 | **Blue D1 - Move Park** `[#112]` | Tile D1, audience wall, about half an inch from the blue flower | up, at the hive | Drives straight off the wall first, then parks | **8** | about 4 s |
 | **Blue D1 - Shoot Park** `[#112]` | Tile D1 (same) | up, at the hive | Shoots 4, then parks | **8**, plus shots | about 8 to 10 s |
 | **Red C6 - Move Park** `[#112]` | Tile C6, rear wall, next to the red flower | down, at the hive | Same idea as Blue D1, turned 180 degrees | **8** | about 4 s |
@@ -47,6 +49,7 @@ Pick the one for **our alliance and the tile we start on**. Wrong alliance means
 - **Default choice: `Shoot Park` from D6 (blue) or C1 (red).** If the shooter or camera is broken but driving works, pick `Move Park`.
 - The time numbers are estimates from a simulation (`auto/testing/README.md`). **How many balls it takes to tip the hive is still unknown**, so a tip is a bonus, not a promise (`biobuzz-auto-strategy.md`, section 4).
 - The D1 and C6 starts are tight: the robot starts about half an inch from a flower. Place it centered in the tile and square to the wall.
+- **`Blue D6 - Garden D1` is new (issue #156) and has not run on a robot.** It starts the same way as `Blue D6 - Shoot Park`. The garden stop and the D1 shot spot are **starting guesses** (the `TODO`s in `BiobuzzAuto.java`: `GARDEN_X_INCHES`, `GARDEN_Y_INCHES`, `GARDEN_CREEP_INCHES`, `GARDEN_PICK_SECONDS`, `GARDEN_INTAKE_ON_INCHES`, `D1_SHOT_X_INCHES`, `D1_SHOT_Y_INCHES`). **Run it in STEP mode on the practice field first** (press A during INIT). The shot from D1 needs the camera to see the blue hive from the audience side: if it never locks, the shot fires from the pre-aim angle at 1300 RPM. The rules allow a robot to hold **4 balls at most** (G407), so shot 1 has to empty the robot before the garden pick. Only blue is on the list: red would be the same Auto turned 180 degrees (garden in the bottom-left corner, D1 shot from tile C6), one small file away.
 
 ### Backup Autos (4): no Pedro, no camera, just drive 24 inches in a straight line
 
@@ -99,21 +102,21 @@ The code is all still here. To bring one back, put `//` in front of its `@Disabl
 Under `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/`:
 
 - **`auto/`**: the four `24in` Autos, and `Move Park` and `Shoot Park` from **Blue D6** and **Red C1**.
-- **`auto/testing/`**: `BiobuzzAuto` (the engine the Pedro Autos share: **do not delete this folder**), the **Blue D1** and **Red C6** Autos, and the hidden Autos: the 3 Volley ones, `Leave and Park`, and plain **Drive Forward** (`AutoEmergencyLeave`).
-- **A folder named `testing` does not hide an Auto.** Only `@Disabled` does. Today **Blue D1 and Red C6 are in `auto/testing/` and are still on the Driver Station list.**
+- **`auto/testing/`**: `BiobuzzAuto` (the engine the Pedro Autos share: **do not delete this folder**), the **Blue D1** and **Red C6** Autos, **Blue D6 - Garden D1** (`AutoBlueD6GardenD1`), and the hidden Autos: the 3 Volley ones, `Leave and Park`, and plain **Drive Forward** (`AutoEmergencyLeave`).
+- **A folder named `testing` does not hide an Auto.** Only `@Disabled` does. Today **Blue D1, Red C6 and Blue D6 - Garden D1 are in `auto/testing/` and are still on the Driver Station list.**
 
 ## Open items that change this sheet
 
 - **`[#112]` Remove the broken autons.** The coach flagged the four D1 and C6 Autos "Remove or fix heading". The D6 and C1 Autos and plain **Drive Forward** were on the same review list with no problem written next to them. The note on Drive Forward ("make a blue and red") was answered by the four "24in" Autos (#114), and plain Drive Forward was hidden on 2026-11-26 (issue #136). When #112 is closed, take the markers out of this sheet and hide or remove the Autos it names.
 - **`[#115]` Backward distances for each side** are still being validated.
-- **Robot testing of the match Autos:** Pedro was tuned on 2026-11-17 (`FORESIGHT_TUNED` is `true` in `pedro/Constants.java`, and #57 was closed on 2026-11-18). The Autos README (written 2026-11-20) says none of the 8 has run on a real field, and no later result is written down. **Run each one you might use in STEP mode on the event's practice field before a match.** If there is no chance to test, use **Shoot Park** or **Move Park** from D6 or C1, or a **24in** backup.
+- **Robot testing of the match Autos:** Pedro was tuned on 2026-11-17 (`FORESIGHT_TUNED` is `true` in `pedro/Constants.java`, and #57 was closed on 2026-11-18). The Autos README (written 2026-11-20) says none of the 8 has run on a real field, and no later result is written down. `Blue D6 - Garden D1` (2026-11-27) has not run on a robot either: it was compiled and run in a simulation (a fake robot and clock), and its paths were checked with a geometry script, so its **timing and the garden pick are estimates**. **Run each one you might use in STEP mode on the event's practice field before a match.** If there is no chance to test, use **Shoot Park** or **Move Park** from D6 or C1, or a **24in** backup.
 
 ## Keeping this sheet true (Issue #118)
 
-The code is the source of truth. This command lists every Auto that is **not** hidden. It should print the same names as page 1 (12 today):
+The code is the source of truth. This command lists every Auto that is **not** hidden. It should print the same names as page 1 (13 today):
 
 ```bash
 grep -L "^@Disabled" $(grep -rl "^@Autonomous" TeamCode/src) | xargs grep -h -A1 "^@Autonomous" | grep -o 'name = "[^"]*"'
 ```
 
-If a name, the count, or `preselectTeleOp` changes, update this sheet, the Autos in `ARCHITECTURE.md` section 2, and `biobuzz-auto-strategy.md`. More about the 12 Pedro Autos (what they do, risks, quick fixes in the pits): `../src/main/java/org/firstinspires/ftc/teamcode/auto/testing/README.md`. The TeleOp buttons are in `biobuzz-teleop-controls.md`.
+If a name, the count, or `preselectTeleOp` changes, update this sheet, the Autos in `ARCHITECTURE.md` section 2, and `biobuzz-auto-strategy.md`. More about the 13 Pedro Autos (what they do, risks, quick fixes in the pits): `../src/main/java/org/firstinspires/ftc/teamcode/auto/testing/README.md`. The TeleOp buttons are in `biobuzz-teleop-controls.md`.
