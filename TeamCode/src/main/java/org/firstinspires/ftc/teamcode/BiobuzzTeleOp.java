@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.utils.AutoHandoff;
 import org.firstinspires.ftc.teamcode.utils.BiobuzzLog;
+import org.firstinspires.ftc.teamcode.subsystems.ChuteSensorSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.utils.FiringMonitor;
@@ -231,6 +232,10 @@ import java.util.List;
  *                                      have it, or this OpMode stops at INIT.)
  *   I2C Device name: pinpoint         (PinpointSubsystem, goBILDA Pinpoint Odometry Computer. If it
  *                                      is missing, the screen says so and the OpMode still runs.)
+ *   I2C Device name: chute_sensor     (ChuteSensorSubsystem, REV Color Sensor V3 near the top of the
+ *                                      chute. ONLY the 22091 has it. If it is missing the OpMode still
+ *                                      runs, and the screen only mentions it at INIT. It only SHOWS the
+ *                                      "Pollen at top" answer (issue #144, Phase 3a): it moves nothing.)
  */
 @TeleOp(name = BiobuzzTeleOp.TELEOP_NAME, group = "Competition")
 public class BiobuzzTeleOp extends OpMode {
@@ -507,6 +512,9 @@ public class BiobuzzTeleOp extends OpMode {
     private TurretSubsystem turretSubsystem;
     private VisionSubsystem visionSubsystem;
     private PinpointSubsystem pinpointSubsystem;
+    // The REV Color Sensor V3 near the top of the chute (issue #144). Only the 22091 has it. The TeleOp
+    // only SHOWS what it says (the screen and the Panels graphs). Nothing here acts on it yet.
+    private ChuteSensorSubsystem chuteSensorSubsystem;
     // The Control Hub's built-in gyro. The field-centric DRIVE takes its heading from here.
     private ImuSubsystem imuSubsystem;
     // The battery black box (see PowerMonitorSubsystem). It only reads and writes the log.
@@ -696,6 +704,32 @@ public class BiobuzzTeleOp extends OpMode {
         panelsGraphs.addIntake(intakeSubsystem);
         panelsGraphs.addPinpoint(pinpointSubsystem);
         panelsGraphs.addImu(imuSubsystem);
+        addChuteSensorGraphs();
+    }
+
+    // The chute sensor's numbers (issue #144), with the same names as "Chute Sensor - Alpha" so one
+    // Panels layout works for both. A robot with no sensor sends nothing, so a flat "100 cm" line
+    // cannot be mistaken for a real reading. The color graphs only appear when the color is being
+    // read (FULL_TELEMETRY).
+    private void addChuteSensorGraphs() {
+        if (!chuteSensorSubsystem.isConnected()) {
+            return;
+        }
+        panelsGraphs.add("Chute distance (cm, 100 = out of range)", chuteSensorSubsystem.getDistanceCm());
+        panelsGraphs.addFlag("Chute distance real reading (1=yes)", chuteSensorSubsystem.isDistanceInRange());
+        panelsGraphs.addFlag("Chute pollen at top (1=yes)", chuteSensorSubsystem.hasPollenAtTop());
+        // The two lines the answer uses, so the distance trace can be read against them.
+        panelsGraphs.add("Chute ENTER (cm)", chuteSensorSubsystem.getPollenAtTopEnterCm());
+        panelsGraphs.add("Chute EXIT (cm)", chuteSensorSubsystem.getPollenAtTopExitCm());
+        // What the sensor costs every loop (compare with the "Loop (ms)" graph).
+        panelsGraphs.add("Chute sensor read (ms)", chuteSensorSubsystem.getReadMillis());
+        if (chuteSensorSubsystem.isColorReadingOn()) {
+            panelsGraphs.add("Chute red", chuteSensorSubsystem.getRed());
+            panelsGraphs.add("Chute green", chuteSensorSubsystem.getGreen());
+            panelsGraphs.add("Chute blue", chuteSensorSubsystem.getBlue());
+            panelsGraphs.add("Chute light level", chuteSensorSubsystem.getLightLevel());
+            panelsGraphs.add("Chute hue (deg)", chuteSensorSubsystem.getHueDegrees());
+        }
     }
 
     // ------------------------------------------------------------------
@@ -727,6 +761,21 @@ public class BiobuzzTeleOp extends OpMode {
         telemetry.addData("Pose", "X %.1f in   Y %.1f in   Heading %.1f deg",
                 pinpointSubsystem.getXInches(), pinpointSubsystem.getYInches(),
                 pinpointSubsystem.getHeadingDegrees());
+    }
+
+    // The chute sensor (22091 only). The caller checks isConnected() first. It only SHOWS the answer:
+    // nothing in the TeleOp acts on it yet (issue #144, Phase 3a).
+    private void addBasicChuteTelemetry() {
+        telemetry.addLine("--- CHUTE SENSOR ---");
+        String pollenText = "no";
+        if (chuteSensorSubsystem.hasPollenAtTop()) {
+            pollenText = "YES";
+        }
+        if (chuteSensorSubsystem.isDistanceInRange()) {
+            telemetry.addData("Pollen at top", "%s   (%.1f cm)", pollenText, chuteSensorSubsystem.getDistanceCm());
+        } else {
+            telemetry.addData("Pollen at top", "%s   (nothing close)", pollenText);
+        }
     }
 
     private void addBasicShooterTelemetry() {
@@ -1355,6 +1404,12 @@ public class BiobuzzTeleOp extends OpMode {
         // The Control Hub's own gyro. The drive's heading comes from here. Heading zero is the way
         // the robot faces now, at INIT. If the config has no "imu", this does not stop the OpMode.
         imuSubsystem = new ImuSubsystem(hardwareMap);
+        // The chute sensor. Only the 22091 has one: on any other robot this does not stop the OpMode,
+        // the sensor just says it is not connected. The color is the slower of its two I2C reads and
+        // nothing in the TeleOp uses it, so it is only read when FULL_TELEMETRY shows it. That keeps
+        // the loop fast.
+        chuteSensorSubsystem = new ChuteSensorSubsystem(hardwareMap);
+        chuteSensorSubsystem.setColorReadingOn(FULL_TELEMETRY);
         // The battery black box. It only reads the hubs, so it is safe at INIT.
         powerMonitorSubsystem = new PowerMonitorSubsystem(hardwareMap);
         hiveMemory = new HiveBearingMemory();
@@ -1381,6 +1436,7 @@ public class BiobuzzTeleOp extends OpMode {
         visionSubsystem.update();
         pinpointSubsystem.update();
         imuSubsystem.update();
+        chuteSensorSubsystem.update();
         powerMonitorSubsystem.update();
         checkModeButtons();
 
@@ -1411,6 +1467,8 @@ public class BiobuzzTeleOp extends OpMode {
             visionSubsystem.addTelemetry(telemetry);
             // Check that the Pinpoint says READY before START. (The robot must be still until then.)
             pinpointSubsystem.addTelemetry(telemetry);
+            // The chute sensor (22091 only). It says NOT FOUND on a robot without one.
+            chuteSensorSubsystem.addTelemetry(telemetry);
             addButtonTestTelemetry();
             addRawGamepadTelemetry();
         } else {
@@ -1421,6 +1479,13 @@ public class BiobuzzTeleOp extends OpMode {
             addBasicVisionTelemetry();
             // Check that the Pinpoint says READY before START. (The robot must be still until then.)
             addBasicOdometryTelemetry();
+            // One line, so you can check the chute sensor is plugged in before START. (While the
+            // OpMode runs, a robot without the sensor shows nothing about it.)
+            if (chuteSensorSubsystem.isConnected()) {
+                addBasicChuteTelemetry();
+            } else {
+                telemetry.addData("Chute sensor", "not in this robot's config (only the 22091 has one)");
+            }
         }
         addControlsTelemetry();
 
@@ -1492,6 +1557,7 @@ public class BiobuzzTeleOp extends OpMode {
         visionSubsystem.update();
         pinpointSubsystem.update();
         imuSubsystem.update();
+        chuteSensorSubsystem.update();
         powerMonitorSubsystem.update();
         checkPinpointHealth();
 
@@ -2057,6 +2123,10 @@ public class BiobuzzTeleOp extends OpMode {
             // The firing sequence prints its own "--- FIRING SEQUENCE ---" heading and the last volley's
             // log.
             firingSequence.addTelemetry(telemetry);
+
+            // The chute sensor prints its own "--- CHUTE SENSOR ---" heading (22091 only: it says NOT
+            // FOUND on a robot without one).
+            chuteSensorSubsystem.addTelemetry(telemetry);
         } else {
             // The basics: where the robot is, and the state of each mechanism.
             addBasicOdometryTelemetry();
@@ -2076,6 +2146,11 @@ public class BiobuzzTeleOp extends OpMode {
             addBasicGateTelemetry();
             addBasicFlowerPickerTelemetry();
             addBasicFiringTelemetry();
+
+            // The chute sensor: only on a robot that has one, so the other robots' screens stay short.
+            if (chuteSensorSubsystem.isConnected()) {
+                addBasicChuteTelemetry();
+            }
         }
 
         // While a volley waits, say what it is waiting for. (This is a basic: it explains why the

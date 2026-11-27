@@ -2,6 +2,36 @@
 
 *This text used to be the top of `BiobuzzTeleOp.java`. It was moved here, unchanged, so the file's header can describe how the TeleOp works **right now**. Each entry is what the code did when that Alpha was written: later Alphas may have replaced it (for example, the gentle gate close in Alpha 13 was removed later). When something here and the code disagree, the code wins. The current button map is in `biobuzz-teleop-controls.md`.*
 
+## CHUTE SENSOR ON THE SCREEN AND IN PANELS (issue #144, Phase 3a, no new Alpha number)
+
+*The screen name stays "TeleOp - RC 1". Nothing the driver or operator does has changed: this only SHOWS the chute sensor, it moves nothing. Type-checked on a laptop against the real team sources (the FTC SDK jars are not there, so it was NOT built with Gradle). Not run on a robot.*
+
+```text
+WHAT CHANGED (BiobuzzTeleOp only)
+  1. A ChuteSensorSubsystem is created in init() and updated once per loop (in init_loop() too).
+     Only the 22091 has the REV Color Sensor V3, so on any other robot it does nothing and the
+     OpMode runs as before (ChuteSensorSubsystem uses tryGet).
+  2. THE SCREEN. The basic screen gets a "--- CHUTE SENSOR ---" block with ONE line,
+     "Pollen at top: YES / no   (2.1 cm)" (or "nothing close"), but ONLY on a robot that has the
+     sensor. At INIT every robot shows one line saying whether the sensor is there ("Chute sensor:
+     not in this robot's config (only the 22091 has one)"), so a loose cable is caught before START.
+     With FULL_TELEMETRY = true it shows the subsystem's whole block (distance, the band the
+     reading is in, the color numbers, and the sensor read time).
+  3. PANELS. Same names as "Chute Sensor - Alpha": Chute distance (cm, 100 = out of range),
+     Chute distance real reading (1=yes), Chute pollen at top (1=yes), Chute ENTER (cm),
+     Chute EXIT (cm), Chute sensor read (ms), and the color numbers only with FULL_TELEMETRY.
+     A robot without the sensor sends none of them.
+  4. LOOP SPEED. The color is the slower of the sensor's two I2C reads and nothing uses it here,
+     so setColorReadingOn(FULL_TELEMETRY): it is only read when the diagnostic screen is on.
+  5. NOT CHANGED: the gate, the intake, the firing sequence and every button. Phase 3b (using the
+     answer to lift the last ball) is NOT written.
+TO CHECK ON THE ROBOT (22091)
+  - The loop time with the sensor plugged in (the "Chute sensor read (ms)" graph, next to
+    "Loop (ms)", or the loop time under FULL_TELEMETRY). One more I2C read every loop is the cost.
+  - Watch "Pollen at top" through a real volley: does it blip as balls feed past, and is it YES
+    where the LAST ball stops?
+```
+
 ## PRE-REV HAS ITS OWN LOW SPEED AND TURNS ITSELF OFF (issue #143, no new Alpha number)
 
 *The screen name stays "TeleOp - RC 1". The driver's D-pad Down is a new button, and D-pad Up no longer toggles. Code written and syntax-checked with `javac` on a laptop (the FTC SDK jars are not there, so it was NOT built with Gradle). Not run on a robot.*

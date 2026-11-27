@@ -29,7 +29,8 @@ The same thing has the **same name** in every OpMode, so one Panels layout works
 
 | OpMode | What it sends |
 |---|---|
-| `TeleOp - Alpha 15` | Everything in the table below for the firing sequence, **plus** `Drive forward input`, `Drive strafe input`, `Drive turn input`, the turret (`Turret angle (deg)`, `Turret target (deg)`, `Turret on target (1=yes)`, `Turret spin push (power)`), the intake (`Intake motor power`, `Intake speed (ticks/s)`), the Pinpoint (`Pinpoint X (in)`, `Pinpoint Y (in)`, `Pinpoint heading (deg)`, speeds) and the IMU (`IMU heading (deg)`, pitch, roll) |
+| `TeleOp - Alpha 15` | Everything in the table below for the firing sequence, **plus** `Drive forward input`, `Drive strafe input`, `Drive turn input`, the turret (`Turret angle (deg)`, `Turret target (deg)`, `Turret on target (1=yes)`, `Turret spin push (power)`), the intake (`Intake motor power`, `Intake speed (ticks/s)`), the Pinpoint (`Pinpoint X (in)`, `Pinpoint Y (in)`, `Pinpoint heading (deg)`, speeds) and the IMU (`IMU heading (deg)`, pitch, roll), **plus the chute sensor on the 22091 only** (`Chute distance (cm, 100 = out of range)`, `Chute pollen at top (1=yes)`, `Chute ENTER (cm)`, `Chute EXIT (cm)`, `Chute sensor read (ms)`; the color graphs only with `FULL_TELEMETRY`) |
+| `Chute Sensor - Alpha` (22091 only) | The chute sensor numbers above, plus the color graphs and `Chute distance real reading (1=yes)`, and the intake numbers |
 | The 12 Pedro Autos (`Blue D6 - Move Park` and the rest, all run by `BiobuzzAuto`) | `Pose X (in)`, `Pose Y (in)`, `Pose heading (deg)`, `Distance to end of path (in)` (only while Pedro is following a path), `Auto step number` and `Auto step`, `Shot number`, `Run time (s)`, `Time in this step (s)`. Routines that shoot also send the flywheel, turret, camera, gate and intake numbers and `Flywheel ready (1=yes)`. **No flywheel amps in Autos** (asking the hub costs loop time) |
 | `Drive Forward` and the four `Drive Forward / Reverse 24in` Autos | `Distance driven (in)` against `Distance target (in)`, `Drive power asked (0 to 1)`, `Time driving (s)`, `Auto step (0 driving, 1 done)`, `Driving by Pinpoint distance (1=yes, 0=timed backup)` and the Pinpoint numbers |
 | `Firing Sequence - Alpha` | The shooter, turret, camera, gate and intake numbers, `At speed (1=yes)`, `Sequence step number` and `Sequence step`, `Intake wanted by sequence (1=yes)` |
@@ -49,6 +50,7 @@ The same thing has the **same name** in every OpMode, so one Panels layout works
 | The camera | `Camera tx (deg)`, `Camera ty (deg)`, `Aim limit +`, `Aim limit -`, `Camera sees hive (1=yes)`, `Camera result age (ms)` | Is the turret really off, or does the camera wobble across the limit? |
 | Power | `Flywheel amps`, `Battery (V)`, `Loop (ms)` | Below target while drawing a lot of current = no power left (battery, belt). Below target while drawing little = tuning. |
 | The people | `Trigger held`, `Y lift held`, `Forced shot held`, `PRE-REV on`, `TABLE mode` | What was being pressed, and when. |
+| The chute sensor (22091 only) | `Chute distance (cm, 100 = out of range)`, `Chute ENTER (cm)`, `Chute EXIT (cm)`, `Chute pollen at top (1=yes)`, `Chute sensor read (ms)` | Does the distance cross the ENTER line only when a Pollen arrives, and the EXIT line only when it leaves? Does the answer blip as balls feed past, or while the gate is lifting the last one? Is the read time a big part of `Loop (ms)`? |
 
 The text lines **Step**, **Waiting for**, **Last wait** and **Last feed** show on the Telemetry widget ("T").
 
