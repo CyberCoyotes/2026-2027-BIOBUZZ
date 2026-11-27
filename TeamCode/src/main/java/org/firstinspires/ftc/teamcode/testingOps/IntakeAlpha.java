@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 
 /*
  * Alpha-Intake Testing
@@ -68,6 +69,9 @@ public class IntakeAlpha extends OpMode {
     private ElapsedTime runtime = new ElapsedTime();
     private IntakeSubsystem intakeSubsystem;
 
+    // Sends this OpMode's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
+
     // The dial in WHOLE percent (50 means 50%). We count in whole numbers so adding 5 over and
     // over never drifts to something like 0.4999999.
     private int dialPercent;
@@ -93,6 +97,9 @@ public class IntakeAlpha extends OpMode {
     public void init() {
         // The subsystem gets its own motor from the hardware map.
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
+
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
 
         // Start the dial wherever the subsystem starts it, so the number only lives in one place.
         // Math.round gives the nearest whole number (0.5 * 100 = 50).
@@ -127,6 +134,9 @@ public class IntakeAlpha extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Read sensors.
         intakeSubsystem.update();
 
@@ -182,6 +192,23 @@ public class IntakeAlpha extends OpMode {
         if (SHOW_CONTROLS_WHILE_RUNNING) {
             addControlsTelemetry();
         }
+
+        // Panels graphs: add this OpMode's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs();
+        panelsGraphs.send();
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names (see
+    // PanelsGraphs), so Panels can graph them. It does nothing on a loop Panels will not send.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs() {
+        if (!panelsGraphs.isFrameOpen()) {
+            return;
+        }
+        panelsGraphs.addIntake(intakeSubsystem);
+        // The power dial setting (always positive). The motor power above goes negative when reversing.
+        panelsGraphs.add("Intake dial power", intakeSubsystem.getIntakePower());
     }
 
     /*

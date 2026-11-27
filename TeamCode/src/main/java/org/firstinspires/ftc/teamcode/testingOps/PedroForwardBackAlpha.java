@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedro.Constants;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 
 /*
  * Pedro Forward and Back, Alpha
@@ -89,6 +90,9 @@ public class PedroForwardBackAlpha extends OpMode {
     // ------------------------------------------------------------------
     private Follower follower;
 
+    // Sends this OpMode's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
+
     // A PoseFactory makes poses (an X, a Y and a heading) from numbers in DEGREES.
     private final PoseFactory poseFactory = PoseFactory.degrees();
 
@@ -116,6 +120,9 @@ public class PedroForwardBackAlpha extends OpMode {
 
         // Create the Follower. This recalibrates the Pinpoint, so keep the robot still.
         follower = Constants.create(hardwareMap);
+
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
 
         // Tell Pedro where the robot is standing right now, then read the Pinpoint once.
         follower.setPose(startPose);
@@ -161,6 +168,9 @@ public class PedroForwardBackAlpha extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Update Pedro. This reads the Pinpoint and sets the wheel powers. It must run
         //    every loop, or the robot does not move (or stops steering).
         follower.update();
@@ -200,6 +210,10 @@ public class PedroForwardBackAlpha extends OpMode {
         addPoseTelemetry();
         telemetry.addData("Follower mode", follower.mode());
         telemetry.addData("Distance to end of path (in)", "%.2f", follower.distanceToEndpoint());
+
+        // 4. Panels graphs: add this OpMode's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs();
+        panelsGraphs.send();
     }
 
     /*
@@ -247,5 +261,28 @@ public class PedroForwardBackAlpha extends OpMode {
         telemetry.addData("Pose X (in)", "%.2f", pose.x());
         telemetry.addData("Pose Y (in)", "%.2f", pose.y());
         telemetry.addData("Pose heading (deg)", "%.1f", Math.toDegrees(pose.heading()));
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names (see
+    // PanelsGraphs), so Panels can graph them. It does nothing on a loop Panels will not send.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs() {
+        if (!panelsGraphs.isFrameOpen()) {
+            return;
+        }
+        // Where Pedro says the robot is. Pedro's heading is in radians, so turn it into degrees.
+        Pose pose = follower.pose();
+        panelsGraphs.addPose(pose.x(), pose.y(), Math.toDegrees(pose.heading()));
+
+        // How far the robot still has to go on the path it is following. Only asked while Pedro is
+        // really following a path.
+        if (follower.isBusy()) {
+            panelsGraphs.add("Distance to end of path (in)", follower.distanceToEndpoint());
+        }
+
+        // The step number is the position in the AutoState list near the top of this file.
+        panelsGraphs.add("Auto step number", autoState.ordinal());
+        panelsGraphs.addText("Auto step", autoState.toString());
     }
 }

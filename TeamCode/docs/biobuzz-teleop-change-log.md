@@ -2,91 +2,28 @@
 
 *This text used to be the top of `BiobuzzTeleOp.java`. It was moved here, unchanged, so the file's header can describe how the TeleOp works **right now**. Each entry is what the code did when that Alpha was written: later Alphas may have replaced it (for example, the gentle gate close in Alpha 13 was removed later). When something here and the code disagree, the code wins. The current button map is in `biobuzz-teleop-controls.md`.*
 
-## PLAIN "DRIVE FORWARD" HIDDEN: EVERY AUTO NAMES ITS ALLIANCE (issue #136)
+## PANELS GRAPHS ON BY DEFAULT, THROUGH PanelsGraphs (issue [#138], no new Alpha number)
 
-*`AutoEmergencyLeave` (the Driver Station name "Drive Forward") is now `@Disabled`, so the Autonomous list has **12** OpModes (it had 13). Only `Blue - Drive Forward 24in` and `Red - Drive Forward 24in` are left as the "drive forward" Autos. The two Drive Reverse 24in Autos were not part of the request and are unchanged. **Not built with Gradle and not run on a robot.** Checked on a laptop only: the sheet's own `grep` now lists 12 names, and `javac` found no syntax errors.*
-
-```text
-WHAT CHANGED
-  1. AutoEmergencyLeave has @Disabled (and a note in its header on how to bring it back, the same as the
-     other hidden Autos). The file is not deleted.
-  2. WHY: it does not know the alliance, so after it the TeleOp falls back to BLUE and a RED team
-     aims at the wrong hive. The coach decided that only the Blue and Red Drive Forward 24in Autos
-     are allowed.
-  3. A NEW RULE (ARCHITECTURE.md, "Autonomous"): every Auto on the Driver Station names its alliance and
-     saves it with AutoHandoff.save(alliance). No Auto without an alliance.
-  4. The sheets (Autos on the Driver Station, match-day checklist, troubleshooting, TeleOp controls,
-     the Pedro guide, the strategy doc and the Autos README) no longer list plain Drive Forward as a
-     backup or as a reason the TeleOp starts on BLUE.
-
-NOT CHANGED
-  - The four 24in Autos, AutoHandoff.clear() (still there for any Auto that cannot know its alliance).
-  - The four 24in Autos' header comments still say they are copies of AutoEmergencyLeave. That is
-    true (the code was copied from it), so a fix in one should still be made in the others.
-```
-
-## RENAMED "TELEOP - RC 1", NEW GROUPS, ONE NAME CONSTANT (issue #136)
-
-*The TeleOp is now **"TeleOp - RC 1"** (it was "TeleOp - Alpha 15"). The behavior is the same as the alliance-button entry below. **Not built with Gradle and not run on a robot.** Checked on a laptop only: `javac` found no syntax errors, and a small test with stand-ins for the SDK showed that an annotation can use the shared name constant (also on the TeleOp's own class).*
+*The screen name stays "TeleOp - Alpha 15": nothing the driver or operator does has changed, and the Driver Station screen is unchanged (Panels has its own screen). Compiled against the real FTC SDK 12.0.0 and Panels jars on a laptop, and `PanelsGraphs` was run against the real Panels `TelemetryManager` in a throwaway test. **Not built with Gradle and not run on a robot.***
 
 ```text
 WHAT CHANGED
-  1. THE NAME: "TeleOp - Alpha 15" is now "TeleOp - RC 1". RC = release candidate: all the pieces
-     together, only bug fixes, each fix is the next RC. We went from Alpha straight to RC (no Beta step).
-     Stable is an RC that went through a full practice session with no code changes; the coach decides
-     when (ARCHITECTURE.md, "Release names").
-  2. ONE PLACE: the name is BiobuzzTeleOp.TELEOP_NAME. All 23 Autos that had
-     preselectTeleOp = "TeleOp - Alpha 15" typed by hand now use preselectTeleOp = BiobuzzTeleOp.TELEOP_NAME.
-     To rename again, change that one line (then the docs). New Autos must do the same.
-  3. TELEOP GROUP: "Competition" (it was "Testing"). Only the test OpModes that are not @Disabled stay in
-     "Testing" (today that is Firing Sequence - Alpha). The test Autos in testingOps/ keep "Testing".
-  4. AUTO GROUPS: an Auto with an alliance in its name is in group "Auto - Blue" or "Auto - Red"
-     (also the hidden 3 Volley ones, so un-hiding one keeps the scheme). Plain Drive Forward has no
-     alliance and stayed in "Auto" (it was hidden right after, see the entry above).
-  5. WHAT A GROUP DOES: as far as we know the Driver Station only SORTS by group (then by name) and shows no
-     group headings. The names already start with Blue or Red, so the list looks almost the same. The one
-     change we expected was plain Drive Forward (group Auto) moving to the top; it was hidden right
-     after (see the entry above), so the list should now be the Blue Autos, then the Red ones. This
-     is NOT checked on the real Driver Station yet: look once, and fix biobuzz-driver-station-autos.md.
-
-NOT CHANGED
-  - Older entries in this log (they say "Alpha 15" because that is what the TeleOp was called then).
-  - The test OpModes' names, and what any button or Auto does.
-```
-
-## THE ALLIANCE BUTTONS: HOLD X OR B (issue #136, no new Alpha number)
-
-*The screen name was "TeleOp - Alpha 15" when this was written. It became "TeleOp - RC 1" in the entry above (the same issue, #136). **The driver's buttons changed, so the printed controls sheet must be reprinted.** **Not built with Gradle and not run on a robot.** Checked on a laptop only: `javac` found no syntax errors in `BiobuzzTeleOp` and `AutoHandoff` (the SDK classes were missing, so that was all it could check), and the hold logic was copied into a small simulation with a fake clock (17 checks: taps, brushes, a long hold, both buttons, solo mode, a button already down at the first loop).*
-
-```text
-WHAT CHANGED
-  1. THE DRIVER SETS THE ALLIANCE with two buttons that say what they do: HOLD X (the blue button) for
-     ALLIANCE_HOLD_SECONDS = BLUE, HOLD B (the red button) for ALLIANCE_HOLD_SECONDS = RED. The clock
-     starts when the button goes down; letting go and pressing again starts it over. 1.0 s is a
-     starting guess (a TODO next to the constant): it should feel deliberate, not slow.
-  2. START NO LONGER TOUCHES THE ALLIANCE, on either gamepad. WHY: the pairing combos are Start + A and
-     Start + B, so re-pairing a controller while the TeleOp ran flipped the alliance (it was in
-     biobuzz-troubleshooting.md). Only the TeleOp changed: the test OpModes (Firing Sequence - Alpha and
-     the hidden ones) keep START.
-  3. EACH BUTTON SETS THE ALLIANCE, IT DOES NOT TOGGLE. Holding longer, or doing it twice, never flips it
-     the wrong way: the worst case is that nothing changes. The vision's lock on a cell and the hive
-     memory are only cleared when the alliance really changes (setAllianceIfChanged).
-  4. NOTHING HAPPENS in SOLO MODE (the driver's B is the forced shot there, and solo only happens at home
-     on BLUE: set the alliance first), or while BOTH buttons are held. In both cases the clocks start
-     over, so letting go of one button never switches the alliance instantly.
-  5. ONLY THE DRIVER has the buttons. The operator checks the alliance on the screen and tells the driver
-     (the 2026-11-12 code review, item 7, asked for one gamepad per function). The operator's LOGO
-     (DIAL / TABLE) is unchanged.
-  6. WHY HOLD X AND B: they are on the driver's gamepad, where X was free and B only worked in SOLO MODE,
-     and they match the controller's blue and red buttons. A tap was rejected because the right thumb
-     that turns the robot can brush the face buttons.
-  7. ONE LIMELIGHT PIPELINE STAYS. The alliance has to live in the code anyway (the field-centric drive and
-     AutoHandoff use it), so a pipeline per alliance would be a second copy to keep in sync, and the
-     camera's own filter would not make detection faster.
-
-NOT CHANGED
-  - AutoHandoff, the Autos, and VisionSubsystem (setAlliance and the tag filter work as before).
-  - How the TeleOp picks its first alliance: BLUE, or the alliance of the Auto that just ran.
+  1. NEW CLASS PanelsGraphs (utils/): the ONLY file that imports Panels, and the MASTER SWITCH
+     PANELS_ENABLED (true) for every OpMode: this TeleOp, all the Autos and all the test OpModes.
+     SHOW_PANELS_FIRING_GRAPHS is gone from BiobuzzTeleOp.
+  2. BiobuzzTeleOp: panelsGraphs.beginLoop() is the first line of loop() (right after the loop
+     timing) and panelsGraphs.send() is the last line. New graphs, through addPanelsGraphs(): the
+     driver's sticks, turret angle and target, the turret's spin push, intake power and speed,
+     Pinpoint x, y, heading and speeds, and the IMU heading, pitch and roll.
+  3. FiringMonitor no longer imports Panels. It adds its numbers through PanelsGraphs under the
+     same names, and update() lost its loopMs parameter ("Loop (ms)" is now added by PanelsGraphs).
+     The volley log is unchanged. New in its graphs: camera ty and result age, gate servo target.
+  4. THE OLD RULE "SET IT BACK TO FALSE BEFORE A MATCH" IS REPLACED by the question in [#138]: the
+     coach decides before Dec 10 whether Panels stays on for competition. To turn it off, change
+     PANELS_ENABLED to false in PanelsGraphs.java.
+  5. WHY: so every practice run can be graphed without editing code first, and so the Autos and the
+     test OpModes can be graphed too (issue #67). Panels only sends about every 75 ms, so
+     PanelsGraphs skips the work on the loops Panels would throw away, to keep the extra loop time small.
 ```
 
 ## FIRING MONITOR AND PANELS GRAPHS (issue #122, no new Alpha number)

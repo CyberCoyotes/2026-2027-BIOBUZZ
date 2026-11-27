@@ -8,6 +8,7 @@ import org.firstinspires.ftc.teamcode.BiobuzzTeleOp;
 import org.firstinspires.ftc.teamcode.utils.AutoHandoff;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
@@ -144,6 +145,9 @@ public class AutoBlueDriveReverse24 extends OpMode {
     private DriveSubsystem driveSubsystem;
     private PinpointSubsystem pinpointSubsystem;
 
+    // Sends this Auto's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
+
     private AutoState autoState = AutoState.DONE;
 
     // True when the Pinpoint was READY at START, so we can drive by distance.
@@ -167,6 +171,9 @@ public class AutoBlueDriveReverse24 extends OpMode {
         // Creating the Pinpoint zeros its position and calibrates its gyro, so the robot must be
         // STILL now.
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
+
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
 
         telemetry.addLine("Ready. Put the robot on its start spot (clear path), then press START.");
         addPinpointStatusTelemetry();
@@ -209,6 +216,9 @@ public class AutoBlueDriveReverse24 extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Read sensors. getXInches() is forward and getYInches() is left, so the straight-line
         //    distance from the start is the hypotenuse. A hypotenuse is never negative, so it
         //    measures the drive the same way going forward or backward. (It also still works if
@@ -248,6 +258,10 @@ public class AutoBlueDriveReverse24 extends OpMode {
         addSettingsTelemetry();
         driveSubsystem.addTelemetry(telemetry);
         pinpointSubsystem.addTelemetry(telemetry);
+
+        // 4. Panels graphs: add this Auto's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs();
+        panelsGraphs.send();
     }
 
     /*
@@ -256,6 +270,27 @@ public class AutoBlueDriveReverse24 extends OpMode {
     @Override
     public void stop() {
         driveSubsystem.stop();
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names, so Panels can
+    // graph them (see PanelsGraphs). Each call returns at once on a loop Panels will not send.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs() {
+        // How far it has driven against how far it should go: shows the stop point and the coast.
+        panelsGraphs.add("Distance driven (in)", distanceDrivenInches);
+        panelsGraphs.add("Distance target (in)", DRIVE_DISTANCE_INCHES);
+        // The power we ask for (always shown as 0 to 1, even when this Auto drives backward).
+        double powerAsked = 0.0;
+        if (autoState == AutoState.DRIVING) {
+            powerAsked = DRIVE_POWER;
+        }
+        panelsGraphs.add("Drive power asked (0 to 1)", powerAsked);
+        panelsGraphs.add("Time driving (s)", driveTimer.seconds());
+        panelsGraphs.add("Auto step (0 driving, 1 done)", autoState.ordinal());
+        panelsGraphs.addFlag("Driving by Pinpoint distance (1=yes, 0=timed backup)", drivingByDistance);
+        // Where the Pinpoint says the robot is, and how fast it is moving.
+        panelsGraphs.addPinpoint(pinpointSubsystem);
     }
 
     // ------------------------------------------------------------------
