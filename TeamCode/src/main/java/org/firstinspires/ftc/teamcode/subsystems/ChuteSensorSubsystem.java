@@ -16,9 +16,29 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
  * Owns the REV Color Sensor V3 near the top of the chute, below the turret. Only this class touches
  * it. OpModes call update() once per loop, then ask it questions.
  *
- * WHAT IT DOES (Phase 1): it only READS. It tells you how far away the nearest thing is (the
- * Pollen, we hope) and what color it is. It does NOT decide "there is a Pollen" yet. That needs
- * numbers measured with ChuteSensorAlpha first, so it comes in Phase 2.
+ * WHAT IT DOES
+ *   Phase 1: it READS. It tells you how far away the nearest thing is (the Pollen, we hope) and
+ *   what color it is.
+ *   Phase 2 (issue #144): it also gives ONE yes / no answer, hasPollenAtTop(): "is a Pollen sitting
+ *   at the top of the chute right now?" It uses the DISTANCE only. The color is still just a
+ *   reading. It still moves nothing: it does not touch the gate or the intake (that is Phase 3).
+ *
+ * HOW hasPollenAtTop() DECIDES (Phase 2)
+ *   Two distances with a GAP between them, and a short wait:
+ *     - At or below POLLEN_AT_TOP_ENTER_CM (3.0 cm): a Pollen is STAGED. The answer turns TRUE.
+ *     - At or above POLLEN_AT_TOP_EXIT_CM (3.8 cm), or nothing in range: the top spot is CLEAR.
+ *       The answer turns FALSE.
+ *     - In between (3.0 to 3.8 cm): the answer does NOT change. It keeps what it said last.
+ *   The gap is on purpose. A ball that wobbles or turns would otherwise flip the answer on and off.
+ *   The reading must also STAY past the number for POLLEN_AT_TOP_DEBOUNCE_SECONDS before the
+ *   answer flips, so a ball rolling past (or a hole turning toward the sensor) for a moment does
+ *   not count.
+ *   WHEN IN DOUBT THE ANSWER IS FALSE. No sensor, a device that cannot measure distance, "out of
+ *   range" and a bad (NaN) reading all count as CLEAR. Later (Phase 3) this answer may lift a ball
+ *   into the spinning wheels, so a wrong "false" (the operator uses Y) is much safer than a wrong
+ *   "true".
+ *   The sensor only sees the TOP SPOT of the chute, not the whole chute. So "false" means "no
+ *   Pollen at the top", NOT "the chute is empty".
  *
  * ONE SENSOR, TWO JOBS
  *   The REV Color Sensor V3 is a color sensor AND an infrared distance sensor in one body.
@@ -70,6 +90,22 @@ public class ChuteSensorSubsystem {
     private static final double OUT_OF_RANGE_CM = 100.0;
 
     // ------------------------------------------------------------------
+    // "Pollen at the top" settings (Phase 2, issue #144)
+    // ------------------------------------------------------------------
+    // How hasPollenAtTop() uses these is explained at the top of this file. ENTER must stay SMALLER
+    // than EXIT: the gap between them is what stops the answer from flickering.
+    // TODO (issue #144): 3.0 and 3.8 are the coach's hand readings (a staged Pollen reads about
+    // 2.0 +/- 0.5 cm, and an empty chute reads 3.8 to 4.0 cm). Check them with a hole facing the
+    // sensor, a turning ball and balls feeding past. 3.8 sits on the edge of the empty reading: if
+    // the answer ever stays TRUE after the ball is gone, try a smaller EXIT such as 3.5.
+    private static final double POLLEN_AT_TOP_ENTER_CM = 3.0;
+    private static final double POLLEN_AT_TOP_EXIT_CM = 3.8;
+
+    // How long a reading must STAY past ENTER (or EXIT) before the answer flips.
+    // TODO (issue #144): starting guess. Raise it if balls feeding past make the answer blip TRUE.
+    private static final double POLLEN_AT_TOP_DEBOUNCE_SECONDS = 0.10;
+
+    // ------------------------------------------------------------------
     // Hardware. Only this class touches it.
     // ------------------------------------------------------------------
     // The same physical sensor, seen two ways. The REV Color Sensor V3 is BOTH a color sensor and a
@@ -83,6 +119,15 @@ public class ChuteSensorSubsystem {
     // ------------------------------------------------------------------
     private double distanceCm = OUT_OF_RANGE_CM;
     private boolean distanceInRange = false;
+
+    // The Phase 2 answer (see hasPollenAtTop()). It starts FALSE: no Pollen until the sensor says so.
+    private boolean pollenAtTop = false;
+
+    // Debounce. readingAsksForFlip stays true while the readings keep asking for the answer to flip,
+    // and flipTimer says for how long. A reading in the gap (or one that agrees with the answer)
+    // sets it back to false, so the wait starts over.
+    private boolean readingAsksForFlip = false;
+    private final ElapsedTime flipTimer = new ElapsedTime();
 
     private double red = 0.0;
     private double green = 0.0;
@@ -159,6 +204,9 @@ public class ChuteSensorSubsystem {
             }
         }
 
+        // Phase 2: use the distance we just saved to work out the "Pollen at the top" answer.
+        updatePollenAtTop();
+
         if (colorReadingOn) {
             NormalizedRGBA colors = colorSensor.getNormalizedColors();
             red = colors.red;
@@ -174,9 +222,85 @@ public class ChuteSensorSubsystem {
         readMillis = readTimer.milliseconds();
     }
 
+    /*
+     * Works out the "Pollen at the top" answer from the distance update() just saved. Called once
+     * per update(). The rule is explained at the top of this file.
+     */
+    private void updatePollenAtTop() {
+        // No distance sensor means no Pollen answer. (With no sensor at all, update() never gets
+        // here, and the answer just stays FALSE.)
+        if (distanceSensor == null) {
+            pollenAtTop = false;
+            readingAsksForFlip = false;
+            return;
+        }
+
+        // "Out of range" and a bad (NaN) reading were both saved as OUT_OF_RANGE_CM (100) in
+        // update(). That is far past EXIT, so they already count as CLEAR here.
+        boolean readingSaysStaged = distanceCm <= POLLEN_AT_TOP_ENTER_CM;
+        boolean readingSaysClear = distanceCm >= POLLEN_AT_TOP_EXIT_CM;
+
+        // Does this reading ask the answer to FLIP? Only a STAGED reading can turn it TRUE, and
+        // only a CLEAR reading can turn it FALSE. A reading in the gap asks for nothing.
+        boolean thisReadingAsksForFlip;
+        if (pollenAtTop) {
+            thisReadingAsksForFlip = readingSaysClear;
+        } else {
+            thisReadingAsksForFlip = readingSaysStaged;
+        }
+
+        if (!thisReadingAsksForFlip) {
+            // The reading is in the gap, or it agrees with the answer. The wait starts over.
+            readingAsksForFlip = false;
+            return;
+        }
+
+        if (!readingAsksForFlip) {
+            // The first reading that asks for a flip: start the timer.
+            readingAsksForFlip = true;
+            flipTimer.reset();
+        }
+
+        // The readings have asked for long enough, so flip the answer.
+        if (flipTimer.seconds() >= POLLEN_AT_TOP_DEBOUNCE_SECONDS) {
+            pollenAtTop = !pollenAtTop;
+            readingAsksForFlip = false;
+        }
+    }
+
+    /*
+     * The words for which band the newest distance is in, for the screen: STAGED (at or below
+     * ENTER), CLEAR (at or above EXIT, or nothing in range) or BETWEEN (in the gap).
+     */
+    private String getBandText() {
+        if (distanceCm <= POLLEN_AT_TOP_ENTER_CM) {
+            return "STAGED";
+        }
+        if (distanceCm >= POLLEN_AT_TOP_EXIT_CM) {
+            return "CLEAR";
+        }
+        return "BETWEEN";
+    }
+
     // ==================================================================
     // QUESTIONS: what the sensor says (STATUS)
     // ==================================================================
+
+    // true = a Pollen is sitting at the top of the chute (Phase 2: see the top of this file for how
+    // it decides). It is false when there is no sensor, and false when unsure. false means "no
+    // Pollen at the TOP", not "the chute is empty": the sensor only sees the top spot.
+    public boolean hasPollenAtTop() {
+        return pollenAtTop;
+    }
+
+    // The two distances the answer uses, so a test OpMode can show them without copying the numbers.
+    public double getPollenAtTopEnterCm() {
+        return POLLEN_AT_TOP_ENTER_CM;
+    }
+
+    public double getPollenAtTopExitCm() {
+        return POLLEN_AT_TOP_EXIT_CM;
+    }
 
     // true = "chute_sensor" is in the robot configuration. false = NOT FOUND (every other
     // question below then returns its "nothing" answer).
@@ -252,6 +376,17 @@ public class ChuteSensorSubsystem {
             telemetry.addData("Distance", "%.1f cm", distanceCm);
         } else {
             telemetry.addData("Distance", "OUT OF RANGE (nothing close)");
+        }
+
+        // Phase 2: the answer, and which band the raw reading is in right now.
+        if (distanceSensor != null) {
+            String pollenText = "no";
+            if (pollenAtTop) {
+                pollenText = "YES";
+            }
+            telemetry.addData("Pollen at top", "%s   (staged at or below %.1f cm, clear at or above %.1f cm)",
+                    pollenText, POLLEN_AT_TOP_ENTER_CM, POLLEN_AT_TOP_EXIT_CM);
+            telemetry.addData("Reading is in the", "%s band", getBandText());
         }
 
         if (colorReadingOn) {

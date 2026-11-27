@@ -262,14 +262,16 @@ A nudge only lasts while the OpMode runs. When a position is right, type the fou
 
 ## 12. Chute Sensor - Alpha (gamepad 1 only)
 
-**22091 only** (the only robot with the sensor). Shows what the REV Color Sensor V3 named `chute_sensor` reads: the distance and the color (issue #144, Phase 1). It decides nothing and does not move the gate. The test order is in the OpMode's header; write the numbers in `biobuzz-test-and-match-log.md`, table 2b. **The intake runs on the bumpers**, so keep hands and cables clear of the chute.
+**22091 only** (the only robot with the sensor). Shows what the REV Color Sensor V3 named `chute_sensor` reads: the distance and the color, plus the **Pollen at top** answer and a count of how often it changes (issue #144, Phases 1 and 2). It does not move the gate. The test order is in the OpMode's header; write the numbers in `biobuzz-test-and-match-log.md`, tables 2b and 2c. **The intake runs on the bumpers**, so keep hands and cables clear of the chute.
 
 | Control | What it does |
 |---|---|
-| **A** (tap) | **Reset** the min and max distance. Press it, run a ball past, and the screen keeps the closest and farthest reading it saw |
+| **A** (tap) | **Reset** the min and max distance and the **answer changes** count. Press it, run a ball past, and the screen keeps the closest and farthest reading it saw |
 | **X** (tap) | Color reading **ON / OFF**. Off reads only the distance, so you can see what the color read costs (the "Sensor read time" and "Loop time" lines). Starts ON |
 | **RB** (hold) | **INTAKE** (pull balls in and up the chute) |
 | **LB** (hold) | **REVERSE** (push balls back out). Beats RB, so clearing a jam always works |
+
+**Pollen at top (Phase 2):** the screen says **YES** when a Pollen sits at the top of the chute. It uses the distance only, with a gap so it does not flicker: at or below **3.0 cm** it turns YES, at or above **3.8 cm** (or out of range) it turns no, and in between (the **BETWEEN** band) it keeps its last answer. The reading must hold for **0.10 s** before it flips. These three numbers are starting values (in `ChuteSensorSubsystem`). **Answer changes** should be **1** when a Pollen arrives and **2** when it leaves: more means the answer flickered. If there is no sensor the answer is always no. The test order is steps 8 to 14 in the header, and the results go in the test log, table 2c.
 
 "Out of range" means nothing is close to the sensor. It is shown on its own line so it cannot spoil the max. If the screen says **NOT FOUND**, add a REV Color Sensor V3 named `chute_sensor` to the robot config and check the cable first.
 

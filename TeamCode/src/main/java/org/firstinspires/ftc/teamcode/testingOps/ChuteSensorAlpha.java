@@ -9,11 +9,13 @@ import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 
 /*
- * Alpha-Chute Sensor Testing (issue #144, Phase 1)
+ * Alpha-Chute Sensor Testing (issue #144, Phases 1 and 2)
  * An iterative OpMode that shows what the REV Color Sensor V3 in the chute (named chute_sensor)
- * reports: the distance and the color. It uses gamepad1 only.
+ * reports: the distance and the color. Phase 2 adds the "Pollen at top" answer and a count of how
+ * often it changes. It uses gamepad1 only.
  *
- *   A            -> RESET the min and max distance (so you can catch a ball rolling past)
+ *   A            -> RESET the min and max distance (so you can catch a ball rolling past) and the
+ *                   count of answer changes
  *   X            -> color reading ON / OFF (to see what the color read costs)
  *   Right Bumper -> INTAKE (hold) so you can run a ball past the sensor
  *   Left Bumper  -> REVERSE (hold). It beats Right Bumper, so clearing a jam always works.
@@ -22,7 +24,17 @@ import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
  *   We want the robot to know when a Pollen is at the top of the chute, so the last ball can be
  *   lifted into the shooter by the sensor instead of by the operator holding Y. Before we write
  *   any "there is a Pollen" rule (Phase 2), we have to SEE what the sensor reads. This OpMode only
- *   shows numbers. It decides nothing, and it does not move the gate.
+ *   shows numbers. It decides nothing itself, and it does not move the gate. The "Pollen at top"
+ *   answer comes from ChuteSensorSubsystem.hasPollenAtTop() (how it decides is explained at the top
+ *   of that file). The numbers it uses are ENTER 3.0 cm, EXIT 3.8 cm and a 0.10 s wait. They are
+ *   starting values from the coach's hand readings, and THIS OpMode is how we check them.
+ *
+ * WHY THE "ANSWER CHANGES" COUNT (Phase 2)
+ *   The answer should flip once when a Pollen arrives and once when it leaves. If the count climbs
+ *   while a ball just SITS there (or while the sensor sees an empty chute), the numbers are too
+ *   tight: the reading is wandering across them. Press A before each try, so the count starts at 0.
+ *   The Panels graph (see biobuzz-panels-how-to.md) draws the distance with the ENTER and EXIT
+ *   lines and the answer, so you can see where it crossed.
  *
  * WHY THE MIN AND MAX
  *   A ball rolling past the sensor is gone in a few loops, too fast to read off the screen. Press A,
@@ -54,6 +66,24 @@ import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
  *   7. COLOR COST. Press X to turn the color reading OFF and look at "Sensor read time" and "Loop".
  *      Then turn it ON again. Write both. A slow loop slows everything on the robot.
  *
+ * PHASE 2 TEST ORDER (write each result in the test log, table 2c)
+ *   8. EMPTY chute, press A, wait 10 seconds. "Pollen at top" should say no, and the changes count
+ *      should stay 0. If it says YES, the reading is at or below ENTER with nothing there.
+ *   9. A Pollen held STAGED by hand (solid side, then a HOLE facing the sensor, then slowly
+ *      turning), 10 seconds each, pressing A before each. "Pollen at top" should say YES and the
+ *      count should be 1 (it flipped once, on the way in). A higher count means it flickered:
+ *      write which side of the ball did it.
+ *  10. Take the Pollen away. "Pollen at top" should go back to no (count 2). If it STAYS YES, the
+ *      empty chute reads below EXIT: try a smaller EXIT (such as 3.5) in ChuteSensorSubsystem.
+ *  11. THE GAP. Slide a Pollen slowly toward the sensor, then away. Watch the band line go CLEAR,
+ *      BETWEEN, STAGED, then back. The answer should flip only at the two ends, not in BETWEEN.
+ *  12. FEEDING PAST. Press A, load balls at the bottom and HOLD the Right Bumper. Does "Pollen at
+ *      top" blip YES as a ball rides past? How many times, and for how long (see the Panels
+ *      graph)? If it blips, the wait (POLLEN_AT_TOP_DEBOUNCE_SECONDS) needs to be longer.
+ *  13. THE STALL SPOT. Put a Pollen where the LAST ball stops after a volley. It should say YES
+ *      and stay YES.
+ *  14. LIGHT. Repeat 8, 9 and 12 under the lights we will really use.
+ *
  * On a PS5 controller: the bumpers are L1 and R1, A is Cross and X is Square.
  *
  * Robot configuration (on the Driver Station):
@@ -62,9 +92,9 @@ import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
  *   Only the 22091 robot has the sensor. On another robot this OpMode runs but says NOT FOUND
  *   (the intake still needs its motor).
  *
- * HIDE IT WHEN PHASE 1 TESTING IS DONE
+ * HIDE IT WHEN PHASE 2 TESTING IS DONE
  *   Once the numbers are in the test log, put @Disabled above the @TeleOp line to keep the Driver
- *   Station list short (never delete the file). The sensor class stays; Phase 2 adds to it.
+ *   Station list short (never delete the file). The sensor class stays.
  */
 @TeleOp(name = "Chute Sensor - Alpha", group = "Testing")
 public class ChuteSensorAlpha extends OpMode {
@@ -95,6 +125,12 @@ public class ChuteSensorAlpha extends OpMode {
     // chute may read this way, which is useful to know.
     private boolean sawOutOfRange = false;
 
+    // How many times the "Pollen at top" answer changed since the last reset (press A). It should
+    // be 1 when a Pollen arrives and 2 when it leaves. More than that means the answer flickered.
+    // lastPollenAtTop is the answer from the loop before, so we can see when it changes.
+    private int answerChanges = 0;
+    private boolean lastPollenAtTop = false;
+
     // The color reading switch. It starts ON.
     private boolean colorReadingOn = true;
 
@@ -108,7 +144,7 @@ public class ChuteSensorAlpha extends OpMode {
      */
     private void addControlsTelemetry() {
         telemetry.addLine("--- CONTROLS ---");
-        telemetry.addLine("A = reset min / max   X = color reading ON / OFF");
+        telemetry.addLine("A = reset min / max and answer changes   X = color reading ON / OFF");
         telemetry.addLine("Right Bumper = INTAKE   Left Bumper = REVERSE");
     }
 
@@ -151,6 +187,10 @@ public class ChuteSensorAlpha extends OpMode {
     public void start() {
         runtime.reset();
         loopTimer.reset();
+
+        // The answer may already be YES (a Pollen was sitting there during INIT). Remember it now,
+        // so the first loop does not count that as a change.
+        lastPollenAtTop = chuteSensorSubsystem.hasPollenAtTop();
     }
 
     /*
@@ -189,6 +229,9 @@ public class ChuteSensorAlpha extends OpMode {
 
         // Keep the min and max up to date with what the sensor just read.
         updateMinMax();
+
+        // Count the times the "Pollen at top" answer changed.
+        countAnswerChanges();
 
         // 3. Tell the subsystems what to do.
         chuteSensorSubsystem.setColorReadingOn(colorReadingOn);
@@ -229,12 +272,22 @@ public class ChuteSensorAlpha extends OpMode {
     // MIN AND MAX (so a ball rolling past can be caught)
     // ------------------------------------------------------------------
 
-    // Forget the old min and max and start over.
+    // Forget the old min and max and the answer-change count, and start over.
     private void resetMinMax() {
         haveRealReading = false;
         minDistanceCm = 0.0;
         maxDistanceCm = 0.0;
         sawOutOfRange = false;
+        answerChanges = 0;
+    }
+
+    // Adds one to the count every time the "Pollen at top" answer is different from last loop.
+    private void countAnswerChanges() {
+        boolean pollenAtTop = chuteSensorSubsystem.hasPollenAtTop();
+        if (pollenAtTop != lastPollenAtTop) {
+            answerChanges = answerChanges + 1;
+        }
+        lastPollenAtTop = pollenAtTop;
     }
 
     // Looks at the reading update() just saved. A real reading can move the min or the max. An "out
@@ -282,6 +335,10 @@ public class ChuteSensorAlpha extends OpMode {
             outOfRangeText = "YES (nothing was close at some point)";
         }
         telemetry.addData("Out of range seen since reset?", outOfRangeText);
+
+        // Phase 2: 1 = it flipped once on the way in, 2 = and once on the way out. More = flicker.
+        telemetry.addData("Pollen-at-top answer changes since reset (A)", "%d   (1 in, 2 out. More means it flickered)",
+                answerChanges);
     }
 
     // ------------------------------------------------------------------
@@ -298,6 +355,10 @@ public class ChuteSensorAlpha extends OpMode {
             panelsGraphs.add("Chute distance (cm, 100 = out of range)", chuteSensorSubsystem.getDistanceCm());
             panelsGraphs.addFlag("Chute distance real reading (1=yes)", chuteSensorSubsystem.isDistanceInRange());
             panelsGraphs.add("Chute sensor read (ms)", chuteSensorSubsystem.getReadMillis());
+            // Phase 2: the answer, and the two lines it uses, so the distance trace can be read against them.
+            panelsGraphs.addFlag("Chute pollen at top (1=yes)", chuteSensorSubsystem.hasPollenAtTop());
+            panelsGraphs.add("Chute ENTER (cm)", chuteSensorSubsystem.getPollenAtTopEnterCm());
+            panelsGraphs.add("Chute EXIT (cm)", chuteSensorSubsystem.getPollenAtTopExitCm());
             if (chuteSensorSubsystem.isColorReadingOn()) {
                 panelsGraphs.add("Chute red", chuteSensorSubsystem.getRed());
                 panelsGraphs.add("Chute green", chuteSensorSubsystem.getGreen());
