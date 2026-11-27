@@ -20,8 +20,8 @@
 | **Right Bumper (RB)** | **INTAKE** (pull balls in). **The intake is the driver's only** |
 | **Left Trigger (LT)** (HOLD) | **SLOW MODE** (40% speed) for careful lining up |
 | **Right Trigger (RT)** (HOLD) | **Does not fire.** **SOLO MODE only:** fires a volley (same as the operator's RT) |
-| **D-pad Up** | **PRE-REV** on / off: the wheels spin without firing. Starts **OFF**. Screen says **PRE-REV ON** |
-| **D-pad Down** | — |
+| **D-pad Up** | **PRE-REV ON:** the wheels spin at a low preset speed (1200 / 2400 RPM) without firing, so the spin-up before a shot is short. Starts **OFF**. Screen says **PRE-REV ON** |
+| **D-pad Down** | **PRE-REV OFF.** It also turns itself off the moment any shot starts (RT, forced shot, wall shot), so press **D-pad Up** again when more balls are loaded |
 | **D-pad Left** | **RE-AIM:** "the way the robot faces right now is **away from me**." Press it if the robot was turned or bumped |
 | **D-pad Right** | — |
 | **Start** | — (only for pairing: Start + A). The alliance starts **BLUE**, or the alliance of the Auto that just ran. **Check the screen** |
@@ -76,7 +76,7 @@
 
 **Safety:** keep hands, hair, and loose clothing away from the shooter wheels, and keep everyone out of the path of the ball. Keep a hand near the **Stop** button when testing the turret.
 
-**Free buttons right now (blank in the tables):** on gamepad 1: A, D-pad Down, D-pad Right (and Start, which is only for pairing). On gamepad 2: both sticks (and Start). (Gamepad 1's Right Trigger and Y only do something in SOLO MODE, its B is the RED alliance button (and the forced shot in SOLO MODE), its X is the BLUE alliance button, its D-pad Up is PRE-REV, Back is the drive toggle and LOGO is the SOLO MODE toggle.)
+**Free buttons right now (blank in the tables):** on gamepad 1: A, D-pad Right (and Start, which is only for pairing). On gamepad 2: both sticks (and Start). (Gamepad 1's Right Trigger and Y only do something in SOLO MODE, its B is the RED alliance button (and the forced shot in SOLO MODE), its X is the BLUE alliance button, its D-pad Up / Down are PRE-REV on / off, Back is the drive toggle and LOGO is the SOLO MODE toggle.)
 
 ## The firing sequence (the operator holds the Right Trigger)
 
@@ -89,7 +89,7 @@ The **operator fires** (gamepad 2 Right Trigger): the robot waits until it is re
 
 - **The gate closes at the servo's top speed.** Every gate move is instant. (We tried a slow, gentle close and dropped it: the servo cannot be made slower than it is without a long walk, and we wanted a fast close.) A single ball left in the way is pushed out by the **intake reversing** for a moment (next point). Pressing STOP closes it at once.
 - **The intake REVERSES by itself after the gate closes.** Any time the gate closes from OPEN (or from LIFTED), the intake runs backward for **0.5 s** (the same from both), then stops (or goes back to whatever the driver is holding). It is a **timer, not a measurement** (a servo cannot say when the gate is shut): the number is `CLOSE_REVERSE_SECONDS` in `ShooterServoSubsystem`, so play with it on the robot. It starts the same loop the close is commanded. It happens after every volley, after an abort, and after the operator's **X** button. It does **not** happen when the gate is already closed, and it does not happen while the gate OPENS. It runs at the intake's power dial setting (starts at 100%). **While it is happening the driver's Right Bumper (intake) does nothing**; the driver's Left Bumper (reverse) is the same thing. Pressing STOP closes the gate instantly, so there is no automatic reverse then.
-- **PRE-REV (the driver's D-pad Up)** spins the wheels while you drive to the spot. When RT is pressed the volley starts as soon as the turret is ready.
+- **PRE-REV (the driver's D-pad Up = on, D-pad Down = off)** holds the wheels at a low preset speed (1200 flywheel / 2400 hood wheel) while you drive to the spot. That is below every shot in the table, so when RT is pressed the flywheel only has to speed **up** a little, and the volley starts as soon as it is at speed and the turret is ready. **Pressing RT (or B, or the wall shot) turns PRE-REV off by itself**, and the wheels stop when the shot ends. Press D-pad Up again once more balls are loaded.
 - **No camera and TABLE mode:** the volley will not start. The operator switches to **DIAL** (gamepad 2 **LOGO**) for a shot without the camera.
 - **Clearing a jam:** the driver holds **Left Bumper** (reverse the intake). It beats the volley. When the driver lets go, the volley's feeding carries on by itself (there is no clock to run out).
 - **The flywheel RPM and the ratio stay frozen for as long as you hold RT**, so if you move to a different spot, let go and press RT again.
@@ -105,7 +105,7 @@ An override for when the READY checks are wrong, for example the camera is dead 
 - **In SOLO MODE the driver's Y does the same job as the operator's Y**, with all the rules above. With SOLO MODE off, the driver's Y does nothing.
 
 ### The wall shot (the operator's Left Trigger, issue #9)
-A dumb shot from a known spot, up against the wall. The **turret goes straight ahead (0)** and the wheels run at **fixed speeds** (flywheel 1300, hood wheel 2600 RPM), with no camera and no READY checks. After a **1.5 s delay** the gate **OPENS** and the intake runs. **Let go and the gate CLOSES** (with the 0.5 s intake reverse) and the wheels go to 0 power (unless PRE-REV is on). While LT is held, B and RT do nothing. A still floats the turret. The driver has no copy of it (the driver's LT is SLOW MODE). The two speeds and the delay are still to be verified on the robot.
+A dumb shot from a known spot, up against the wall. The **turret goes straight ahead (0)** and the wheels run at **fixed speeds** (flywheel 1300, hood wheel 2600 RPM), with no camera and no READY checks. After a **1.5 s delay** the gate **OPENS** and the intake runs. **Let go and the gate CLOSES** (with the 0.5 s intake reverse) and the wheels go to 0 power (pressing LT already turned PRE-REV off). While LT is held, B and RT do nothing. A still floats the turret. The driver has no copy of it (the driver's LT is SLOW MODE). The two speeds and the delay are still to be verified on the robot.
 
 ### SOLO MODE (one person)
 Press **LOGO** on gamepad 1. Now the driver's Right Trigger fires too, the driver's **Y** (hold) lifts the gate, and the driver's **B** (hold) is the forced shot (the operator's buttons still work if there is one). In a solo match **nobody can use the rest of the operator's buttons**: gate CLOSED (X), the wall shot (LT), the dials, DIAL / TABLE (gamepad 2 LOGO) and the flower picker (gamepad 2 bumpers). The **alliance buttons (hold X / B) are switched off in SOLO MODE**, because B is the forced shot there: **set the alliance BEFORE you turn SOLO MODE on** (it starts BLUE, and solo matches only happen at home on BLUE). You **can** still switch field / robot centric (**BACK**) yourself. The speed source now starts on **TABLE**, so in a solo match **the camera must see the hive before a volley will start**. If the camera cannot see it, someone has to press gamepad 2 **LOGO** to switch to **DIAL** before the match. LOGO is known to reach the Robot Controller on our controllers; the INIT screen's **BUTTON TEST** shows every button each gamepad reports if you want to check.
@@ -138,7 +138,7 @@ The turret follows the hive **all the time**, with no button held, and it also f
 **DIAL** is the speed the operator dialed in (below), and needs no camera. **TABLE** uses the shot table: while the camera sees the hive, the flywheel speed comes from how high the hive's tags appear (closer = lower RPM). If the camera loses the hive, the table's last speed is kept for **1 second**, then the flywheel goes back to the dial. The screen says which one is in use. The hood wheel is always the flywheel speed x the ratio dial.
 
 ## Shooter speeds (the dials)
-These set the RPMs the **Right Trigger** shot uses. The wheels only spin while the trigger is held (or PRE-REV is on), and the shooter's speed control holds each wheel at its target RPM. **During a volley the dials are frozen** (the flywheel RPM and the ratio keep their values until the volley ends), so turning a dial mid-volley does nothing until it is over.
+These set the RPMs the **Right Trigger** shot uses. The wheels only spin while the trigger is held (or PRE-REV is on, which uses its own low preset speed, not these dials), and the shooter's speed control holds each wheel at its target RPM. **During a volley the dials are frozen** (the flywheel RPM and the ratio keep their values until the volley ends), so turning a dial mid-volley does nothing until it is over.
 
 Starting dials: flywheel **1300 RPM** (lowest 500, highest 1450), ratio **2.00** (lowest 1.00, highest 3.00), so the hood wheel starts at **2600 RPM**. 1300 is the speed that looked about right on the robot. It is also the speed used in TABLE mode when the camera has not seen the hive lately. In TABLE mode the dial does not set the flywheel speed, but the ratio dial still sets the hood wheel.
 

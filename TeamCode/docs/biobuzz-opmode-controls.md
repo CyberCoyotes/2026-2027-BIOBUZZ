@@ -33,8 +33,9 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **B** (HOLD) | **Alliance RED:** hold for 1 second (the red button). **In SOLO MODE** it is the **FORCED SHOT** instead, the same as the operator's B (issue #80), and does not change the alliance |
 | **START** | Not used in this OpMode (only for pairing: Start + A). It used to switch the alliance |
 | **BACK** | Drive **FIELD-centric / ROBOT-centric** toggle, the same as the operator's BACK |
-| **D-pad Up** | **PRE-REV** on / off: the wheels spin without firing (starts OFF) |
-| **A** | Not used. **D-pad Down / Right** are not used either |
+| **D-pad Up** | **PRE-REV ON:** the wheels spin at a low preset speed (1200 / 2400 RPM) without firing (starts OFF) |
+| **D-pad Down** | **PRE-REV OFF.** It also turns itself off when any shot starts (RT, forced shot, wall shot), issue #143 |
+| **A** | Not used. **D-pad Right** is not used either |
 | **D-pad Left** | **Re-aim** (field-centric): the way the robot faces right now is "away from me". Does not touch the Pinpoint |
 
 ### Gamepad 2: OPERATOR
@@ -47,13 +48,13 @@ Two controllers. The turret **tracks the hive all the time** (ALWAYS-TRACK, alwa
 | **A** (hold) | **Float** the turret so you can turn it by hand. Let go and it tracks the hive again |
 | **D-pad Up / Down** | Flywheel target RPM **+ / - 100** (range 500 to 1450) |
 | **D-pad Right / Left** | Hood / flywheel **ratio + / - 0.05** (range 1.00 to 3.00, starts 2.00) |
-| **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the camera says the turret is aimed (within 2 degrees for 0.15 s), then opens the gate and **keeps feeding for as long as you hold** (no timer: the intake pauses by itself when the flywheel is not at speed or the turret is not aimed). **Let go to END it** (gate closes, intake stops). No one-volley limit. Unless PRE-REV is on, both wheels go to 0 power |
+| **RT** (hold) | **FIRE a volley** at the dialed or table RPMs: it waits until the flywheel is at speed and the camera says the turret is aimed (within 2 degrees for 0.15 s), then opens the gate and **keeps feeding for as long as you hold** (no timer: the intake pauses by itself when the flywheel is not at speed or the turret is not aimed). **Let go to END it** (gate closes, intake stops). No one-volley limit. Pressing RT already turned PRE-REV off, so both wheels go to 0 power |
 | **Start** | Not used in this OpMode (only for pairing: Start + B). The **driver** sets the alliance (hold X = BLUE, hold B = RED): check it on the screen |
 | **Back** | Drive **FIELD-centric / ROBOT-centric** (starts FIELD). The driver's **BACK** does the same. (The physical **MODE** button cannot be read by the code: see the controls sheet. The INIT screen has a **BUTTON TEST** to check your controller.) |
 | **LOGO** (the center **guide** button) | Flywheel speed source **TABLE / DIAL** (starts **TABLE**, the camera). (On the driver's controller the same button is the SOLO MODE toggle.) |
 | **RB** | **Flower picker UP** (issue #75): lifts the flower bar. One move per press. If both bumpers go down on the same loop, UP wins |
 | **LB** | **Flower picker DOWN**: lowers the flower bar, ready to pick a flower. One move per press. Works at any time, also during a volley |
-| **LT** (HOLD) | **WALL SHOT** (issue #9): a dumb shot from a known spot, up against the wall. The turret goes straight ahead (0) and the wheels run at fixed speeds (flywheel 1300, hood wheel 2600 RPM) with no camera and no READY checks. After 1.5 s the gate **OPENS** and the intake runs. Let go and the gate **CLOSES** (with the auto-reverse) and the wheels go to 0 power (unless PRE-REV is on). While LT is held, B and RT do nothing. A still floats the turret. The driver's LT is SLOW MODE, so there is no SOLO MODE copy |
+| **LT** (HOLD) | **WALL SHOT** (issue #9): a dumb shot from a known spot, up against the wall. The turret goes straight ahead (0) and the wheels run at fixed speeds (flywheel 1300, hood wheel 2600 RPM) with no camera and no READY checks. After 1.5 s the gate **OPENS** and the intake runs. Let go and the gate **CLOSES** (with the auto-reverse) and the wheels go to 0 power (pressing LT already turned PRE-REV off). While LT is held, B and RT do nothing. A still floats the turret. The driver's LT is SLOW MODE, so there is no SOLO MODE copy |
 | **Sticks** | Not used. The turret has no manual control, the intake is the driver's, and the shooter wheels cannot be reversed from this OpMode |
 
 **Starts at:** flywheel 1300 RPM, ratio 2.00, so the hood wheel is 2600 RPM. The screen is **minimal** (`FULL_TELEMETRY = false` in `BiobuzzTeleOp.java`): run time, the alliance, drive mode, and the basics for each mechanism (vision, odometry, shooter RPMs, gate, flower picker, intake, turret), plus the firing sequence step and what it is **Waiting for**. **SOLO MODE** and **PRE-REV** show only when ON. Set `FULL_TELEMETRY = true` to get every diagnostic line back (loop time, the dials, **OK to shoot?**, battery, gyro, and so on).
