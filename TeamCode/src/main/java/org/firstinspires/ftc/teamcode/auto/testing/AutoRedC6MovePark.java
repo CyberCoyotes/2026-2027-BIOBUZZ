@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.auto.testing;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
+import org.firstinspires.ftc.teamcode.BiobuzzTeleOp;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
@@ -10,7 +11,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  * Drives to our loading zone and parks.
  * All the code is in BiobuzzAuto. This file only picks the alliance, the start spot and the routine.
  */
-@Autonomous(name = "Red C6 - Move Park", group = "Auto", preselectTeleOp = "TeleOp - Alpha 15")
+@Autonomous(name = "Red C6 - Move Park", group = "Auto - Red", preselectTeleOp = BiobuzzTeleOp.TELEOP_NAME)
 public class AutoRedC6MovePark extends BiobuzzAuto {
     public AutoRedC6MovePark() {
         super(VisionSubsystem.Alliance.RED, StartSpot.FLOWER, Routine.MOVE_PARK);

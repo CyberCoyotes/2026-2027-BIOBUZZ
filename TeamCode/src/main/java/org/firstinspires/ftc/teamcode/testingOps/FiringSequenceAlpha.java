@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.utils.FiringSequence;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
@@ -204,6 +205,9 @@ public class FiringSequenceAlpha extends OpMode {
     private IntakeSubsystem intakeSubsystem;
     private TurretSubsystem turretSubsystem;
     private ShotTable shotTable;
+
+    // Sends this OpMode's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
 
     // PRE-REV: are the wheels being told to spin even though nobody is firing?
     private boolean preRevOn = false;
@@ -416,6 +420,9 @@ public class FiringSequenceAlpha extends OpMode {
         turretSubsystem = new TurretSubsystem(hardwareMap);
         shotTable = new ShotTable();
 
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
+
         telemetry.addData("Status", "Initialized");
         addControlsTelemetry();
     }
@@ -457,6 +464,9 @@ public class FiringSequenceAlpha extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Read sensors. (The shooter, intake and turret read their own encoders in update().)
         visionSubsystem.update();
         intakeSubsystem.update();
@@ -686,6 +696,31 @@ public class FiringSequenceAlpha extends OpMode {
         if (SHOW_CONTROLS_WHILE_RUNNING) {
             addControlsTelemetry();
         }
+
+        // Panels graphs: add this OpMode's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs();
+        panelsGraphs.send();
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names (see
+    // PanelsGraphs), so Panels can graph them. It does nothing on a loop Panels will not send.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs() {
+        if (!panelsGraphs.isFrameOpen()) {
+            return;
+        }
+        panelsGraphs.addShooter(shooterSubsystem, true);
+        panelsGraphs.addFlag("At speed (1=yes)", shooterSubsystem.isFlywheelAtSpeed());
+        panelsGraphs.addTurret(turretSubsystem);
+        panelsGraphs.addVision(visionSubsystem);
+        panelsGraphs.addGate(shooterServoSubsystem);
+        panelsGraphs.addIntake(intakeSubsystem);
+        // Where the volley is. The number is the position in the SequenceState list in FiringSequence.
+        panelsGraphs.add("Sequence step number", firingSequence.getState().ordinal());
+        panelsGraphs.addText("Sequence step", firingSequence.getState().toString());
+        panelsGraphs.addFlag("Intake wanted by sequence (1=yes)",
+                firingSequence.ownsIntake() && firingSequence.wantsIntake());
     }
 
     /*

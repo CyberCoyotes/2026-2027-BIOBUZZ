@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.utils.ShotTable;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 
 /*
@@ -122,6 +123,9 @@ public class ShotTableAlpha extends OpMode {
     private ShooterSubsystem shooterSubsystem;
     private IntakeSubsystem intakeSubsystem;
     private ShotTable shotTable;
+
+    // Sends this OpMode's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
 
     // The dial: the flywheel RPM that Right Trigger shoots at.
     private int dialRpm = DIAL_START_RPM;
@@ -252,6 +256,9 @@ public class ShotTableAlpha extends OpMode {
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
         shotTable = new ShotTable();
 
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
+
         telemetry.addData("Status", "Initialized");
         addControlsTelemetry();
     }
@@ -283,6 +290,9 @@ public class ShotTableAlpha extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Read sensors. (The shooter and the intake read their own encoders inside update().)
         visionSubsystem.update();
         intakeSubsystem.update();
@@ -384,6 +394,28 @@ public class ShotTableAlpha extends OpMode {
         //    (Before START the same map is shown by init() and init_loop().)
         if (SHOW_CONTROLS_WHILE_RUNNING) {
             addControlsTelemetry();
+        }
+
+        // Panels graphs: add this OpMode's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs();
+        panelsGraphs.send();
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names (see
+    // PanelsGraphs), so Panels can graph them. It does nothing on a loop Panels will not send.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs() {
+        if (!panelsGraphs.isFrameOpen()) {
+            return;
+        }
+        panelsGraphs.addShooter(shooterSubsystem, true);
+        panelsGraphs.addFlag("At speed (1=yes)", shooterSubsystem.isFlywheelAtSpeed());
+        panelsGraphs.addVision(visionSubsystem);
+        panelsGraphs.addIntake(intakeSubsystem);
+        // What the shot table says the flywheel should run at from here, to compare with the real RPM.
+        if (visionSubsystem.hasTarget()) {
+            panelsGraphs.add("Table says flywheel RPM", shotTable.getFlywheelRpm(visionSubsystem.getTyDegrees()));
         }
     }
 

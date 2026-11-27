@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.FlowerPickerSubsystem;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 
 /*
  * Alpha-Flower Picker Testing (issue #75)
@@ -68,6 +69,9 @@ public class FlowerPickerAlpha extends OpMode {
     private ElapsedTime runtime = new ElapsedTime();
     private FlowerPickerSubsystem flowerPickerSubsystem;
 
+    // Sends this OpMode's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
+
     // What each button was doing LAST loop. A press lasts many loops, but we want it to count
     // only ONCE. So we only act when it was NOT pressed last loop and IS pressed now.
     private boolean wasRightBumperPressed = false;
@@ -94,6 +98,9 @@ public class FlowerPickerAlpha extends OpMode {
     public void init() {
         // The subsystem gets its own servos from the hardware map, and moves the bar UP.
         flowerPickerSubsystem = new FlowerPickerSubsystem(hardwareMap);
+
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
 
         telemetry.addData("Status", "Initialized");
         addControlsTelemetry();
@@ -123,6 +130,9 @@ public class FlowerPickerAlpha extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Read the gamepad.
         boolean rightBumperPressed = gamepad1.right_bumper;
         boolean leftBumperPressed = gamepad1.left_bumper;
@@ -169,6 +179,21 @@ public class FlowerPickerAlpha extends OpMode {
         if (SHOW_CONTROLS_WHILE_RUNNING) {
             addControlsTelemetry();
         }
+
+        // Panels graphs: add this OpMode's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs();
+        panelsGraphs.send();
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names (see
+    // PanelsGraphs), so Panels can graph them. It does nothing on a loop Panels will not send.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs() {
+        if (!panelsGraphs.isFrameOpen()) {
+            return;
+        }
+        panelsGraphs.addFlowerPicker(flowerPickerSubsystem);
     }
 
     /*

@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.BiobuzzTeleOp;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.subsystems.FlowerPickerSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
@@ -110,7 +111,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
  */
 @Disabled
 @Autonomous(name = "1 Volley Park Mirror - Alpha", group = "Testing",
-        preselectTeleOp = "TeleOp - Alpha 15")
+        preselectTeleOp = BiobuzzTeleOp.TELEOP_NAME)
 public class OneVolleyParkMirrorAlpha extends OpMode {
 
     // ------------------------------------------------------------------

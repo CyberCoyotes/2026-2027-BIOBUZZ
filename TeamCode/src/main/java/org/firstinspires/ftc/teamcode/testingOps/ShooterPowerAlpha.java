@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 
@@ -82,7 +83,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
  * The motor directions are set inside the subsystems, not in this file.
  *
  * HIDDEN FROM THE DRIVER STATION LIST
- *   The shooter now runs on speed control (RPM), and ShooterRPMAlpha and TeleOp - Alpha 15 cover
+ *   The shooter now runs on speed control (RPM), and ShooterRPMAlpha and BiobuzzTeleOp cover
  *   everything this open-loop POWER test did, so this OpMode is @Disabled to keep the list short.
  *   The code is all still here. To bring it back (for example for the raw ticks/sec jitter test
  *   in issue #43), put // in front of the @Disabled line below and redeploy.
@@ -150,6 +151,9 @@ public class ShooterPowerAlpha extends OpMode {
     private ShooterServoSubsystem shooterServoSubsystem;
     private IntakeSubsystem intakeSubsystem;
 
+    // Sends this OpMode's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
+
     // The intake dial in WHOLE percent (50 means 50%). We count in whole numbers so adding 5
     // over and over never drifts to something like 0.4999999.
     private int dialPercent;
@@ -194,6 +198,9 @@ public class ShooterPowerAlpha extends OpMode {
         shooterServoSubsystem = new ShooterServoSubsystem(hardwareMap);
         intakeSubsystem = new IntakeSubsystem(hardwareMap);
 
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
+
         // Start the dial wherever the subsystem starts it, so the number only lives in one place.
         // Math.round gives the nearest whole number (0.5 * 100 = 50).
         dialPercent = (int) Math.round(intakeSubsystem.getIntakePower() * 100);
@@ -229,6 +236,9 @@ public class ShooterPowerAlpha extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Read sensors.
         // (The shooter reads its own encoders inside shooterSubsystem.update(), below.)
         intakeSubsystem.update();
@@ -356,6 +366,25 @@ public class ShooterPowerAlpha extends OpMode {
         if (SHOW_CONTROLS_WHILE_RUNNING) {
             addControlsTelemetry();
         }
+
+        // Panels graphs: add this OpMode's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs();
+        panelsGraphs.send();
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names (see
+    // PanelsGraphs), so Panels can graph them. It does nothing on a loop Panels will not send.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs() {
+        if (!panelsGraphs.isFrameOpen()) {
+            return;
+        }
+        // true = also graph the flywheel's current (amps). It asks the hub, which is fine in a test.
+        panelsGraphs.addShooter(shooterSubsystem, true);
+        panelsGraphs.addFlag("At speed (1=yes)", shooterSubsystem.isFlywheelAtSpeed());
+        panelsGraphs.addGate(shooterServoSubsystem);
+        panelsGraphs.addIntake(intakeSubsystem);
     }
 
     /*

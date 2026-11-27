@@ -9,6 +9,7 @@ import org.firstinspires.ftc.teamcode.utils.BiobuzzLog;
 import org.firstinspires.ftc.teamcode.utils.HiveBearingMemory;
 import org.firstinspires.ftc.teamcode.subsystems.ImuSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.PinpointSubsystem;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 import org.firstinspires.ftc.teamcode.subsystems.PowerMonitorSubsystem;
 
 /*
@@ -86,6 +87,9 @@ public class ImuAlpha extends OpMode {
     private PinpointSubsystem pinpointSubsystem;
     private PowerMonitorSubsystem powerMonitorSubsystem;
 
+    // Sends this OpMode's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
+
     // Used so each button press counts ONCE, no matter how long it is held.
     private boolean wasAPressed = false;
 
@@ -109,6 +113,9 @@ public class ImuAlpha extends OpMode {
         imuSubsystem = new ImuSubsystem(hardwareMap);
         pinpointSubsystem = new PinpointSubsystem(hardwareMap);
         powerMonitorSubsystem = new PowerMonitorSubsystem(hardwareMap);
+
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
 
         telemetry.addData("Status", "Initialized");
         telemetry.addLine("Keep the robot still during INIT (the Pinpoint's gyro is calibrating).");
@@ -144,6 +151,9 @@ public class ImuAlpha extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Read the sensors.
         imuSubsystem.update();
         pinpointSubsystem.update();
@@ -169,6 +179,23 @@ public class ImuAlpha extends OpMode {
         addComparisonTelemetry();
         pinpointSubsystem.addTelemetry(telemetry);
         powerMonitorSubsystem.addTelemetry(telemetry);
+
+        // Panels graphs: add this OpMode's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs();
+        panelsGraphs.send();
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names (see
+    // PanelsGraphs), so Panels can graph them. It does nothing on a loop Panels will not send.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs() {
+        if (!panelsGraphs.isFrameOpen()) {
+            return;
+        }
+        panelsGraphs.addImu(imuSubsystem);
+        panelsGraphs.addPinpoint(pinpointSubsystem);
+        panelsGraphs.add("Battery (V)", powerMonitorSubsystem.getLowestVoltageNow());
     }
 
     /*

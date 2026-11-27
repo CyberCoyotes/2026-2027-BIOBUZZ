@@ -12,6 +12,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.pedro.FieldConstants;
 import org.firstinspires.ftc.teamcode.utils.AutoHandoff;
+import org.firstinspires.ftc.teamcode.utils.PanelsGraphs;
 import org.firstinspires.ftc.teamcode.subsystems.FlowerPickerSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterServoSubsystem;
@@ -276,6 +277,8 @@ public class BiobuzzAuto extends OpMode {
     private VisionSubsystem visionSubsystem;
     private FlowerPickerSubsystem flowerPickerSubsystem;   // null when USE_FLOWER_BAR is false
     private ShotTable shotTable;
+    // Sends this Auto's numbers to Panels (practice graphs). The master switch is in PanelsGraphs.
+    private PanelsGraphs panelsGraphs;
 
     private final PoseFactory poseFactory = PoseFactory.degrees();
 
@@ -390,6 +393,8 @@ public class BiobuzzAuto extends OpMode {
         visionSubsystem = new VisionSubsystem(hardwareMap);
         visionSubsystem.setAlliance(alliance);
         shotTable = new ShotTable();
+        // Panels graphs (the master switch is inside PanelsGraphs). It only LOOKS, it moves nothing.
+        panelsGraphs = new PanelsGraphs();
         if (USE_FLOWER_BAR) {
             // The bar moves UP here. (Rule R103.B allows an Auto to set servos during INIT.)
             flowerPickerSubsystem = new FlowerPickerSubsystem(hardwareMap);
@@ -461,6 +466,9 @@ public class BiobuzzAuto extends OpMode {
      */
     @Override
     public void loop() {
+        // Open this loop's Panels frame. The matching send() is the LAST line of loop().
+        panelsGraphs.beginLoop();
+
         // 1. Read sensors. Pedro must update every loop.
         follower.update();
         visionSubsystem.update();
@@ -675,6 +683,10 @@ public class BiobuzzAuto extends OpMode {
         }
         addRunLogTelemetry();
         addPoseTelemetry();
+
+        // 4. Panels graphs: add this Auto's numbers, then send the frame (the LAST line of loop()).
+        addPanelsGraphs();
+        panelsGraphs.send();
     }
 
     /*
@@ -1158,5 +1170,41 @@ public class BiobuzzAuto extends OpMode {
         Pose pose = follower.pose();
         telemetry.addData("Pose X / Y / heading", "%.1f / %.1f / %.0f",
                 pose.x(), pose.y(), Math.toDegrees(pose.heading()));
+    }
+
+    // ------------------------------------------------------------------
+    // PANELS GRAPH NUMBERS (issue [#138]). Plain numbers with the units in the names (see
+    // PanelsGraphs). Each call returns at once on a loop Panels will not send. There are no
+    // flywheel amps here on purpose: asking the hub for the current costs loop time, and Pedro
+    // wants a fast loop.
+    // ------------------------------------------------------------------
+    private void addPanelsGraphs() {
+        // Where Pedro says the robot is. Pedro's heading is in radians, so turn it into degrees.
+        Pose pose = follower.pose();
+        panelsGraphs.addPose(pose.x(), pose.y(), Math.toDegrees(pose.heading()));
+
+        // How far the robot still has to go on the path it is following. Only asked while Pedro is
+        // really following a path (there is no "end of the path" when it is not).
+        if (follower.isBusy()) {
+            panelsGraphs.add("Distance to end of path (in)", follower.distanceToEndpoint());
+        }
+
+        // Where we are in the routine. The step number is the position in the AutoState list near
+        // the top of this file (0 = SHOT_PAUSE, and DONE is last).
+        panelsGraphs.add("Auto step number", autoState.ordinal());
+        panelsGraphs.addText("Auto step", autoState.toString());
+        panelsGraphs.add("Shot number", shotNumber);
+        panelsGraphs.add("Run time (s)", robotSeconds());
+        panelsGraphs.add("Time in this step (s)", stateTimer.seconds());
+
+        // The shot numbers, only for routines that shoot.
+        if (actionsOn && routine != Routine.MOVE_PARK) {
+            panelsGraphs.addShooter(shooterSubsystem, false);
+            panelsGraphs.addTurret(turretSubsystem);
+            panelsGraphs.addVision(visionSubsystem);
+            panelsGraphs.addGate(shooterServoSubsystem);
+            panelsGraphs.addIntake(intakeSubsystem);
+            panelsGraphs.addFlag("Flywheel ready (1=yes)", flywheelReady);
+        }
     }
 }
